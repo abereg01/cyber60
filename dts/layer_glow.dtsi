@@ -1,0 +1,16 @@
+/*
+ * Layer-glow behavior node. Must exist on BOTH builds under the same name:
+ * the dongle invokes it, the Cyber60 runs it. Included from
+ * config/prospector_dongle.keymap (dongle) and config/cyber60.overlay (keyboard).
+ *
+ * Behaviors invoked on a peripheral need a node name of 8 characters or less.
+ */
+
+/ {
+    behaviors {
+        lglow: lglow {
+            compatible = "zmk,behavior-layer-glow";
+            #binding-cells = <2>;
+        };
+    };
+};

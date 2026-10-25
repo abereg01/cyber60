@@ -1,0 +1,17 @@
+if SHIELD_PROSPECTOR_DONGLE
+
+# Name the computer sees (USB device / Bluetooth).
+config ZMK_KEYBOARD_NAME
+    default "Cyber60"
+
+config ZMK_SPLIT
+    default y
+
+config ZMK_SPLIT_ROLE_CENTRAL
+    default y
+
+# One peripheral: the Cyber60.
+config ZMK_SPLIT_BLE_CENTRAL_PERIPHERALS
+    default 1
+
+endif # SHIELD_PROSPECTOR_DONGLE

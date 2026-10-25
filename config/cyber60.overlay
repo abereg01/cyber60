@@ -1,0 +1,9 @@
+/*
+ * Extra devicetree for the Cyber60 keyboard build (picked up automatically
+ * because the file is named after the board).
+ *
+ * Adds the layer-glow behavior node so the dongle's layer-change calls have
+ * something to land on here. Board files in boards/4pplet/ stay untouched.
+ */
+
+#include <layer_glow.dtsi>

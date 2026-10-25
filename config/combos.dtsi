@@ -1,0 +1,76 @@
+/*
+ * Combos (press two keys together). Timings from the KLOR config: 50 ms to
+ * press both, and only if no key was pressed in the 100 ms before, so normal
+ * typing ("as", "cv"...) doesn't trigger them.
+ *
+ * Only active when BASE or SCROLL is the top layer, so never on GAMING (WASD
+ * would fire A+S / S+D) or while holding Fn/System.
+ *
+ * Positions (Cyber60 rev E):
+ *   A=30 S=31 D=32   LShift=43  X=46 C=47 V=48   RShift=55
+ */
+
+/ {
+    combos {
+        compatible = "zmk,combos";
+
+        // A + S → Ctrl+A (select all)
+        combo_select_all {
+            timeout-ms = <50>;
+            key-positions = <30 31>;
+            bindings = <&kp LC(A)>;
+            require-prior-idle-ms = <100>;
+            layers = <BASE SCROLL>;
+            slow-release;
+        };
+
+        // S + D → Ctrl+S (save)
+        combo_save {
+            timeout-ms = <50>;
+            key-positions = <31 32>;
+            bindings = <&kp LC(S)>;
+            require-prior-idle-ms = <100>;
+            layers = <BASE SCROLL>;
+            slow-release;
+        };
+
+        // X + C → Ctrl+C (copy)
+        combo_copy {
+            timeout-ms = <50>;
+            key-positions = <46 47>;
+            bindings = <&kp LC(C)>;
+            require-prior-idle-ms = <100>;
+            layers = <BASE SCROLL>;
+            slow-release;
+        };
+
+        // C + V → Ctrl+V (paste)
+        combo_paste {
+            timeout-ms = <50>;
+            key-positions = <47 48>;
+            bindings = <&kp LC(V)>;
+            require-prior-idle-ms = <100>;
+            layers = <BASE SCROLL>;
+            slow-release;
+        };
+
+        // X + V → Ctrl+X (cut)
+        combo_cut {
+            timeout-ms = <50>;
+            key-positions = <46 48>;
+            bindings = <&kp LC(X)>;
+            require-prior-idle-ms = <100>;
+            layers = <BASE SCROLL>;
+            slow-release;
+        };
+
+        // Both Shifts → Caps Word (CAPS until the next space/symbol).
+        // No prior-idle guard: you'd normally be mid-typing when you want it.
+        combo_caps_word {
+            timeout-ms = <50>;
+            key-positions = <43 55>;
+            bindings = <&caps_word>;
+            layers = <BASE SCROLL>;
+        };
+    };
+};

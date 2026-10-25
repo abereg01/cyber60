@@ -1,0 +1,50 @@
+/*
+ * Custom behaviors for the Cyber60 keymap.
+ */
+
+// Auto shift: tap = the key, hold for 175 ms = the shifted key (hold 'a' → A,
+// hold '1' → !). It sends Shift+key, so it follows whichever OS layout (EN/SV)
+// is active. Tap then quickly hold (within quick-tap-ms) repeats the plain key,
+// e.g. "ooo". GAMING replaces every AS() key with a plain one.
+#define AS(key) &as LS(key) key
+
+/ {
+    behaviors {
+        as: auto_shift {
+            compatible = "zmk,behavior-hold-tap";
+            #binding-cells = <2>;
+            flavor = "tap-preferred";
+            tapping-term-ms = <175>;
+            quick-tap-ms = <175>;
+            bindings = <&kp>, <&kp>;
+        };
+
+        // Bottom-right corner: double-tap toggles GAMING (it stays the same
+        // key on GAMING, so the same double-tap gets you out again).
+        // Single tap: not decided yet.
+        td_gaming: tap_dance_gaming {
+            compatible = "zmk,behavior-tap-dance";
+            #binding-cells = <0>;
+            tapping-term-ms = <250>;
+            bindings = <&none>, <&tog GAMING>;
+        };
+
+        // Encoder on SCROLL: mouse-wheel scroll (terminal scrollback etc.).
+        // Clockwise = up, same as the KLOR encoders.
+        enc_scroll: encoder_scroll {
+            compatible = "zmk,behavior-sensor-rotate";
+            #sensor-binding-cells = <0>;
+            bindings = <&msc SCRL_UP>, <&msc SCRL_DOWN>;
+        };
+    };
+};
+
+// Mod-taps (Ctrl/Bksp on Caps, Alt/F12, AltGr/F5) behave like QMK's default,
+// as on the M60-A: the mod only kicks in once the key has been held for 200 ms,
+// so rolling from Backspace into the next letter never gives Ctrl+letter.
+// ZMK's default ("hold-preferred") would fire Ctrl as soon as another key goes
+// down. Try "balanced" if quick Ctrl shortcuts feel sluggish.
+&mt {
+    flavor = "tap-preferred";
+    tapping-term-ms = <200>;
+};

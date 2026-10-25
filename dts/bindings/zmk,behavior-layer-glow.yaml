@@ -1,0 +1,9 @@
+description: |
+  Sets the underglow to a colour, or turns it off. Global locality, so when the
+  dongle (central) invokes it, ZMK also runs it on the Cyber60 (peripheral),
+  which is the side with the LEDs.
+  param1 = colour as RGB_COLOR_HSB_VAL(h, s, b), param2 = 1 on / 0 off.
+
+compatible: "zmk,behavior-layer-glow"
+
+include: two_param.yaml

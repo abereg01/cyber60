@@ -1,0 +1,7 @@
+.DS_Store
+firmware/
+build/
+# Password macros: never committed, never built in CI.
+config/secrets/*
+!config/secrets/passwords.example.dtsi
+__pycache__/

@@ -1,0 +1,34 @@
+/*
+ * Cyber60 dongle overlay: XIAO BLE (Prospector) as split central for the
+ * Cyber60. No kscan: key and encoder events arrive from the keyboard over BLE.
+ *
+ * The matrix transform and physical layout come straight from the board
+ * definition, so they always match what the keyboard reports. The physical
+ * layout is also what ZMK Studio draws.
+ *
+ * Display hardware is in the prospector_screen shield.
+ */
+
+#include "../../4pplet/cyber60/cyber60_rev_e-transforms.dtsi"
+#include "../../4pplet/cyber60/cyber60_rev_e-layouts.dtsi"
+
+/ {
+    chosen {
+        zmk,physical-layout = &layout_0;
+    };
+
+    /*
+     * Encoder stub. The dongle has no encoder, but the keymap's
+     * sensor-bindings need a sensors node whose config matches the keyboard's
+     * (cyber60_rev_e.overlay: plain alps,ec11, no steps/triggers set).
+     */
+    encoder: encoder_1 {
+        compatible = "alps,ec11";
+        status = "disabled";
+    };
+
+    sensors: sensors {
+        compatible = "zmk,keymap-sensors";
+        sensors = <&encoder>;
+    };
+};
