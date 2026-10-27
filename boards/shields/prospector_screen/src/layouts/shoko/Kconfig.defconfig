@@ -1,0 +1,20 @@
+if PROSPECTOR_STATUS_SCREEN_SHOKO
+
+config ZMK_DISPLAY_STATUS_SCREEN_CUSTOM
+    select LV_USE_LABEL
+    select LV_USE_IMAGE
+
+config ZMK_WPM
+    default y
+
+# Draw buffers: two of 25% of the screen (2 x 33.6 KB) instead of the shield's
+# 50% (2 x 67.2 KB). The screen still redraws in full during a wipe, in four
+# strips instead of two, and the freed RAM gives LVGL a bigger heap for the
+# scenes' objects and animations.
+config LV_Z_VDB_SIZE
+    default 25
+
+config LV_Z_MEM_POOL_SIZE
+    default 49152
+
+endif

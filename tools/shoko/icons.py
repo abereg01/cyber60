@@ -1,0 +1,197 @@
+"""Draw the Shoko layout's icons and write them as LVGL A8 (alpha-only) images.
+
+A8 images carry only coverage, so the screen tints them with the scene's ink
+colour at draw time (style image_recolor). Each icon is drawn on a unit square
+at 16x size and box-filtered down, which gives clean antialiasing at 20 px.
+
+The modifier icons copy the GMK Shoko icon-mod legends: thin outlined arrows.
+
+Run through tools/shoko/gen-assets.sh (needs Pillow).
+Usage: python3 icons.py <output .c file>
+"""
+
+import sys
+
+from PIL import Image, ImageDraw
+
+SS = 16  # supersampling factor
+
+
+def canvas(w, h):
+    img = Image.new("L", (w * SS, h * SS), 0)
+    return img, ImageDraw.Draw(img)
+
+
+def pts(w, h, points):
+    return [(x * w * SS, y * h * SS) for x, y in points]
+
+
+def stroke(draw, w, h, points, width, closed=False):
+    """Polyline in unit coordinates with round joints and caps."""
+    p = pts(w, h, points)
+    if closed:
+        p = p + [p[0], p[1]]
+    lw = max(1, round(width * w * SS))
+    draw.line(p, fill=255, width=lw, joint="curve")
+    r = lw / 2
+    for x, y in (p[0], p[-1]) if not closed else ():
+        draw.ellipse((x - r, y - r, x + r, y + r), fill=255)
+
+
+def arc(draw, w, h, cx, cy, rad, start, end, width):
+    box = (
+        (cx - rad) * w * SS,
+        (cy - rad) * h * SS,
+        (cx + rad) * w * SS,
+        (cy + rad) * h * SS,
+    )
+    draw.arc(box, start, end, fill=255, width=max(1, round(width * w * SS)))
+
+
+def finish(img, w, h):
+    return img.resize((w, h), Image.BOX)
+
+
+# ── Modifier icons (20x20) ──────────────────────────────────────────────────
+
+SHIFT_ARROW = [
+    (0.50, 0.10), (0.90, 0.52), (0.68, 0.52), (0.68, 0.90),
+    (0.32, 0.90), (0.32, 0.52), (0.10, 0.52),
+]
+
+
+def icon_shift(w=20, h=20):
+    img, d = canvas(w, h)
+    stroke(d, w, h, SHIFT_ARROW, 0.085, closed=True)
+    return finish(img, w, h)
+
+
+def icon_caps_word(w=20, h=20):
+    # ⇪: a shorter shift arrow over a bar.
+    img, d = canvas(w, h)
+    arrow = [(x, 0.06 + (y - 0.10) * 0.78) for x, y in SHIFT_ARROW]
+    stroke(d, w, h, arrow, 0.085, closed=True)
+    stroke(d, w, h, [(0.32, 0.92), (0.68, 0.92)], 0.10)
+    return finish(img, w, h)
+
+
+def icon_ctrl(w=20, h=20):
+    # ⌃
+    img, d = canvas(w, h)
+    stroke(d, w, h, [(0.18, 0.66), (0.50, 0.30), (0.82, 0.66)], 0.10)
+    return finish(img, w, h)
+
+
+def icon_alt(w=20, h=20):
+    # ⌥
+    img, d = canvas(w, h)
+    stroke(d, w, h, [(0.10, 0.30), (0.36, 0.30), (0.64, 0.72), (0.90, 0.72)], 0.09)
+    stroke(d, w, h, [(0.56, 0.30), (0.90, 0.30)], 0.09)
+    return finish(img, w, h)
+
+
+def icon_gui_win(w=20, h=20):
+    # A plain 2x2 window grid (generic, not a vendor logo).
+    img, d = canvas(w, h)
+    s, g, o = 0.36, 0.08, 0.10
+    for cx in (o, o + s + g):
+        for cy in (o, o + s + g):
+            d.rounded_rectangle(
+                pts(w, h, [(cx, cy), (cx + s, cy + s)]), radius=0.06 * w * SS, fill=255
+            )
+    return finish(img, w, h)
+
+
+def icon_gui_mac(w=20, h=20):
+    # ⌘: a square whose corners loop outwards.
+    img, d = canvas(w, h)
+    a, b, r, lw = 0.37, 0.63, 0.15, 0.08
+    stroke(d, w, h, [(a, a - r), (a, b + r)], lw)
+    stroke(d, w, h, [(b, a - r), (b, b + r)], lw)
+    stroke(d, w, h, [(a - r, a), (b + r, a)], lw)
+    stroke(d, w, h, [(a - r, b), (b + r, b)], lw)
+    arc(d, w, h, a - r, a - r, r, 90, 360, lw)
+    arc(d, w, h, b + r, a - r, r, 180, 450, lw)
+    arc(d, w, h, a - r, b + r, r, 0, 270, lw)
+    arc(d, w, h, b + r, b + r, r, 270, 540, lw)
+    return finish(img, w, h)
+
+
+# ── Scene icons ──────────────────────────────────────────────────────────────
+
+def icon_chevron_up(w=22, h=12):
+    img, d = canvas(w, h)
+    stroke(d, w, h, [(0.10, 0.82), (0.50, 0.18), (0.90, 0.82)], 0.12)
+    return finish(img, w, h)
+
+
+def icon_chevron_down(w=22, h=12):
+    return icon_chevron_up(w, h).transpose(Image.FLIP_TOP_BOTTOM)
+
+
+def icon_shift_big(w=26, h=26):
+    return icon_shift(w, h)
+
+
+ICONS = [
+    ("shoko_icon_shift", icon_shift),
+    ("shoko_icon_caps_word", icon_caps_word),
+    ("shoko_icon_ctrl", icon_ctrl),
+    ("shoko_icon_alt", icon_alt),
+    ("shoko_icon_gui_win", icon_gui_win),
+    ("shoko_icon_gui_mac", icon_gui_mac),
+    ("shoko_icon_chevron_up", icon_chevron_up),
+    ("shoko_icon_chevron_down", icon_chevron_down),
+    ("shoko_icon_shift_big", icon_shift_big),
+]
+
+
+def c_image(name, img):
+    w, h = img.size
+    data = img.tobytes()
+    rows = []
+    for y in range(h):
+        row = data[y * w:(y + 1) * w]
+        rows.append("    " + ", ".join(f"0x{v:02x}" for v in row) + ",")
+    return f"""
+static const uint8_t {name}_map[] = {{
+{chr(10).join(rows)}
+}};
+
+const lv_image_dsc_t {name} = {{
+    .header.magic = LV_IMAGE_HEADER_MAGIC,
+    .header.cf = LV_COLOR_FORMAT_A8,
+    .header.w = {w},
+    .header.h = {h},
+    .header.stride = {w},
+    .data_size = sizeof({name}_map),
+    .data = {name}_map,
+}};
+"""
+
+
+def main():
+    out = sys.argv[1]
+    parts = [
+        "/* Generated by tools/shoko/icons.py. Do not edit; rerun tools/shoko/gen-assets.sh. */\n",
+        "#include <lvgl.h>\n",
+    ]
+    for name, fn in ICONS:
+        parts.append(c_image(name, fn()))
+    with open(out, "w") as f:
+        f.write("".join(parts))
+
+    # Contact sheet for eyeballing the icons (not used by the build).
+    if len(sys.argv) > 2:
+        imgs = [fn() for _, fn in ICONS]
+        scale = 8
+        sheet = Image.new("L", (sum(i.width * scale + 16 for i in imgs), 26 * scale + 16), 0)
+        x = 8
+        for i in imgs:
+            sheet.paste(i.resize((i.width * scale, i.height * scale), Image.NEAREST), (x, 8))
+            x += i.width * scale + 16
+        sheet.save(sys.argv[2])
+
+
+if __name__ == "__main__":
+    main()

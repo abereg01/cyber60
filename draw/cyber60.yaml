@@ -1,0 +1,370 @@
+layout: {zmk_keyboard: prospector_dongle}
+layers:
+  BASE:
+  - Esc
+  - '1'
+  - '2'
+  - '3'
+  - '4'
+  - '5'
+  - '6'
+  - '7'
+  - '8'
+  - '9'
+  - '0'
+  - '-'
+  - '='
+  - \
+  - Del
+  - Tab
+  - Q
+  - W
+  - E
+  - R
+  - T
+  - Y
+  - U
+  - I
+  - O
+  - P
+  - '['
+  - ']'
+  - <>|
+  - {t: Bksp, h: Ctrl}
+  - A
+  - S
+  - D
+  - F
+  - G
+  - H
+  - J
+  - K
+  - L
+  - ;
+  - ''''
+  - {type: none}
+  - Enter
+  - Shift
+  - {type: none}
+  - Z
+  - X
+  - C
+  - V
+  - B
+  - N
+  - M
+  - ','
+  - .
+  - /
+  - Shift
+  - {type: none}
+  - {type: none}
+  - {type: none}
+  - {t: F12, h: Alt}
+  - {t: Space, h: FN}
+  - {t: Space, h: FN}
+  - {t: Space, h: FN}
+  - {t: F5, h: AltGr}
+  - SYS
+  - {type: none}
+  - {t: '?', h: 2× GAMING}
+  - {t: Vol, h: SCROLL, s: knob, type: encoder}
+  SCROLL:
+  - {type: trans}
+  - {type: trans}
+  - {type: trans}
+  - {type: trans}
+  - {type: trans}
+  - {type: trans}
+  - {type: trans}
+  - {type: trans}
+  - {type: trans}
+  - {type: trans}
+  - {type: trans}
+  - {type: trans}
+  - {type: trans}
+  - {type: trans}
+  - {type: trans}
+  - {type: trans}
+  - {type: trans}
+  - {type: trans}
+  - {type: trans}
+  - {type: trans}
+  - {type: trans}
+  - {type: trans}
+  - {type: trans}
+  - {type: trans}
+  - {type: trans}
+  - {type: trans}
+  - {type: trans}
+  - {type: trans}
+  - {type: trans}
+  - {type: trans}
+  - {type: trans}
+  - {type: trans}
+  - {type: trans}
+  - {type: trans}
+  - {type: trans}
+  - {type: trans}
+  - {type: trans}
+  - {type: trans}
+  - {type: trans}
+  - {type: trans}
+  - {type: trans}
+  - {type: trans}
+  - {type: trans}
+  - {type: trans}
+  - {type: trans}
+  - {type: trans}
+  - {type: trans}
+  - {type: trans}
+  - {type: trans}
+  - {type: trans}
+  - {type: trans}
+  - {type: trans}
+  - {type: trans}
+  - {type: trans}
+  - {type: trans}
+  - {type: trans}
+  - {type: trans}
+  - {type: trans}
+  - {type: trans}
+  - {type: trans}
+  - {type: trans}
+  - {type: trans}
+  - {type: trans}
+  - {type: trans}
+  - {type: trans}
+  - {type: trans}
+  - {type: trans}
+  - {type: trans}
+  GAMING:
+  - {type: trans}
+  - '1'
+  - '2'
+  - '3'
+  - '4'
+  - '5'
+  - '6'
+  - '7'
+  - '8'
+  - '9'
+  - '0'
+  - '-'
+  - '='
+  - \
+  - {type: trans}
+  - {type: trans}
+  - Q
+  - W
+  - E
+  - R
+  - T
+  - Y
+  - U
+  - I
+  - O
+  - P
+  - '['
+  - ']'
+  - <>|
+  - {type: trans}
+  - A
+  - S
+  - D
+  - F
+  - G
+  - H
+  - J
+  - K
+  - L
+  - ;
+  - ''''
+  - {type: trans}
+  - {type: trans}
+  - {type: trans}
+  - {type: trans}
+  - Z
+  - X
+  - C
+  - V
+  - B
+  - N
+  - M
+  - ','
+  - .
+  - /
+  - {type: trans}
+  - {type: trans}
+  - {type: trans}
+  - {type: trans}
+  - {type: trans}
+  - Space
+  - Space
+  - Space
+  - {type: trans}
+  - {type: trans}
+  - {type: trans}
+  - {type: trans}
+  - {type: trans}
+  FN:
+  - '`'
+  - F1
+  - F2
+  - F3
+  - F4
+  - F5
+  - F6
+  - F7
+  - F8
+  - F9
+  - F10
+  - F11
+  - F12
+  - Home
+  - {type: trans}
+  - {type: trans}
+  - {type: trans}
+  - {type: trans}
+  - {type: trans}
+  - {type: trans}
+  - {type: trans}
+  - {type: trans}
+  - {type: trans}
+  - ↑
+  - {type: trans}
+  - {type: trans}
+  - Home
+  - End
+  - {type: trans}
+  - Caps
+  - Sel all
+  - Save
+  - Mute
+  - Eject
+  - {type: trans}
+  - ←
+  - ↓
+  - ↑
+  - →
+  - {type: trans}
+  - {type: none}
+  - {type: trans}
+  - {type: trans}
+  - {type: trans}
+  - {type: trans}
+  - Undo
+  - Cut
+  - Copy
+  - Paste
+  - {type: trans}
+  - Num +
+  - Num −
+  - End
+  - PgDn
+  - {type: none}
+  - {type: trans}
+  - {type: trans}
+  - {type: trans}
+  - {type: trans}
+  - {type: trans}
+  - {type: held}
+  - {type: trans}
+  - {type: trans}
+  - {type: trans}
+  - {type: trans}
+  - {type: trans}
+  - {type: trans}
+  - {type: trans}
+  SYSTEM:
+  - Reset
+  - {type: trans}
+  - {type: trans}
+  - {type: trans}
+  - {type: trans}
+  - {type: trans}
+  - {type: trans}
+  - {type: trans}
+  - {type: trans}
+  - {type: trans}
+  - {type: trans}
+  - {type: trans}
+  - {type: trans}
+  - {type: trans}
+  - {type: trans}
+  - {type: trans}
+  - {type: trans}
+  - {type: trans}
+  - {type: trans}
+  - {type: trans}
+  - {type: trans}
+  - {type: trans}
+  - {type: trans}
+  - {type: trans}
+  - {type: trans}
+  - {type: trans}
+  - {type: trans}
+  - {type: trans}
+  - {t: PW1, h: SE}
+  - Flash
+  - {type: trans}
+  - Search
+  - {type: trans}
+  - {type: trans}
+  - {type: trans}
+  - {type: trans}
+  - {type: trans}
+  - {type: trans}
+  - {type: trans}
+  - {type: trans}
+  - {type: trans}
+  - {type: trans}
+  - {type: trans}
+  - Studio
+  - {type: trans}
+  - {type: trans}
+  - {type: trans}
+  - {type: trans}
+  - {type: trans}
+  - {t: PW1, h: SE}
+  - {t: PW1, h: SE}
+  - {t: PW2, h: EN}
+  - Prev
+  - Next
+  - Play
+  - {type: trans}
+  - {type: trans}
+  - {type: trans}
+  - {type: trans}
+  - Desk ←
+  - Win+Tab
+  - Win+Tab
+  - Win+Tab
+  - Desk →
+  - {type: trans}
+  - {type: trans}
+  - {type: trans}
+  - {type: trans}
+combos:
+- p: [30, 31]
+  k: Sel all
+  l: [BASE, SCROLL]
+- p: [31, 32]
+  k: Save
+  l: [BASE, SCROLL]
+- p: [46, 47]
+  k: Copy
+  l: [BASE, SCROLL]
+- p: [47, 48]
+  k: Paste
+  l: [BASE, SCROLL]
+- p: [46, 48]
+  k: Cut
+  l: [BASE, SCROLL]
+  a: bottom
+  o: 0.15
+- p: [43, 55]
+  k: Caps Word
+  l: [BASE, SCROLL]
+  a: bottom
+  o: 0.15

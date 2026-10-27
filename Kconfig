@@ -28,7 +28,23 @@ config PROSPECTOR_STATUS_SCREEN_OPERATOR
     help
         Technical and information dense layout
 
+config PROSPECTOR_STATUS_SCREEN_SHOKO
+    bool "Shoko layout"
+    help
+        GMK Shoko colours on white, one full-screen scene per layer with a
+        keycap-row wipe between them, modifier keycap icons and a mini
+        keyboard that mirrors key presses (src/layouts/shoko/).
+
 endchoice
+
+config PROSPECTOR_SHOKO_KEY_ECHO
+    bool "Shoko layout: mirror key presses on the screen"
+    default y
+    depends on PROSPECTOR_STATUS_SCREEN_SHOKO
+    help
+      Light each pressed key on the mini keyboard, drive the WASD display on
+      GAMING and the scroll wheel on SCROLL. The screen then shows where you
+      type, passwords included; turn it off if that matters where it sits.
 
 config PROSPECTOR_ROTATE_DISPLAY_180
     bool "Rotate the display 180 degrees"

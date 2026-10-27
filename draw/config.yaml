@@ -1,0 +1,104 @@
+# keymap-drawer config for draw/cyber60.svg + .png (made by tools/draw.sh).
+#
+# draw/layout.json is the physical layout of this build: all 68 key positions
+# of the rev E board, so combo positions match the keymap. The five without a
+# switch (14 Del slot, 41 ISO #, 44 ISO <>, 60 and 62 split-space parts) are
+# hidden below, and 67 (encoder push) sits where the Del switch would be.
+
+parse_config:
+  trans_legend: {t: "", type: trans}
+
+  raw_binding_map:
+    "&none": {t: "", type: none}
+    "&tog SCROLL": {s: knob, t: Vol, h: SCROLL, type: encoder}  # turn = volume, push = SCROLL
+    "&td_gaming": {t: "?", h: "2× GAMING"}
+    "&mo SYSTEM": SYS
+    "&pw1": {t: PW1, h: SE}
+    "&pw2": {t: PW2, h: EN}
+    "&sys_reset": Reset
+    "&bootloader": Flash
+    "&studio_unlock": Studio
+    "&caps_word": Caps Word
+    "&kp LC(A)": Sel all
+    "&kp LC(S)": Save
+    "&kp LC(Z)": Undo
+    "&kp LC(X)": Cut
+    "&kp LC(C)": Copy
+    "&kp LC(V)": Paste
+    "&kp LC(LG(LEFT))": Desk ←
+    "&kp LC(LG(RIGHT))": Desk →
+    "&kp LG(TAB)": Win+Tab
+
+  # Cut (X+V) and Caps Word (both Shifts) span other keys: draw them below the row.
+  zmk_combos:
+    combo_cut: {align: bottom, o: 0.15}
+    combo_caps_word: {align: bottom, o: 0.15}
+
+  # Replaces keymap-drawer's default map, so the symbols are listed too.
+  zmk_keycode_map:
+    ESC: Esc
+    TAB: Tab
+    DEL: Del
+    BSPC: Bksp
+    RET: Enter
+    SPACE: Space
+    CAPS: Caps
+    LCTRL: Ctrl
+    LSHFT: Shift
+    RSHFT: Shift
+    LALT: Alt
+    RALT: AltGr
+    HOME: Home
+    END: End
+    PG_DN: PgDn
+    UP: ↑
+    DOWN: ↓
+    LEFT: ←
+    RIGHT: →
+    C_MUTE: Mute
+    C_EJECT: Eject
+    C_PREV: Prev
+    C_NEXT: Next
+    C_PP: Play
+    C_AC_SEARCH: Search
+    KP_PLUS: Num +
+    KP_MINUS: Num −
+    MINUS: "-"
+    EQUAL: "="
+    BSLH: \
+    NUBS: "<>|"
+    LBKT: "["
+    RBKT: "]"
+    SEMI: ;
+    SQT: "'"
+    COMMA: ","
+    DOT: .
+    FSLH: /
+    GRAVE: "`"
+
+draw_config:
+  append_colon_to_layer_header: false
+  footer_text: "Hold any letter, digit or symbol = shifted · pale = as BASE · grey = nothing yet"
+
+  # Nord, like the KLOR drawing and the Prospector screen. Layer-key colours
+  # match the screen/underglow (display_colors.h).
+  svg_extra_style: |
+    svg.keymap { background-color: #eceff4; font-family: "DejaVu Sans", sans-serif; }
+    rect.key { fill: #2e3440; stroke: none; }
+    text { fill: #eceff4; }
+    text.label, text.footer { fill: #2e3440; stroke: #eceff4; stroke-width: 3; paint-order: stroke; }
+    text.hold { fill: #d8dee9; }
+    .trans rect.key { fill: #d8dee9; }
+    .none rect.key { fill: #4c566a; }
+    .encoder rect.key { fill: #b48ead; }
+    .encoder text { fill: #2e3440; }
+    rect.combo { fill: #5e81ac; stroke: none; }
+    path.combo { stroke: #5e81ac; }
+    .keypos-14, .keypos-41, .keypos-44, .keypos-60, .keypos-62 { display: none; }
+    /* the key that gets you to each layer, in the layer's colour */
+    .layer-FN .keypos-61 rect.key { fill: #a3be8c; }
+    .layer-SYSTEM .keypos-64 rect.key { fill: #88c0d0; }
+    .layer-GAMING .keypos-66 rect.key { fill: #bf616a; }
+    .layer-GAMING text.label { fill: #bf616a; }
+    .layer-FN text.label { fill: #6e8c58; }
+    .layer-SYSTEM text.label { fill: #5e81ac; }

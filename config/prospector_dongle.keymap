@@ -132,24 +132,24 @@
     ┌─────┬────┬────┬────┬────┬────┬────┬────┬────┬────┬────┬────┬────┬────┬────┐
     │Reset│    │    │    │    │    │    │    │    │    │    │    │    │    │    │
     ├─────┴─┬──┴─┬──┴─┬──┴─┬──┴─┬──┴─┬──┴─┬──┴─┬──┴─┬──┴─┬──┴─┬──┴─┬──┴─┬──┴────┤
-    │       │    │    │    │    │    │    │    │    │    │    │    │    │       │
+    │       │    │    │    │    │    │    │    │    │    │    │    │    │ PW1   │
     ├───────┴┬───┴┬───┴┬───┴┬───┴┬───┴┬───┴┬───┴┬───┴┬───┴┬───┴┬───┴┬───┴───────┤
     │ Flash  │    │Srch│    │    │    │    │    │    │    │    │    │           │
     ├────────┴──┬─┴──┬─┴──┬─┴──┬─┴──┬─┴──┬─┴──┬─┴──┬─┴──┬─┴──┬─┴──┬─┴──────┬───┤
-    │ Studio    │    │    │    │    │    │    │Prev│Next│Play│    │        │   │
+    │ Studio    │    │    │    │    │PW1 │PW1 │PW2 │Prev│Next│Play│        │   │
     ├─────┬─────┼────┴┬───┴────┴────┴────┴────┴────┴──┬─┴───┬┴────┼─────┬──┴───┤
     │     │     │Desk←│           Win+Tab             │Desk→│     │     │      │
     └─────┴─────┴─────┴───────────────────────────────┴─────┴─────┴─────┴──────┘
     Reset/Flash run on the Cyber60 itself: Reset restarts it, Flash puts it in
     bootloader mode (a USB drive appears; drop the keyboard .uf2 on it).
     Studio = unlock ZMK Studio for editing.  Desk←/→ = Ctrl+Win+←/→.
-    Password macros &pw1/&pw2: keys not decided yet (M60-A had them on N and
-    V/B/<>|).                                                                  */
+    PW1/PW2 = password macros &pw1 (Swedish layout) / &pw2 (English layout),
+    on the same keys as the M60-A's layer 3 (<>|, B, N = PW1; M = PW2).        */
             bindings = <
 &sys_reset &trans &trans &trans &trans &trans &trans &trans &trans &trans &trans &trans &trans &trans &trans
-&trans &trans &trans &trans &trans &trans &trans &trans &trans &trans &trans &trans &trans &trans
+&trans &trans &trans &trans &trans &trans &trans &trans &trans &trans &trans &trans &trans &pw1
 &bootloader &trans &kp C_AC_SEARCH &trans &trans &trans &trans &trans &trans &trans &trans &trans &trans &trans
-&studio_unlock &trans &trans &trans &trans &trans &trans &trans &kp C_PREV &kp C_NEXT &kp C_PP &trans &trans &trans
+&studio_unlock &trans &trans &trans &trans &trans &pw1 &pw1 &pw2 &kp C_PREV &kp C_NEXT &kp C_PP &trans &trans
 &trans &trans &kp LC(LG(LEFT)) &kp LG(TAB) &kp LG(TAB) &kp LG(TAB) &kp LC(LG(RIGHT)) &trans &trans &trans
 &trans
             >;
