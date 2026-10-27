@@ -1,0 +1,60 @@
+{
+ "checks": {
+  "module vs keycap": 0.0,
+  "module vs stand": 0.0,
+  "screws vs keycap": -0.0,
+  "screws vs stand": 0.0,
+  "wires vs stand": 0.0,
+  "wires vs base": 0.0,
+  "xiao vs stand": 0.0,
+  "xiao vs base": 0.0,
+  "xiao vs keycap": 0.0,
+  "xiao vs module": 0.0,
+  "xiao vs wires": 0.0,
+  "keycap vs stand": 0.0,
+  "stand vs base": -0.0,
+  "keycap screw access": [
+   {
+    "exits_at_y": 22.3,
+    "hits_stand_mm3": 0.0
+   },
+   {
+    "exits_at_y": 22.3,
+    "hits_stand_mm3": 0.0
+   }
+  ],
+  "base inner depth (y)": 30.5
+ },
+ "overhang_mm2_above_bed": {
+  "keycap": 413.2,
+  "stand": 389.9,
+  "base": 253.9
+ },
+ "size_mm": {
+  "keycap": [
+   51.0,
+   36.4,
+   39.7
+  ],
+  "stand": [
+   53.0,
+   34.9,
+   39.4
+  ],
+  "base": [
+   48.1,
+   32.1,
+   9.5
+  ]
+ },
+ "overall_mm": [
+  53.0,
+  43.1,
+  45.5
+ ],
+ "volume_cm3": {
+  "keycap": 5.5,
+  "stand": 10.5,
+  "base": 3.6
+ }
+}
