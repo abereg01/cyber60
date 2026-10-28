@@ -1,0 +1,53 @@
+# The Pi desk screen's SD card image and update file (pi/), built the same way
+# as pi/image/build.sh does on the OMV box. Runs when pi/ (or the Shoko scene
+# and key files it shares with the Prospector) changes, or by hand.
+#
+# Artifacts of a public repo can be downloaded by anyone with a GitHub
+# account. That's fine here: the image holds no secrets (wifi and the Spotify
+# login are entered on the Pi and stay on it).
+name: Pi image
+
+on:
+  push:
+    paths:
+      - "pi/**"
+      - "boards/shields/prospector_screen/src/layouts/shoko/shoko_theme.h"
+      - "boards/shields/prospector_screen/src/layouts/shoko/shoko_keys.h"
+      - ".github/workflows/pi-image.yml"
+  workflow_dispatch:
+
+jobs:
+  image:
+    runs-on: ubuntu-24.04
+    env:
+      DECK_CACHE: ${{ github.workspace }}/.deck-cache
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Cache base image, LVGL, fonts
+        uses: actions/cache@v4
+        with:
+          path: |
+            .deck-cache/raspios
+            .deck-cache/deps
+            .deck-cache/fonts
+          key: deck-${{ hashFiles('pi/image/base-image.txt', 'pi/tools/fetch-deps.sh') }}
+
+      - name: Build
+        run: pi/image/build.sh
+
+      - name: Image (flash with Raspberry Pi Imager, "Use custom")
+        uses: actions/upload-artifact@v4
+        with:
+          name: deck-image
+          path: pi/build/*.img.xz
+          compression-level: 0
+          retention-days: 14
+
+      - name: Update (copy onto the SD card's bootfs drive)
+        uses: actions/upload-artifact@v4
+        with:
+          name: deck-update
+          path: pi/build/deck-update.tar.gz
+          compression-level: 0
+          retention-days: 14

@@ -1,0 +1,16 @@
+# The desk screen. Starts as early as the boot partition is mounted (the app
+# waits for the display itself) and comes back if it ever stops.
+[Unit]
+Description=Desk screen
+DefaultDependencies=no
+After=local-fs.target systemd-udev-trigger.service
+Conflicts=shutdown.target
+
+[Service]
+ExecStartPre=/opt/deck/deck-update.sh
+ExecStart=/opt/deck/deck
+Restart=always
+RestartSec=2
+
+[Install]
+WantedBy=sysinit.target

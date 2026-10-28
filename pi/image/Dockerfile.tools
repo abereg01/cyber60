@@ -1,0 +1,7 @@
+# Tools for pi/image/build-image.sh (image surgery) and pi/image/build-app.sh
+# (cross-compiling the screen for the Pi's arm64 Raspberry Pi OS Trixie).
+FROM debian:trixie-slim
+RUN dpkg --add-architecture arm64 && apt-get update && apt-get install -y --no-install-recommends \
+        ca-certificates curl xz-utils fdisk e2fsprogs mtools dosfstools util-linux python3 \
+        make crossbuild-essential-arm64 libdrm-dev:arm64 libcurl4-openssl-dev:arm64 \
+    && rm -rf /var/lib/apt/lists/*

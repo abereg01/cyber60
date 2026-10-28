@@ -117,6 +117,13 @@ Open Font License), icons drawn by `tools/shoko/icons.py`.
 `firmware/dongle-operator-20261026.uf2` (the last Operator build, with the
 test passwords).
 
+## Pi desk screen (in progress)
+
+`pi/` is a Raspberry Pi 4 + 7" Touch Display that will replace the Prospector:
+the Shoko screen at 800×480 with a Shiba in the corner that reacts to your
+typing. It reuses `shoko_theme.h` and `shoko_keys.h` from the Shoko layout, so
+changes there show up on both. See `pi/README.md`.
+
 ## Building
 
 CI (GitHub Actions, `build.yaml`) builds everything **without** the password
