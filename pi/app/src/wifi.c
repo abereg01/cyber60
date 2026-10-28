@@ -141,7 +141,7 @@ static void do_status(void) {
                 st.state = WIFI_DISCONNECTED;
             }
             if (st.state >= WIFI_CONNECTING) {
-                snprintf(st.ssid, sizeof(st.ssid), "%s", conn);
+                snprintf(st.ssid, sizeof(st.ssid), "%.32s", conn);
             }
             break;
         }

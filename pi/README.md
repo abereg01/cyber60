@@ -31,14 +31,15 @@ Cyber60 ──Bluetooth──► Pi 4 + 7" ──USB (a plain keyboard)──►
 ## The screen
 
 The Prospector's Shoko screen 1:1 (same scenes, colours, layer wipe, mini
-keyboard), laid out for 800×480, with the bottom-right 192×192 square kept
+keyboard), laid out for 800×480, with the bottom-right 160×160 square kept
 free on every layer for the dog. `app/src/page_keys.c`
 
 ### The dog
 
-A white Shiba Inu in the Shoko colours (slate-pale where a real Shiba is red,
-white "urajiro" cheeks/chest/belly, eyebrow dots, curled tail, aqua collar).
-`app/src/pet.c`
+A white Shiba Inu puppy in the Shoko colours, rendered in 3D: a big round
+head, glossy eyes, pink inner ears, white "urajiro" cheeks, chest and paws,
+the Shiba's white eyebrow dots and a curled tail, with the Shoko slate where a
+real Shiba is red. It lives in the 160×160 square bottom right. `app/src/pet.c`
 
 | What you do | What it does |
 |---|---|
@@ -50,55 +51,30 @@ white "urajiro" cheeks/chest/belly, eyebrow dots, curled tail, aqua collar).
 | Press a key while it sleeps | "!", stretches, gets up |
 | Tap it | Hearts, then a trick (or wakes up) |
 
-Tricks: jump, spin, roll over, play bow, beg, bark.
+Tricks: jump, spin, roll over, play bow, beg (sits up), bark.
 
-The poses are drawn by `tools/dog.py` from joint parameters (body pitch,
-head, ears, tail, legs, eyes, mouth) into a sprite sheet
-`app/assets/dog.png` + its layout `app/src/assets/dog_sheet.h`. To change the
-dog, edit `dog.py` and run `tools/gen-dog.sh`. That also writes
-`draw/dog.png`, a preview of every frame on white and on the GAMING night
-ground. `pet.c` only moves the dog and chains the animations: each thing it
-does is a short list of steps (hold a pose, walk, hop, turn, say something),
-and `think()` picks the next one from the WPM and how long since the last key.
-The timings and thresholds are `#define`s at its top.
-
-## SD card
+**How it's made:** `tools/puppy/puppy.py` is a Blender script. The body is
+metaballs (head, cheeks, muzzle, chest, body, legs), so the parts melt into
+one soft, plush-toy surface. For every pose that surface becomes a mesh,
+coloured per vertex: coat or white, blended the way the metaballs blend. The
+eyes, eyebrow dots, nose, mouth and ears are placed on the head by casting
+rays at it. Each pose is a set of joint parameters (body pitch, head nod/turn/
+tilt, ears, tail wag, legs, eyes, mouth). Every pose is rendered by Cycles
+from one orthographic three-quarter camera with a transparent background.
+`tools/puppy/sheet.py` packs the frames into `app/assets/dog.png` plus its
+layout `app/src/assets/dog_sheet.h`.
 
 ```bash
-pi/image/build.sh          # pi/build/deck-<date>.img.xz + deck-update.tar.gz
-pi/image/build.sh update   # only deck-update.tar.gz
+pi/tools/gen-dog.sh          # everything, ~2 minutes; also draw/dog.png (every frame on white and night)
+pi/tools/gen-dog.sh sit      # only poses starting with "sit", into the cache, for trying things
 ```
 
-Or take the `deck-image` / `deck-update` artifact of the latest **Pi image**
-run on GitHub Actions (`.github/workflows/pi-image.yml`, runs when `pi/`
-changes).
-
-- **New card:** Raspberry Pi Imager → *Choose OS* → *Use custom* → the
-  `.img.xz`. Skip Imager's "OS customisation" (no user, no wifi there: this
-  image has its own).
-- **Update without re-flashing:** copy `deck-update.tar.gz` onto the card's
-  `bootfs` drive. At the next power-on the Pi installs it and deletes the file.
-  Saved wifi stays.
-- **Settings:** `deck.conf` on the `bootfs` drive: `rotate=180` if the picture
-  is upside down, `mac=1` for the ⌘ icon, `demo=0` to stop the self-typing.
-- **What happened:** `deck-log.txt` on the `bootfs` drive (display, touch,
-  wifi, errors, seconds to start). Nobody can log in, so this is the window
-  into the Pi.
-- **Wifi:** swipe left, *SET UP WIFI*, tap the network, type the password on
-  the touch keyboard, ✓. NetworkManager keeps it (on the Pi, root-only) and
-  rejoins at every boot.
-
-How the image is made (`pi/image/`): the official Raspberry Pi OS Lite
-(`base-image.txt`, pinned with its hash) gets `/opt/deck` (the app, built by
-`build-app.sh` with the arm64 cross compiler) and a systemd unit
-(`files/deck.service`, started at sysinit, restarts if it stops). The
-first-boot user wizard, cloud-init, avahi, the ssh switch and the console
-login are switched off, the kernel console moves off the screen, and the
-hostname becomes `deck`. `build-image.sh` does all of this on copies of the
-partitions with mtools and debugfs: no root, no loop devices, no ARM
-emulation, so it runs the same in Docker on OMV and on GitHub's runners. Pi OS
-Lite already has everything the app links against (libdrm, libcurl,
-NetworkManager).
+Blender 4.5 LTS is downloaded once into the cache and runs headless in Docker
+(`tools/puppy/Dockerfile`), on the CPU. `pet.c` only moves the dog and chains
+the animations: each thing it does is a short list of steps (hold a pose,
+walk, hop, turn, say something), and `think()` picks the next one from the WPM
+and how long since the last key. The timings and thresholds are `#define`s at
+its top.
 
 ## Files
 

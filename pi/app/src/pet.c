@@ -5,8 +5,9 @@
  * you're fast, a jump and a bark the first time you pass 80 WPM), and a minute
  * without a key puts it to sleep. Tap it and it does a trick.
  *
- * The poses come from dog.png (pi/tools/dog.py), one row per animation; this
- * file only moves the dog and chains animations. Everything it does is a short
+ * The poses are rendered in 3D (Blender, pi/tools/puppy/puppy.py) into
+ * dog.png, one row per animation; this file only moves the dog and chains
+ * animations. Everything it does is a short
  * list of steps (hold a pose, walk somewhere, hop, turn, say something); when
  * the list runs out, think() picks what's next.
  *
@@ -23,7 +24,8 @@
 #include "src/libs/lodepng/lodepng.h"
 
 #define TICK_MS 33
-#define FEET_INSET 18 // ground line above the square's bottom edge
+#define FEET_INSET 12 // ground line above the square's bottom edge
+#define BODY_W 90     // the puppy's own width inside its (wider) cell
 #define SLEEP_AFTER_MS 60000
 #define RUN_WPM 60
 #define WALK_WPM 25
@@ -74,8 +76,9 @@ static uint32_t rnd(uint32_t n) {
     return n ? rng % n : 0;
 }
 
-static int32_t min_x(void) { return -4; }
-static int32_t max_x(void) { return square - DOG_CELL_W + 4; }
+// The cell's left edge, so the puppy itself stays inside the square.
+static int32_t min_x(void) { return -(DOG_CELL_W - BODY_W) / 2; }
+static int32_t max_x(void) { return square - DOG_CELL_W + (DOG_CELL_W - BODY_W) / 2; }
 
 // ── Steps ────────────────────────────────────────────────────────────────────
 
@@ -212,9 +215,10 @@ static void float_away(lv_obj_t *o, int32_t up, uint32_t ms, uint32_t delay) {
 }
 
 static void say(int what) {
-    // Next to the head: the dog faces right as drawn, its head ~3/4 across.
-    int32_t x = dog.x_mpx / 1000 + (dog.left ? DOG_CELL_W / 5 : DOG_CELL_W * 4 / 5);
-    int32_t y = ground - DOG_FEET_Y - dog.hop + 4;
+    // By the head: the puppy faces right as rendered, its head a little
+    // right of the middle, its ears ~84 px above the ground.
+    int32_t x = dog.x_mpx / 1000 + (dog.left ? DOG_CELL_W * 2 / 5 : DOG_CELL_W * 3 / 5);
+    int32_t y = ground - 84 - dog.hop;
     lv_obj_t *o;
 
     switch (what) {
@@ -255,8 +259,8 @@ static void place(void) {
     int32_t x = dog.x_mpx / 1000;
     lv_obj_set_pos(dog_img, x, ground - DOG_FEET_Y - dog.hop);
 
-    int32_t w = 66 - dog.hop / 2;
-    int32_t body = x + (dog.left ? DOG_CELL_W * 11 / 20 : DOG_CELL_W * 9 / 20); // under the belly
+    int32_t w = 58 - dog.hop / 2;
+    int32_t body = x + DOG_CELL_W / 2; // the ground under the puppy's middle
     lv_obj_set_width(shadow, w);
     lv_obj_set_x(shadow, body - w / 2);
 }
@@ -443,7 +447,7 @@ void pet_create(lv_obj_t *parent, int32_t x, int32_t y, int32_t size, const char
     if (!loaded) {
         return;
     }
-    shadow = box(panel, 0, ground - 6, 66, 12, LV_RADIUS_CIRCLE);
+    shadow = box(panel, 0, ground - 6, 58, 12, LV_RADIUS_CIRCLE);
     dog_img = lv_image_create(panel);
 
     dog.now = lv_tick_get();

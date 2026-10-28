@@ -32,11 +32,11 @@
 #define WPM_MAX 90 // full meter
 #define WPM_BARS 14
 
-#define PET_SIZE 192 // the dog's square, bottom right
+#define PET_SIZE 160 // the dog's square, bottom right
 #define PET_X (SCREEN_W - MARGIN - PET_SIZE)
 #define PET_Y (SCREEN_H - MARGIN - PET_SIZE)
 
-#define MAP_UNIT 36 // mini keyboard: px per 1u key, left of the dog
+#define MAP_UNIT 38 // mini keyboard: px per 1u key, left of the dog
 #define MAP_GAP 4
 #define MAP_W (15 * MAP_UNIT - MAP_GAP)
 #define MAP_H (5 * MAP_UNIT - MAP_GAP)
