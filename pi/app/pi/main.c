@@ -27,16 +27,19 @@
 
 #include "deck.h"
 #include "demo.h"
+#include "spotify.h"
 #include "wifi.h"
 
 #define BOOT "/boot/firmware"
 #define SHARE "/opt/deck/share"
+#define DATA "/var/lib/deck" // the Spotify login (root-only)
 #define LOG_MAX (256 * 1024)
 
 static struct {
     int rotate; // 0 or 180
     bool mac;   // ⌘ instead of the window icon
     bool demo;  // type by itself
+    char spotify_client_id[64];
 } conf = {.demo = true};
 
 // ── Log ──────────────────────────────────────────────────────────────────────
@@ -100,6 +103,8 @@ static void conf_load(const char *path) {
             conf.mac = atoi(val) != 0;
         } else if (!strcmp(key, "demo")) {
             conf.demo = atoi(val) != 0;
+        } else if (!strcmp(key, "spotify_client_id")) {
+            snprintf(conf.spotify_client_id, sizeof(conf.spotify_client_id), "%s", val);
         }
     }
     fclose(f);
@@ -225,6 +230,7 @@ int main(void) {
         return 1;
     }
     wifi_start();
+    spotify_start(conf.spotify_client_id, DATA);
     if (conf.demo) {
         demo_start();
         deck_log("demo: typing by itself (demo=0 in deck.conf turns it off)");

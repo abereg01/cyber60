@@ -2,7 +2,8 @@
 # Fetch the third-party sources the Pi app builds against, pinned, into
 # $DECK_DEPS (default: the deck cache; GitHub Actions points it at its
 # workspace). Prints nothing when they're already there.
-#   lvgl   9.3.0  (MIT)  the UI library, same version as the Prospector's ZMK
+#   lvgl   9.3.0   (MIT)  the UI library, same version as the Prospector's ZMK
+#   cJSON  1.7.18  (MIT)  Spotify's answers
 set -euo pipefail
 
 DEPS=${DECK_DEPS:-${DECK_CACHE:-/srv/mergerfs/pool/docker/appdata/zmk-west/.cache/deck}/deps}
@@ -17,3 +18,4 @@ fetch() { # name url
 }
 
 fetch lvgl-9.3.0 https://github.com/lvgl/lvgl/archive/refs/tags/v9.3.0.tar.gz
+fetch cJSON-1.7.18 https://github.com/DaveGamble/cJSON/archive/refs/tags/v1.7.18.tar.gz

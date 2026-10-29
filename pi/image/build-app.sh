@@ -10,6 +10,7 @@ PI=$(cd "$(dirname "$0")/.." && pwd)
 REPO=$(cd "$PI/.." && pwd)
 CACHE=${DECK_CACHE:?}
 LVGL=$CACHE/deps/lvgl-9.3.0
+CJSON=$CACHE/deps/cJSON-1.7.18
 FONTS=$CACHE/fonts
 OUT=$PI/build
 APP=$PI/app
@@ -17,7 +18,7 @@ SHOKO=$REPO/boards/shields/prospector_screen/src/layouts/shoko
 CC=aarch64-linux-gnu-gcc
 
 CFLAGS=(-O2 -ffunction-sections -fdata-sections -I"$APP" -I"$APP/src" -I"$APP/pi" -I"$LVGL"
-    -I"$SHOKO" -I/usr/include/libdrm -DLV_CONF_INCLUDE_SIMPLE -DLV_LVGL_H_INCLUDE_SIMPLE)
+    -I"$SHOKO" -I"$CJSON" -I/usr/include/libdrm -DLV_CONF_INCLUDE_SIMPLE -DLV_LVGL_H_INCLUDE_SIMPLE)
 
 # Fonts (SIL OFL), the same files the Prospector's assets come from.
 mkdir -p "$FONTS"
@@ -45,9 +46,10 @@ trap 'rm -rf "$S"' EXIT
 mkdir -p "$S/opt-deck/share"
 
 echo "==> building deck"
-$CC "${CFLAGS[@]}" -Wall -Wextra -Wno-unused-parameter -Wno-missing-field-initializers \
-    "$APP"/src/*.c "$APP"/src/assets/*.c "$APP"/pi/*.c "$L/liblvgl.a" \
-    -Wl,--gc-sections -ldrm -lpthread -lm -o "$S/opt-deck/deck"
+# Cutting long strings to fit (snprintf) is meant everywhere: no truncation warnings.
+$CC "${CFLAGS[@]}" -Wall -Wextra -Wno-unused-parameter -Wno-missing-field-initializers -Wno-format-truncation \
+    "$APP"/src/*.c "$APP"/src/assets/*.c "$APP"/pi/*.c "$L/liblvgl.a" "$CJSON/cJSON.c" \
+    -Wl,--gc-sections -ldrm -lcurl -ljpeg -lpthread -lm -o "$S/opt-deck/deck"
 aarch64-linux-gnu-strip "$S/opt-deck/deck"
 install -m 755 "$PI/image/files/deck-update.sh" "$S/opt-deck/"
 install -m 644 "$FONTS"/*.ttf "$APP/assets/dog.png" "$S/opt-deck/share/"

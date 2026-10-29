@@ -2,8 +2,9 @@
  * Render the Pi desk screen on a PC: runs pi/app/src against real LVGL with a
  * fake clock and a scripted finger, plays a session (typing at rising speed,
  * modifiers, every layer, the encoder, gaming, petting the dog, a minute away
- * from the keyboard and back, then the Spotify page and wifi setup with
- * made-up networks from wifi_fake.c) and writes named stills as PPM into <out dir>,
+ * from the keyboard and back, then the Spotify page (login, player, lists,
+ * settings) and wifi setup, with made-up data from spotify_fake.c and
+ * wifi_fake.c) and writes named stills as PPM into <out dir>,
  * plus every frame at 30 fps as raw RGB565 on stdout for ffmpeg.
  * pi/tools/preview.sh builds and runs it.
  *
@@ -16,6 +17,7 @@
 
 #include "deck.h"
 #include "lvgl.h"
+#include "spotify.h"
 
 #define W 800
 #define H 480
@@ -182,6 +184,7 @@ int main(int argc, char **argv) {
         return 1;
     }
     lv_screen_load(screen);
+    spotify_start("preview", "/tmp");
     deck_set_battery(-1, false);
     run(400);
     deck_set_battery(87, true);
@@ -307,13 +310,49 @@ int main(int argc, char **argv) {
     run(900);
     still("9-generic-capsword-lowbatt");
 
-    // The Spotify page, and setting up wifi on it.
+    // The Spotify page: the QR login, then (the fake logs in after 3 s) the player.
     swipe(680, 160, 300, 220);
     run(700);
-    still("10-spotify");
-    touch(174, 404, 100); // SET UP WIFI
+    still("10-spotify-login");
+    run(3200);
+    still("11-spotify-player");
+    touch(740, 50, 80); // like
+    run(150);
+    touch(346, 288, 80); // shuffle
+    run(150);
+    touch(742, 288, 80); // repeat
+    run(400);
+    still("12-spotify-controls");
+    touch(637, 183, 80); // seek to ~70%
+    run(300);
+    touch(544, 288, 80); // pause
+    run(400);
+    still("13-spotify-paused");
+    touch(126, 416, 80); // LIBRARY
+    run(800);
+    still("14-library");
+    touch(704, 128, 80); // ALBUMS
+    run(800);
+    still("15-library-albums");
+    touch(400, 218, 80); // play the first album
+    run(600);
+    touch(324, 416, 80); // QUEUE
+    run(800);
+    still("16-queue");
+    touch(706, 56, 80); // BACK
+    run(300);
+    touch(522, 416, 80); // DEVICES
+    run(800);
+    still("17-devices");
+    touch(400, 276, 80); // the phone
+    run(600);
+    still("18-spotify-on-phone");
+    touch(736, 416, 80); // the gear
+    run(500);
+    still("19-settings");
+    touch(204, 208, 100); // WIFI
     run(1400);
-    still("11-wifi-list");
+    still("20-wifi-list");
     touch(400, 176, 100); // the first network
     run(500);
     static const int32_t keys[][2] = {{526, 342}, {121, 293}, {706, 342}, {596, 342}, {596, 342}};
@@ -321,12 +360,12 @@ int main(int argc, char **argv) {
         touch(keys[i][0], keys[i][1], 70);
         run(160);
     }
-    still("12-wifi-password");
+    still("21-wifi-password");
     touch(750, 447, 100); // the tick
     run(600);
-    still("13-wifi-connecting");
+    still("22-wifi-connecting");
     run(2500);
-    still("14-spotify-connected");
+    still("23-spotify-back");
 
     fprintf(stderr, "%d frames\n", frames);
     return 0;

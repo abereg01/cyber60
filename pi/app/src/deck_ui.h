@@ -20,6 +20,8 @@ extern struct deck_fonts deck_font;
 void keys_page_create(lv_obj_t *page, const enum deck_mod order[DECK_MOD_COUNT], bool mac,
                       const char *share);
 void spotify_page_create(lv_obj_t *page);
+void spotify_lists_open(int which); // enum sp_list; SP_LIST_ALBUMS opens the library on albums
+void spotify_settings_open(void);
 void wifi_ui_open(void); // the wifi setup screen, over everything
 
 // dir/file read into memory (malloc), or NULL.
@@ -121,4 +123,9 @@ struct button {
 void button_create(struct button *b, lv_obj_t *parent, int32_t x, int32_t y, int32_t w, int32_t h,
                    const char *s, const lv_font_t *font, const struct cap_colors *col,
                    void (*fn)(void *arg), void *arg);
+// The same with an icon (A8, tinted with the legend colour) for a legend.
+void button_create_icon(struct button *b, lv_obj_t *parent, int32_t x, int32_t y, int32_t w,
+                        int32_t h, const lv_image_dsc_t *img, const struct cap_colors *col,
+                        void (*fn)(void *arg), void *arg);
+void button_set_icon(struct button *b, const lv_image_dsc_t *img);
 void button_set_colors(struct button *b, const struct cap_colors *col);

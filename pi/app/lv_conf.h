@@ -28,6 +28,7 @@
 #define LV_TINY_TTF_FILE_SUPPORT 0
 #define LV_TINY_TTF_CACHE_GLYPH_CNT 256
 #define LV_USE_LODEPNG 1 // the dog's sprite sheet
+#define LV_USE_QRCODE 1  // the Spotify login
 /* The touch keyboard's ⌫ ✓ keys are LVGL symbols, which only the built-in
  * Montserrat has: the UI font falls back to it. */
 #define LV_FONT_MONTSERRAT_22 1

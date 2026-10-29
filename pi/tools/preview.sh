@@ -2,7 +2,7 @@
 # Render the Pi desk screen on this box, without a Pi: compiles the real screen
 # code (pi/app/src + assets) against LVGL, plays the session scripted in
 # pi/app/preview/main.c and writes
-#   pi/draw/*.png      stills (scenes, the dog, the Spotify page, wifi setup)
+#   pi/draw/*.png      stills (scenes, the dog, Spotify: login, player, lists, wifi setup)
 #   pi/draw/deck.mp4   the whole session at 30 fps
 #
 # Usage: pi/tools/preview.sh [win|mac]   (modifier icon style, default win)
@@ -41,9 +41,11 @@ if [ ! -f "$B/liblvgl.a" ] || [ "$APP/lv_conf.h" -nt "$B/liblvgl.a" ] ||
 fi
 
 echo "==> building preview"
-# The app's code minus wifi.c (preview/wifi_fake.c stands in: OMV has no wifi).
-SRCS=$(ls "$APP"/src/*.c | grep -v '/wifi\.c$')
-gcc "${CFLAGS[@]}" "$APP/preview/main.c" "$APP/preview/wifi_fake.c" $SRCS "$APP"/src/assets/*.c \
+# The app's code minus wifi.c and spotify.c: preview/wifi_fake.c and
+# spotify_fake.c stand in (OMV has no wifi; the preview shows made-up music).
+SRCS=$(ls "$APP"/src/*.c | grep -vE '/(wifi|spotify)\.c$')
+gcc "${CFLAGS[@]}" "$APP/preview/main.c" "$APP/preview/wifi_fake.c" "$APP/preview/spotify_fake.c" $SRCS \
+    "$APP"/src/assets/*.c \
     "$B/liblvgl.a" -lm -o "$B/preview"
 
 mkdir -p "$SHARE"

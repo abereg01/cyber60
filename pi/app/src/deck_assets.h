@@ -19,5 +19,20 @@ LV_IMAGE_DECLARE(deck_icon_shift_big);
 // The dog's hearts.
 LV_IMAGE_DECLARE(deck_icon_heart);
 
+// Spotify.
+LV_IMAGE_DECLARE(deck_icon_play);
+LV_IMAGE_DECLARE(deck_icon_pause);
+LV_IMAGE_DECLARE(deck_icon_next);
+LV_IMAGE_DECLARE(deck_icon_prev);
+LV_IMAGE_DECLARE(deck_icon_shuffle);
+LV_IMAGE_DECLARE(deck_icon_repeat);
+LV_IMAGE_DECLARE(deck_icon_repeat_one);
+LV_IMAGE_DECLARE(deck_icon_heart_line);
+LV_IMAGE_DECLARE(deck_icon_heart_full);
+LV_IMAGE_DECLARE(deck_icon_gear);
+LV_IMAGE_DECLARE(deck_icon_computer);
+LV_IMAGE_DECLARE(deck_icon_phone);
+LV_IMAGE_DECLARE(deck_icon_speaker);
+
 // The dog itself is a PNG sprite sheet loaded at runtime (pet.c); its layout is
 // in assets/dog_sheet.h (pi/tools/gen-dog.sh).

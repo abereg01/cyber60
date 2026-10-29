@@ -11,6 +11,7 @@
 #include <stdlib.h>
 
 #include "shoko_theme.h"
+#include "spotify.h"
 
 struct deck_fonts deck_font;
 
@@ -70,16 +71,34 @@ static void button_event(lv_event_t *e) {
     cap_paint(&b->cap, b->col);
 }
 
-void button_create(struct button *b, lv_obj_t *parent, int32_t x, int32_t y, int32_t w, int32_t h,
-                   const char *s, const lv_font_t *font, const struct cap_colors *col,
-                   void (*fn)(void *arg), void *arg) {
-    cap_create(&b->cap, parent, x, y, w, h, 16, NULL, s, font);
+static void button_init(struct button *b, int32_t x, int32_t y, int32_t w, int32_t h,
+                        lv_obj_t *parent, const lv_image_dsc_t *img, const char *s,
+                        const lv_font_t *font, const struct cap_colors *col, void (*fn)(void *arg),
+                        void *arg) {
+    cap_create(&b->cap, parent, x, y, w, h, 16, img, s, font);
     b->col = col;
     b->fn = fn;
     b->arg = arg;
     lv_obj_add_flag(b->cap.obj, LV_OBJ_FLAG_CLICKABLE);
     lv_obj_add_event_cb(b->cap.obj, button_event, LV_EVENT_ALL, b);
     cap_paint(&b->cap, col);
+}
+
+void button_create(struct button *b, lv_obj_t *parent, int32_t x, int32_t y, int32_t w, int32_t h,
+                   const char *s, const lv_font_t *font, const struct cap_colors *col,
+                   void (*fn)(void *arg), void *arg) {
+    button_init(b, x, y, w, h, parent, NULL, s, font, col, fn, arg);
+}
+
+void button_create_icon(struct button *b, lv_obj_t *parent, int32_t x, int32_t y, int32_t w,
+                        int32_t h, const lv_image_dsc_t *img, const struct cap_colors *col,
+                        void (*fn)(void *arg), void *arg) {
+    button_init(b, x, y, w, h, parent, img, NULL, NULL, col, fn, arg);
+}
+
+void button_set_icon(struct button *b, const lv_image_dsc_t *img) {
+    lv_image_set_src(b->cap.legend, img);
+    lv_obj_center(b->cap.legend);
 }
 
 void button_set_colors(struct button *b, const struct cap_colors *col) {
@@ -140,6 +159,12 @@ static lv_obj_t *tile(lv_obj_t *tv, uint8_t col, lv_dir_t dir) {
     return t;
 }
 
+static lv_obj_t *spotify_tile;
+
+static void page_turned(lv_event_t *e) {
+    spotify_visible(lv_tileview_get_tile_active(lv_event_get_target(e)) == spotify_tile);
+}
+
 bool deck_create(lv_obj_t *screen, const char *share, const enum deck_mod order[DECK_MOD_COUNT],
                  bool mac) {
     if (!fonts_load(share)) {
@@ -153,6 +178,8 @@ bool deck_create(lv_obj_t *screen, const char *share, const enum deck_mod order[
     lv_obj_set_scrollbar_mode(tv, LV_SCROLLBAR_MODE_OFF);
 
     keys_page_create(tile(tv, 0, LV_DIR_RIGHT), order, mac, share);
-    spotify_page_create(tile(tv, 1, LV_DIR_LEFT));
+    spotify_tile = tile(tv, 1, LV_DIR_LEFT);
+    spotify_page_create(spotify_tile);
+    lv_obj_add_event_cb(tv, page_turned, LV_EVENT_VALUE_CHANGED, NULL);
     return true;
 }
