@@ -10,6 +10,10 @@ deck-update.tar.gz   Drop a new version here (from pi/image/build.sh or the
                      deletes the file. Saved wifi networks stay.
 deck-update.log      When an update was installed.
 
+Easier: plug the Pi's USB-C port into a computer. It shows up as a drive
+called DECK: drop deck-update.tar.gz or an edited deck.conf on it and eject
+it. The screen restarts with it, no reboot (README.txt on DECK).
+
 Nobody can log in to this Pi; there is no user and no SSH. Wifi is set up on
 the touch screen (swipe left, SET UP WIFI). Source:
 https://github.com/abereg01/cyber60 (folder pi/).

@@ -2,7 +2,7 @@
 
 The Prospector's Shoko icons (tools/shoko/icons.py) at this screen's sizes,
 plus the Spotify page's icons drawn the same way (thin outlines with round
-joints, like the GMK Shoko icon-mod legends) and the dog's filled heart.
+joints, like the GMK Shoko icon-mod legends).
 
 Run through pi/tools/gen-icons.sh (needs Pillow).
 Usage: python3 deck_icons.py <dir of tools/shoko/icons.py> <output .c> [sheet.png]
@@ -136,18 +136,6 @@ def icon_speaker(w=36, h=36):
     return finish(img, w, h)
 
 
-# ── The dog's heart ─────────────────────────────────────────────────────────
-
-def icon_heart(w=22, h=20):
-    img, d = canvas(w, h)
-    k = SS
-    d.ellipse((0, 0, 0.56 * w * k, 0.6 * h * k), fill=255)
-    d.ellipse((0.44 * w * k, 0, w * k, 0.6 * h * k), fill=255)
-    d.polygon([(0.03 * w * k, 0.4 * h * k), (0.5 * w * k, h * k), (0.97 * w * k, 0.4 * h * k),
-               (0.5 * w * k, 0.25 * h * k)], fill=255)
-    return finish(img, w, h)
-
-
 ICONS = [
     # Shoko icons, twice the Prospector's size (it drew them at 20 px).
     ("deck_icon_shift", lambda: shoko.icon_shift(40, 40)),
@@ -159,7 +147,6 @@ ICONS = [
     ("deck_icon_chevron_up", lambda: shoko.icon_chevron_up(44, 24)),
     ("deck_icon_chevron_down", lambda: shoko.icon_chevron_down(44, 24)),
     ("deck_icon_shift_big", lambda: shoko.icon_shift(52, 52)),
-    ("deck_icon_heart", icon_heart),
     ("deck_icon_play", icon_play),
     ("deck_icon_pause", icon_pause),
     ("deck_icon_next", icon_next),

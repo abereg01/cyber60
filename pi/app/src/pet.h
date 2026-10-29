@@ -1,14 +1,13 @@
 #pragma once
 
-// The Shiba in the bottom-right square of the keyboard page (pet.c).
+// The corgi puppy in the bottom-right square of the keyboard page (pet.c).
 
 #include <lvgl.h>
 #include <stdint.h>
 
 struct pet_colors {
-    uint32_t panel;  // the square
-    uint32_t ink;    // "Z", "ワン!"
-    uint32_t accent; // hearts
+    uint32_t panel; // the square
+    uint32_t ink;   // "Z", "ワン!", "すき!"
 };
 
 // share: directory with dog.png (pi/tools/gen-dog.sh); without it the square

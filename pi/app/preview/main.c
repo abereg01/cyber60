@@ -1,10 +1,11 @@
 /*
  * Render the Pi desk screen on a PC: runs pi/app/src against real LVGL with a
  * fake clock and a scripted finger, plays a session (typing at rising speed,
- * modifiers, every layer, the encoder, gaming, petting the dog, a minute away
- * from the keyboard and back, then the Spotify page (login, player, lists,
- * settings) and wifi setup, with made-up data from spotify_fake.c and
- * wifi_fake.c) and writes named stills as PPM into <out dir>,
+ * modifiers, every layer, the encoder, gaming, tapping the puppy (love, the top
+ * hat, a squee, a backflip), time away from the keyboard (reading, a peek over
+ * the book, TV, bed) and back, then the Spotify page (login, player, lists,
+ * settings), wifi setup (with made-up data from spotify_fake.c and
+ * wifi_fake.c) and the DECK drive's notices) and writes named stills as PPM into <out dir>,
  * plus every frame at 30 fps as raw RGB565 on stdout for ffmpeg.
  * pi/tools/preview.sh builds and runs it.
  *
@@ -282,24 +283,53 @@ int main(int argc, char **argv) {
     deck_set_wpm(40);
     run(900);
 
-    // Slow typing: the dog calms down. Then pet it.
+    // Slow typing: the puppy calms down. Then tap it: love, a trick (the top
+    // hat), a squee, another trick (a backflip).
     type(2500, 40, 12);
     deck_set_wpm(12);
     run(2500);
     touch(680, 380, 80);
-    run(450);
+    run(1500);
     still("6-petted");
-    run(3500);
+    run(2300);
+    touch(680, 380, 80);
+    run(1450);
+    still("6a-hat");
+    run(4000);
+    touch(680, 380, 80);
+    run(520);
+    still("6b-squee");
+    run(2400);
+    touch(680, 380, 80);
+    run(560);
+    still("6c-backflip");
+    run(2200);
 
-    // A minute away from the keyboard: it lies down and falls asleep.
+    // Away from the keyboard: after 20 s it reads on the sofa, and a tap makes
+    // it peek over the book. A key brings it back (poof); the next time it
+    // watches TV, and after two minutes it goes to bed.
     deck_set_wpm(0);
-    skip(62000);
-    run(5000);
+    skip(21000);
+    run(3500);
+    still("7a-reading");
+    touch(680, 380, 80);
+    run(800);
+    still("7b-peek");
+    run(2000);
+    tap(30, 60);
+    run(260);
+    still("7c-poof");
+    run(2600);
+    skip(21000);
+    run(3500);
+    still("7d-tv");
+    skip(100000);
+    run(4000);
     still("7-asleep");
 
     // A key wakes it up.
     tap(30, 60);
-    run(600);
+    run(900);
     still("8-waking");
     run(2500);
 
@@ -366,6 +396,17 @@ int main(int argc, char **argv) {
     still("22-wifi-connecting");
     run(2500);
     still("23-spotify-back");
+
+    // The DECK drive: reading it, then the restarted screen's notice.
+    swipe(160, 680, 300, 220);
+    run(900);
+    deck_notice("Reading DECK...", 0);
+    run(700);
+    still("24-drive-reading");
+    deck_notice("Updated · 2026-10-29 14:02 omv", 5000);
+    run(700);
+    still("25-drive-updated");
+    run(5000);
 
     fprintf(stderr, "%d frames\n", frames);
     return 0;

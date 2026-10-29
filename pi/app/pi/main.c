@@ -4,7 +4,8 @@
  * NetworkManager. Until the keyboard link exists, demo.c types by itself.
  *
  * Nobody logs in to this Pi, so everything you'd look at is on the SD card's
- * boot partition, which any computer can read:
+ * boot partition, which any computer can read (and the DECK drive shows
+ * copies, deck-drive.sh):
  *   /boot/firmware/deck.conf      settings (key=value, see the file)
  *   /boot/firmware/deck-log.txt   what happened at the last start
  *
@@ -20,6 +21,7 @@
 #include <stdlib.h>
 #include <string.h>
 #include <sys/ioctl.h>
+#include <sys/stat.h>
 #include <time.h>
 #include <unistd.h>
 #include <xf86drm.h>
@@ -31,7 +33,9 @@
 #include "wifi.h"
 
 #define BOOT "/boot/firmware"
-#define SHARE "/opt/deck/share"
+#define OPT "/opt/deck"
+#define SHARE OPT "/share"
+#define RUN "/run/deck"     // what the DECK drive (deck-drive.sh) and the screen tell each other
 #define DATA "/var/lib/deck" // the Spotify login (root-only)
 #define LOG_MAX (256 * 1024)
 
@@ -201,6 +205,52 @@ static void input_found(lv_indev_t *indev, lv_evdev_type_t type, void *arg) {
     deck_log("touch: found");
 }
 
+// ── The DECK drive ───────────────────────────────────────────────────────────
+// deck-drive.sh restarts the screen after an update and waits for RUN/ready;
+// it leaves RUN/notice for the new screen to show ("Updated · …") and keeps
+// RUN/drive-busy while it reads the drive.
+
+static void version_load(char *v, size_t size) {
+    FILE *f = fopen(OPT "/VERSION", "r");
+    if (!f || !fgets(v, (int)size, f)) {
+        snprintf(v, size, "unknown");
+    }
+    v[strcspn(v, "\n")] = '\0';
+    if (f) {
+        fclose(f);
+    }
+}
+
+static void drive_ready(void) {
+    mkdir(RUN, 0755);
+    FILE *f = fopen(RUN "/ready", "w");
+    if (f) {
+        fclose(f);
+    }
+    f = fopen(RUN "/notice", "r");
+    if (!f) {
+        return;
+    }
+    char line[128];
+    if (fgets(line, sizeof(line), f)) {
+        line[strcspn(line, "\n")] = '\0';
+        deck_notice(line, 5000);
+        deck_log("notice: %s", line);
+    }
+    fclose(f);
+    unlink(RUN "/notice");
+}
+
+static void drive_busy(lv_timer_t *t) {
+    (void)t;
+    static bool shown;
+    bool busy = access(RUN "/drive-busy", F_OK) == 0;
+    if (busy != shown) {
+        shown = busy;
+        deck_notice(busy ? "Reading DECK..." : NULL, 0);
+    }
+}
+
 // ── Main ─────────────────────────────────────────────────────────────────────
 
 static uint32_t tick_ms(void) {
@@ -211,7 +261,9 @@ static uint32_t tick_ms(void) {
 
 int main(void) {
     log_file = fopen(BOOT "/deck-log.txt", "w");
-    deck_log("deck starting");
+    char version[64];
+    version_load(version, sizeof(version));
+    deck_log("deck %s starting", version);
     conf_load(BOOT "/deck.conf");
 
     lv_init();
@@ -236,6 +288,8 @@ int main(void) {
         deck_log("demo: typing by itself (demo=0 in deck.conf turns it off)");
     }
     deck_log("up after %.1f s", uptime());
+    drive_ready();
+    lv_timer_create(drive_busy, 500, NULL);
 
     for (;;) {
         uint32_t idle = lv_timer_handler();

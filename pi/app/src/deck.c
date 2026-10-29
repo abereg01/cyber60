@@ -147,6 +147,67 @@ static bool fonts_load(const char *dir) {
     return true;
 }
 
+// ── Notices ──────────────────────────────────────────────────────────────────
+
+#define NOTICE_H 52
+#define NOTICE_Y 14
+
+static lv_obj_t *notice_obj;
+static lv_timer_t *notice_timer;
+
+static void notice_y(void *o, int32_t y) { lv_obj_set_y(o, y); }
+
+static void notice_slide(lv_obj_t *o, int32_t to, uint32_t ms, lv_anim_path_cb_t path,
+                         lv_anim_completed_cb_t done) {
+    lv_anim_t a;
+    lv_anim_init(&a);
+    lv_anim_set_var(&a, o);
+    lv_anim_set_exec_cb(&a, notice_y);
+    lv_anim_set_values(&a, lv_obj_get_y(o), to);
+    lv_anim_set_duration(&a, ms);
+    lv_anim_set_path_cb(&a, path);
+    lv_anim_set_completed_cb(&a, done);
+    lv_anim_start(&a);
+}
+
+static void notice_hide(void) {
+    if (notice_timer) {
+        lv_timer_delete(notice_timer);
+        notice_timer = NULL;
+    }
+    if (notice_obj) {
+        lv_anim_delete(notice_obj, notice_y);
+        notice_slide(notice_obj, -NOTICE_H, 200, lv_anim_path_ease_in, lv_obj_delete_anim_completed_cb);
+        notice_obj = NULL;
+    }
+}
+
+static void notice_expired(lv_timer_t *t) {
+    (void)t;
+    notice_timer = NULL; // a one-shot timer deletes itself
+    notice_hide();
+}
+
+void deck_notice(const char *text, uint32_t ms) {
+    notice_hide();
+    if (!text) {
+        return;
+    }
+    lv_point_t size;
+    lv_text_get_size(&size, text, deck_font.ui_22, 0, 0, LV_COORD_MAX, LV_TEXT_FLAG_NONE);
+    int32_t w = size.x + 56;
+    struct cap c;
+    cap_create(&c, lv_layer_top(), (SCREEN_W - w) / 2, -NOTICE_H, w, NOTICE_H, 16, NULL, text,
+               deck_font.ui_22);
+    cap_paint(&c, &cap_mod);
+    notice_obj = c.obj;
+    notice_slide(notice_obj, NOTICE_Y, 320, lv_anim_path_overshoot, NULL);
+    if (ms) {
+        notice_timer = lv_timer_create(notice_expired, ms, NULL);
+        lv_timer_set_repeat_count(notice_timer, 1);
+    }
+}
+
 // ── Pages ────────────────────────────────────────────────────────────────────
 
 static lv_obj_t *tile(lv_obj_t *tv, uint8_t col, lv_dir_t dir) {

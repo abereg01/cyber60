@@ -4,49 +4,101 @@
 #include <stdbool.h>
 #include <stdint.h>
 
-// dog.png: one row per animation, frames left to right, each a
-// DOG_CELL_W x DOG_CELL_H cell with the ground under the puppy's middle at
-// (DOG_CELL_W / 2, DOG_FEET_Y). Rendered facing right.
-#define DOG_CELL_W 108
-#define DOG_CELL_H 116
-#define DOG_FEET_Y 108
+// dog.png: one strip per animation, frames left to right. Sprites are
+// DOG_CELL_W x DOG_CELL_H with the ground under the puppy's middle at
+// (DOG_CELL_W / 2, DOG_FEET_Y), rendered facing right. Scenes fill the whole
+// square (DOG_SCENE_W x DOG_SCENE_H). The effects strip is at DOG_FX_Y.
+#define DOG_CELL_W 128
+#define DOG_CELL_H 128
+#define DOG_FEET_Y 116
+#define DOG_SCENE_W 160
+#define DOG_SCENE_H 160
+#define DOG_FX_W 64
+#define DOG_FX_H 64
+#define DOG_FX_Y 3744
+#define DOG_SHEET_W 1024
+#define DOG_SHEET_H 3808
 
 enum dog_anim {
     DOG_IDLE,
+    DOG_WAG,
     DOG_WALK,
     DOG_RUN,
     DOG_SIT,
-    DOG_LIE,
-    DOG_SLEEP,
     DOG_CROUCH,
     DOG_JUMP_UP,
     DOG_JUMP_DOWN,
+    DOG_FLIP,
     DOG_ROLL,
     DOG_BOW,
     DOG_BEG,
+    DOG_WAVE,
+    DOG_DANCE,
     DOG_BARK,
-    DOG_HAPPY,
+    DOG_LOVE,
+    DOG_SQUEE,
+    DOG_HAT,
+    DOG_HAT_ON,
     DOG_STRETCH,
+    DOG_LIE,
+    DOG_SURPRISE,
+    DOG_LOOK,
     DOG_ANIM_COUNT,
 };
 
-static const struct {
+enum dog_scene {
+    DOG_SCENE_READ,
+    DOG_SCENE_PEEK,
+    DOG_SCENE_TV,
+    DOG_SCENE_MUNCH,
+    DOG_SCENE_BED,
+    DOG_SCENE_COUNT,
+};
+
+enum dog_fx {
+    DOG_FX_HEART,
+    DOG_FX_SPARKLE,
+    DOG_FX_NOTE,
+    DOG_FX_PUFF,
+    DOG_FX_COUNT,
+};
+
+struct dog_strip {
+    uint16_t y; // top of the strip in dog.png
     uint8_t frames, fps;
     bool loop;
-} dog_anims[DOG_ANIM_COUNT] = {
-    [DOG_IDLE] = {2, 3, true},
-    [DOG_WALK] = {4, 8, true},
-    [DOG_RUN] = {4, 12, true},
-    [DOG_SIT] = {2, 3, true},
-    [DOG_LIE] = {2, 2, true},
-    [DOG_SLEEP] = {2, 1, true},
-    [DOG_CROUCH] = {1, 1, false},
-    [DOG_JUMP_UP] = {1, 1, false},
-    [DOG_JUMP_DOWN] = {1, 1, false},
-    [DOG_ROLL] = {8, 12, false},
-    [DOG_BOW] = {2, 4, true},
-    [DOG_BEG] = {2, 4, true},
-    [DOG_BARK] = {2, 6, true},
-    [DOG_HAPPY] = {2, 8, true},
-    [DOG_STRETCH] = {1, 1, false},
+};
+
+static const struct dog_strip dog_anims[DOG_ANIM_COUNT] = {
+    [DOG_IDLE] = {0, 6, 5, true},
+    [DOG_WAG] = {128, 4, 10, true},
+    [DOG_WALK] = {256, 4, 8, true},
+    [DOG_RUN] = {384, 4, 12, true},
+    [DOG_SIT] = {512, 4, 3, true},
+    [DOG_CROUCH] = {640, 1, 1, false},
+    [DOG_JUMP_UP] = {768, 1, 1, false},
+    [DOG_JUMP_DOWN] = {896, 1, 1, false},
+    [DOG_FLIP] = {1024, 8, 16, false},
+    [DOG_ROLL] = {1152, 8, 12, false},
+    [DOG_BOW] = {1280, 2, 4, true},
+    [DOG_BEG] = {1408, 2, 4, true},
+    [DOG_WAVE] = {1536, 4, 8, true},
+    [DOG_DANCE] = {1664, 4, 6, true},
+    [DOG_BARK] = {1792, 2, 6, true},
+    [DOG_LOVE] = {1920, 4, 5, true},
+    [DOG_SQUEE] = {2048, 2, 8, true},
+    [DOG_HAT] = {2176, 5, 3, false},
+    [DOG_HAT_ON] = {2304, 2, 4, true},
+    [DOG_STRETCH] = {2432, 2, 3, false},
+    [DOG_LIE] = {2560, 2, 2, true},
+    [DOG_SURPRISE] = {2688, 1, 1, false},
+    [DOG_LOOK] = {2816, 2, 3, true},
+};
+
+static const struct dog_strip dog_scenes[DOG_SCENE_COUNT] = {
+    [DOG_SCENE_READ] = {2944, 4, 2, true},
+    [DOG_SCENE_PEEK] = {3104, 2, 3, true},
+    [DOG_SCENE_TV] = {3264, 4, 3, true},
+    [DOG_SCENE_MUNCH] = {3424, 2, 6, true},
+    [DOG_SCENE_BED] = {3584, 4, 2, true},
 };

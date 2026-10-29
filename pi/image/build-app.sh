@@ -1,8 +1,10 @@
 #!/usr/bin/env bash
 # Cross-compile the screen for the Pi (arm64, Raspberry Pi OS Trixie) and pack
 # what goes into /opt/deck:
-#   pi/build/opt-deck/          deck, deck-update.sh, share/ (fonts, dog.png)
-#   pi/build/deck-update.tar.gz the same, to drop on the SD card's boot partition
+#   pi/build/opt-deck/          deck, deck-update.sh, deck-drive.sh, VERSION,
+#                               DRIVE-README.txt, units/, share/ (fonts, dog.png)
+#   pi/build/deck-update.tar.gz the same, to drop on the DECK drive or the SD
+#                               card's boot partition
 # Runs inside the deck-tools container (pi/image/build.sh starts it).
 set -euo pipefail
 
@@ -43,7 +45,7 @@ fi
 # directory "change as we read it" and fail.
 S=$(mktemp -d)
 trap 'rm -rf "$S"' EXIT
-mkdir -p "$S/opt-deck/share"
+mkdir -p "$S/opt-deck/share" "$S/opt-deck/units"
 
 echo "==> building deck"
 # Cutting long strings to fit (snprintf) is meant everywhere: no truncation warnings.
@@ -51,11 +53,19 @@ $CC "${CFLAGS[@]}" -Wall -Wextra -Wno-unused-parameter -Wno-missing-field-initia
     "$APP"/src/*.c "$APP"/src/assets/*.c "$APP"/pi/*.c "$L/liblvgl.a" "$CJSON/cJSON.c" \
     -Wl,--gc-sections -ldrm -lcurl -ljpeg -lpthread -lm -o "$S/opt-deck/deck"
 aarch64-linux-gnu-strip "$S/opt-deck/deck"
-install -m 755 "$PI/image/files/deck-update.sh" "$S/opt-deck/"
+install -m 755 "$PI/image/files/deck-update.sh" "$PI/image/files/deck-drive.sh" "$S/opt-deck/"
+install -m 644 "$PI/image/files/DRIVE-README.txt" "$S/opt-deck/"
+install -m 644 "$PI/image/files/deck.service" "$PI/image/files/deck-drive.service" "$S/opt-deck/units/"
 install -m 644 "$FONTS"/*.ttf "$APP/assets/dog.png" "$S/opt-deck/share/"
+# What the log and DECK-STATUS.txt call this build: when, and from which
+# commit when GitHub Actions builds it.
+REV=omv
+[ -n "${GITHUB_SHA:-}" ] && REV=${GITHUB_SHA:0:7}
+echo "$(date -u '+%Y-%m-%d %H:%M') $REV" >"$S/opt-deck/VERSION"
 
 mkdir -p "$OUT"
 tar -czf "$S/deck-update.tar.gz" -C "$S/opt-deck" --owner=0 --group=0 .
 rm -rf "$OUT/opt-deck"
 cp -r "$S/opt-deck" "$S/deck-update.tar.gz" "$OUT/"
 ls -la "$OUT/opt-deck" "$OUT/deck-update.tar.gz"
+echo "version: $(cat "$OUT/opt-deck/VERSION")"

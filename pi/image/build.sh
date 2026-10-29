@@ -3,7 +3,7 @@
 # container (Debian Trixie with the arm64 cross compiler), the same way
 # GitHub Actions does:
 #   pi/build/deck-<date>.img.xz   a whole new card: Raspberry Pi Imager, "Use custom"
-#   pi/build/deck-update.tar.gz   just the screen: copy onto the card's bootfs drive
+#   pi/build/deck-update.tar.gz   just the screen: copy onto the DECK drive (or the card's bootfs)
 #
 # Usage: pi/image/build.sh [update]   (update: skip the image, only the update file)
 set -euo pipefail
@@ -18,5 +18,5 @@ docker build -q --network=host -t deck-tools:local -f "$PI/image/Dockerfile.tool
 
 STEPS="pi/tools/fetch-deps.sh && pi/image/build-app.sh"
 [ "${1:-}" = update ] || STEPS="$STEPS && pi/image/build-image.sh"
-docker run --rm --network host --user "$(id -u):$(id -g)" -e HOME=/tmp -e DECK_CACHE=/cache \
+docker run --rm --network host --user "$(id -u):$(id -g)" -e HOME=/tmp -e DECK_CACHE=/cache -e GITHUB_SHA \
     -v "$REPO":/repo -v "$CACHE":/cache -w /repo deck-tools:local bash -c "$STEPS"

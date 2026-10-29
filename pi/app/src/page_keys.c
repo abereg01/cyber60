@@ -315,7 +315,7 @@ static void scene_apply(const struct shoko_scene *s) {
 
     mods_paint();
     battery_paint();
-    pet_paint(&(struct pet_colors){s->key_idle, s->ink_soft, s->meter});
+    pet_paint(&(struct pet_colors){s->key_idle, s->ink_soft});
 
     show(wpm_group, s->hero == SHOKO_HERO_WPM);
     show(title_group, s->hero == SHOKO_HERO_TITLE);

@@ -35,5 +35,10 @@ void deck_set_battery(int8_t level /* -1 = unknown */, bool connected);
 void deck_key(uint32_t position, bool pressed);
 void deck_scroll(int direction /* +1 / -1 per encoder step */);
 
+// A slate keycap that drops in at the top, over both pages ("Updated · …").
+// It goes away after ms, or stays until the next call when ms is 0; NULL
+// takes it away.
+void deck_notice(const char *text, uint32_t ms);
+
 // Provided by the platform: one line for the log (no newline needed).
 void deck_log(const char *fmt, ...) __attribute__((format(printf, 1, 2)));

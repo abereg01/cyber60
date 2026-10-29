@@ -1,0 +1,13 @@
+# The DECK drive (deck-drive.sh): the Pi as a USB drive for updates and
+# settings. Comes back if it fails; drive=0 in deck.conf makes it stop for good.
+[Unit]
+Description=Desk screen DECK drive
+After=local-fs.target sys-kernel-config.mount
+
+[Service]
+ExecStart=/opt/deck/deck-drive.sh
+Restart=on-failure
+RestartSec=5
+
+[Install]
+WantedBy=multi-user.target

@@ -1,15 +1,19 @@
 #!/usr/bin/env bash
-# Render the Shiba puppy in Blender and pack it for the screen:
-#   pi/app/assets/dog.png          sprite sheet, loaded at runtime (pet.c)
+# Render the corgi puppy in Blender and pack it for the screen:
+#   pi/app/assets/dog.png          sprite sheet: sprites, scenes, effects; loaded at runtime (pet.c)
 #   pi/app/src/assets/dog_sheet.h  its layout
-#   pi/draw/dog.png                every frame on white and on night, to look at
+#   pi/draw/dog.png                the whole sheet on white and on night, to look at
 #
 # Both outputs are committed, so this only needs to run when the puppy changes
 # (pi/tools/puppy/puppy.py). Blender 4.5 LTS is downloaded once into the
-# cache and run headless in Docker (Cycles on the CPU, ~20 s for every frame);
-# Pillow packs the frames.
+# cache and run headless in Docker (Cycles on the CPU, ~10 min for the ~95
+# frames on 4 cores); Pillow packs the frames.
 #
-# Usage: pi/tools/gen-dog.sh [pose prefix]   (prefix: render only those, for trying things)
+# Usage: pi/tools/gen-dog.sh [name prefix | look | fx]
+#   no argument: render everything afresh and pack it
+#   prefix: re-render only those animations (e.g. hat), fx: only the effects,
+#   look: the first frame of a few; the other frames from the last run stay,
+#   and the sheet is packed again once every frame is there
 set -euo pipefail
 
 PI=$(cd "$(dirname "$0")/.." && pwd)
@@ -30,11 +34,11 @@ dock() {
 }
 
 echo "==> rendering"
-rm -rf "$FRAMES" && mkdir -p "$FRAMES"
+[ -n "${1:-}" ] || rm -rf "$FRAMES"
+mkdir -p "$FRAMES"
 dock -v "$CACHE/blender":/blender:ro -v "$PI/tools/puppy":/src:ro -v "$FRAMES":/out deck-blender:local \
     /blender/$BLENDER/blender -b --factory-startup -P /src/puppy.py -- /out "${1:-}" |
     grep -E "Error|Traceback|line [0-9]" || true
-[ -z "${1:-}" ] || { echo "frames in $FRAMES"; exit 0; }
 
 echo "==> packing"
 [ -d "$CACHE/pylib/PIL" ] || dock -v "$CACHE":/c python:3.12-slim pip install -q --target /c/pylib pillow==11.1.0
