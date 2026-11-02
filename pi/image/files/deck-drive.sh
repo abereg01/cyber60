@@ -36,6 +36,18 @@ version() { head -n1 "$OPT/VERSION" 2>/dev/null || echo unknown; }
 
 drive_on() { ! grep -Eq '^[[:space:]]*drive[[:space:]]*=[[:space:]]*0' "$BOOT/deck.conf" 2>/dev/null; }
 
+# The Shelly cloud key controls every device on its Shelly account, so it
+# doesn't stay in deck.conf, where any computer the Pi is plugged into can read
+# it: a shelly_key=... line is moved into $DATA/shelly-key (root-only, where
+# the screen reads it) and blanked. True if there was a key.
+take_key() { # deck.conf
+    k=$(sed -n 's/^[[:space:]]*shelly_key[[:space:]]*=[[:space:]]*\([^[:space:]#]\{1,\}\).*/\1/p' "$1" 2>/dev/null |
+        tail -n1)
+    [ -n "$k" ] || return 1
+    (umask 077 && printf '%s\n' "$k" >"$DATA/shelly-key.new") && mv "$DATA/shelly-key.new" "$DATA/shelly-key" &&
+        sed -i 's/^[[:space:]]*shelly_key[[:space:]]*=.*/shelly_key=  # saved on the Pi/' "$1" && sync
+}
+
 # ── The drive image ──────────────────────────────────────────────────────────
 
 image_make() {
@@ -90,6 +102,7 @@ fill() {
     put "$RUN/status.txt" DECK-STATUS.txt
     put "$BOOT/deck.conf" deck.conf
     put "$BOOT/deck-log.txt" deck-log.txt
+    put "$BOOT/deck-boot.txt" deck-boot.txt
     put "$OPT/DRIVE-README.txt" README.txt
     if [ -f "$DATA/failed-log.txt" ]; then
         put "$DATA/failed-log.txt" deck-log-failed.txt
@@ -185,6 +198,8 @@ process() {
         esac
         rm -f "$MNT"/deck-update*
     fi
+    key=
+    [ -f "$MNT/deck.conf" ] && take_key "$MNT/deck.conf" && key=1
     if [ -f "$MNT/deck.conf" ] && ! cmp -s "$MNT/deck.conf" "$BOOT/deck.conf"; then
         cp "$MNT/deck.conf" "$BOOT/deck.conf.new" && mv "$BOOT/deck.conf.new" "$BOOT/deck.conf" && sync
         restart=settings
@@ -218,9 +233,13 @@ process() {
         fi
         ;;
     settings)
-        echo "Settings applied" >"$RUN/notice"
+        if [ -n "$key" ]; then
+            echo "Shelly key saved" >"$RUN/notice"
+        else
+            echo "Settings applied" >"$RUN/notice"
+        fi
         screen_restart || say "the screen didn't come up after the settings change"
-        last "settings changed (deck.conf)"
+        last "settings changed (deck.conf${key:+, Shelly key saved on the Pi})"
         ;;
     esac
 }
@@ -246,8 +265,13 @@ work() {
     fi
 }
 
-drive_on || exit 0
 mkdir -p "$DATA" "$RUN" || exit 1
+# A key put in deck.conf on the SD card itself (not through DECK).
+if take_key "$BOOT/deck.conf"; then
+    say "Shelly key moved out of deck.conf"
+    systemctl try-restart deck.service
+fi
+drive_on || exit 0
 [ -s "$IMG" ] || image_make || exit 1
 gadget_up || {
     say "no USB gadget (is dtoverlay=dwc2 in config.txt?)"

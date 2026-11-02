@@ -1,6 +1,7 @@
 /*
- * The two pages and what they share: fonts, keycaps, file loading. The pages
- * sit side by side in a tileview, so a horizontal swipe anywhere turns them.
+ * The three pages and what they share: fonts, keycaps, file loading. The pages
+ * (lights, keyboard, Spotify) sit side by side in a tileview, so a horizontal
+ * swipe anywhere turns them.
  *
  * SPDX-License-Identifier: MIT
  */
@@ -10,6 +11,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 
+#include "lights.h"
 #include "shoko_theme.h"
 #include "spotify.h"
 
@@ -220,10 +222,13 @@ static lv_obj_t *tile(lv_obj_t *tv, uint8_t col, lv_dir_t dir) {
     return t;
 }
 
-static lv_obj_t *spotify_tile;
+static lv_obj_t *spotify_tile, *lights_tile, *keys_tile;
 
 static void page_turned(lv_event_t *e) {
-    spotify_visible(lv_tileview_get_tile_active(lv_event_get_target(e)) == spotify_tile);
+    lv_obj_t *active = lv_tileview_get_tile_active(lv_event_get_target(e));
+    spotify_visible(active == spotify_tile);
+    lights_visible(active == lights_tile);
+    vault_keys_shown(active == keys_tile);
 }
 
 bool deck_create(lv_obj_t *screen, const char *share, const enum deck_mod order[DECK_MOD_COUNT],
@@ -238,9 +243,14 @@ bool deck_create(lv_obj_t *screen, const char *share, const enum deck_mod order[
     lv_obj_set_size(tv, SCREEN_W, SCREEN_H);
     lv_obj_set_scrollbar_mode(tv, LV_SCROLLBAR_MODE_OFF);
 
-    keys_page_create(tile(tv, 0, LV_DIR_RIGHT), order, mac, share);
-    spotify_tile = tile(tv, 1, LV_DIR_LEFT);
+    // Lights | keyboard | Spotify; it opens on the keyboard.
+    lights_tile = tile(tv, 0, LV_DIR_RIGHT);
+    lights_page_create(lights_tile);
+    keys_tile = tile(tv, 1, LV_DIR_HOR);
+    keys_page_create(keys_tile, order, mac, share);
+    spotify_tile = tile(tv, 2, LV_DIR_LEFT);
     spotify_page_create(spotify_tile);
+    lv_tileview_set_tile_by_index(tv, 1, 0, LV_ANIM_OFF);
     lv_obj_add_event_cb(tv, page_turned, LV_EVENT_VALUE_CHANGED, NULL);
     return true;
 }

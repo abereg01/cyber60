@@ -158,6 +158,31 @@ static void do_status(void) {
     pthread_mutex_unlock(&mu);
 }
 
+// Pi OS ships with NetworkManager's wifi switched off (WirelessEnabled=false
+// in /var/lib/NetworkManager/NetworkManager.state; Imager's or raspi-config's
+// wifi setup would switch it on), and NetworkManager starts after the screen
+// does (sysinit). So: once NetworkManager answers, switch wifi on if it's off.
+// NetworkManager remembers that from then on.
+enum radio { RADIO_NO_NM, RADIO_ON, RADIO_TURNED_ON, RADIO_FAILED };
+
+static enum radio radio_on(void) {
+    static char buf[512];
+    char *get[] = {"nmcli", "-t", "radio", "wifi", NULL};
+    if (run(get, buf, sizeof(buf)) != 0) {
+        return RADIO_NO_NM; // not running yet
+    }
+    if (!strncmp(buf, "enabled", 7)) {
+        return RADIO_ON;
+    }
+    char *unblock[] = {"rfkill", "unblock", "wifi", NULL};
+    char *on[] = {"nmcli", "radio", "wifi", "on", NULL};
+    run(unblock, buf, sizeof(buf));
+    int rc = run(on, buf, sizeof(buf));
+    buf[strcspn(buf, "\n")] = '\0';
+    deck_log("wifi: was switched off, switching it on: %s", rc == 0 ? "done" : buf);
+    return rc == 0 ? RADIO_TURNED_ON : RADIO_FAILED;
+}
+
 static void do_scan(void) {
     static char buf[16384];
     struct wifi_net nets[WIFI_MAX_NETS];
@@ -165,6 +190,9 @@ static void do_scan(void) {
     char *argv[] = {"nmcli", "-t", "-f", "IN-USE,SSID,SIGNAL,SECURITY", "device", "wifi", "list",
                     "--rescan", "yes", NULL};
 
+    if (radio_on() == RADIO_TURNED_ON) {
+        sleep(4); // the wifi chip takes a moment to come up before it can scan
+    }
     if (run(argv, buf, sizeof(buf)) == 0) {
         for (char *l = buf; l && *l && count < WIFI_MAX_NETS; l = next_line(l)) {
             char inuse[4], ssid[33], signal[8], security[48];
@@ -187,6 +215,14 @@ static void do_scan(void) {
             n->signal = (uint8_t)atoi(signal);
             n->secure = security[0] && strcmp(security, "--") != 0;
             n->active = inuse[0] == '*';
+        }
+        if (!count) {
+            char *dev[] = {"nmcli", "-t", "-f", "DEVICE,TYPE,STATE", "device", NULL};
+            run(dev, buf, sizeof(buf));
+            for (char *c = buf; *c; c++) {
+                *c = *c == '\n' ? ' ' : *c;
+            }
+            deck_log("wifi: scan found nothing (devices: %s)", buf);
         }
     } else {
         deck_log("wifi: scan failed: %s", buf);
@@ -225,15 +261,15 @@ static void do_connect(const char *ssid, const char *pw) {
 
 static void *worker(void *arg) {
     (void)arg;
-    static char buf[512];
-    // Raspberry Pi OS keeps wifi soft-blocked until a country is set; the
-    // country itself comes from the kernel command line (cmdline.txt).
-    char *unblock[] = {"rfkill", "unblock", "wifi", NULL};
-    char *radio[] = {"nmcli", "radio", "wifi", "on", NULL};
-    run(unblock, buf, sizeof(buf));
-    run(radio, buf, sizeof(buf));
+    // Wifi on as soon as NetworkManager is up (radio_on), so saved networks
+    // rejoin at boot without anyone opening the wifi page. The country comes
+    // from the kernel command line (cmdline.txt).
+    enum radio radio = RADIO_NO_NM;
 
     for (;;) {
+        if (radio == RADIO_NO_NM) {
+            radio = radio_on();
+        }
         do_status();
 
         pthread_mutex_lock(&mu);

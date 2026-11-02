@@ -2,7 +2,7 @@
 # Render the Pi desk screen on this box, without a Pi: compiles the real screen
 # code (pi/app/src + assets) against LVGL, plays the session scripted in
 # pi/app/preview/main.c and writes
-#   pi/draw/*.png      stills (scenes, the dog, Spotify: login, player, lists, wifi setup)
+#   pi/draw/*.png      stills (scenes, the dog, Spotify: login, player, lists, wifi setup, lights)
 #   pi/draw/deck.mp4   the whole session at 30 fps
 #
 # Usage: pi/tools/preview.sh [win|mac]   (modifier icon style, default win)
@@ -22,7 +22,8 @@ SHOKO=$REPO/boards/shields/prospector_screen/src/layouts/shoko
 B=$CACHE/preview-build
 OUT=$PI/draw
 
-CFLAGS=(-O2 -w -I"$APP" -I"$APP/src" -I"$LVGL" -I"$SHOKO" -DLV_CONF_INCLUDE_SIMPLE
+MONO=$CACHE/deps/monocypher-4.0.2/src # the vault's crypto, from fetch-deps.sh
+CFLAGS=(-O2 -w -I"$APP" -I"$APP/src" -I"$LVGL" -I"$SHOKO" -I"$MONO" -DLV_CONF_INCLUDE_SIMPLE
     -DLV_LVGL_H_INCLUDE_SIMPLE -DDECK_PREVIEW)
 
 "$PI/tools/fetch-deps.sh"
@@ -41,10 +42,11 @@ if [ ! -f "$B/liblvgl.a" ] || [ "$APP/lv_conf.h" -nt "$B/liblvgl.a" ] ||
 fi
 
 echo "==> building preview"
-# The app's code minus wifi.c and spotify.c: preview/wifi_fake.c and
-# spotify_fake.c stand in (OMV has no wifi; the preview shows made-up music).
-SRCS=$(ls "$APP"/src/*.c | grep -vE '/(wifi|spotify)\.c$')
-gcc "${CFLAGS[@]}" "$APP/preview/main.c" "$APP/preview/wifi_fake.c" "$APP/preview/spotify_fake.c" $SRCS \
+# The app's code minus wifi.c, spotify.c and lights.c: preview/*_fake.c stand
+# in (OMV has no wifi; the preview shows made-up music and lamps).
+SRCS=$(ls "$APP"/src/*.c | grep -vE '/(wifi|spotify|lights)\.c$')
+gcc "${CFLAGS[@]}" "$APP/preview/main.c" "$APP/preview/wifi_fake.c" "$APP/preview/spotify_fake.c" \
+    "$APP/preview/lights_fake.c" "$APP/preview/kblink_fake.c" "$MONO/monocypher.c" $SRCS \
     "$APP"/src/assets/*.c \
     "$B/liblvgl.a" -lm -o "$B/preview"
 

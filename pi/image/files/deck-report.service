@@ -1,0 +1,11 @@
+# deck-report.sh: deck-boot.txt on the boot partition, 30 s after every boot
+# (display, touch, power, the screen's journal, the kernel log).
+[Unit]
+Description=Desk screen boot report
+After=local-fs.target
+
+[Service]
+ExecStart=/opt/deck/deck-report.sh 30
+
+[Install]
+WantedBy=multi-user.target

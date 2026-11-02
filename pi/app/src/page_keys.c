@@ -505,6 +505,7 @@ void deck_set_battery(int8_t level, bool connected) {
 void deck_key(uint32_t position, bool pressed) {
     if (pressed) {
         pet_key();
+        vault_activity();
     }
     for (int i = 0; i < GAME_CAPS; i++) {
         if (game_keys[i].pos == position || (game_keys[i].pos == 61 && (position == 60 || position == 62))) {

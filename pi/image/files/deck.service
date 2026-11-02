@@ -1,10 +1,12 @@
 # The desk screen. Starts as early as the boot partition is mounted (the app
-# waits for the display itself) and comes back if it ever stops.
+# waits for the display itself) and comes back if it ever stops, however
+# often: no start limit, so a slow display can't make systemd give up on it.
 [Unit]
 Description=Desk screen
 DefaultDependencies=no
 After=local-fs.target systemd-udev-trigger.service
 Conflicts=shutdown.target
+StartLimitIntervalSec=0
 
 [Service]
 ExecStartPre=/opt/deck/deck-update.sh

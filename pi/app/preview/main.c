@@ -5,20 +5,25 @@
  * hat, a squee, a backflip), time away from the keyboard (reading, a peek over
  * the book, TV, bed) and back, then the Spotify page (login, player, lists,
  * settings), wifi setup (with made-up data from spotify_fake.c and
- * wifi_fake.c) and the DECK drive's notices) and writes named stills as PPM into <out dir>,
+ * wifi_fake.c), the DECK drive's notices, the Lights page (lights_fake.c)
+ * and the password vault (kblink_fake.c)) and writes named stills as PPM into
+ * <out dir>,
  * plus every frame at 30 fps as raw RGB565 on stdout for ffmpeg.
  * pi/tools/preview.sh builds and runs it.
  *
  * Usage: preview <out dir> <share dir> [win|mac]
  */
 #include <stdarg.h>
+#include <stdint.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 
 #include "deck.h"
+#include "lights.h"
 #include "lvgl.h"
 #include "spotify.h"
+#include "vault.h"
 
 #define W 800
 #define H 480
@@ -123,6 +128,42 @@ static void swipe(int32_t x0, int32_t x1, int32_t y, uint32_t ms) {
     run(10);
 }
 
+// A finger: press at (x, y0), move to (x, y1) over ms, lift.
+static void drag(int32_t x, int32_t y0, int32_t y1, uint32_t ms) {
+    finger = (lv_point_t){x, y0};
+    touching = true;
+    run(40);
+    for (uint32_t t = 0; t <= ms; t += 5) {
+        finger.y = y0 + (y1 - y0) * (int32_t)t / (int32_t)ms;
+        run(5);
+    }
+    touching = false;
+    run(10);
+}
+
+static uint64_t seconds(void) { return now / 1000; } // the vault's waits, on the fake clock
+
+// Keys as the keyboard link hands them to the vault (HID usages).
+static void hid_digits(const char *d) {
+    for (; *d; d++) {
+        deck_hid_key(0, *d == '0' ? 0x27 : (uint8_t)(0x1E + *d - '1'));
+        run(140);
+    }
+}
+
+static void hid_password(void) { // "Hunter2!"
+    static const uint8_t k[][2] = {{0x02, 0x0B}, {0, 0x18}, {0, 0x11}, {0, 0x17},
+                                   {0, 0x08},    {0, 0x15}, {0, 0x1F}, {0x02, 0x1E}};
+    for (size_t i = 0; i < sizeof(k) / sizeof(k[0]); i++) {
+        deck_hid_key(k[i][0], k[i][1]);
+        run(110);
+    }
+}
+
+// preview/lights_fake.c's switches for the page's other states.
+void lights_fake_offline(int i, bool offline);
+void lights_fake_auth(enum lights_auth auth);
+
 // A layer change as the keyboard would report it, with the keys that layer binds.
 static void layer(const char *name) {
     static uint8_t mask[9];
@@ -185,6 +226,9 @@ int main(int argc, char **argv) {
         return 1;
     }
     lv_screen_load(screen);
+    static char vault_dir[] = "/tmp/deck-vault-XXXXXX";
+    vault_now_s = seconds;
+    deck_vault_start(mkdtemp(vault_dir), 10);
     spotify_start("preview", "/tmp");
     deck_set_battery(-1, false);
     run(400);
@@ -407,6 +451,88 @@ int main(int argc, char **argv) {
     run(700);
     still("25-drive-updated");
     run(5000);
+
+    // Lights, left of the keyboard: drag the desk lamp brighter, switch the
+    // floor lamp on, a lamp gone offline, no cloud key yet.
+    swipe(160, 680, 300, 220);
+    run(900);
+    still("26-lights");
+    drag(288, 280, 140, 600);
+    run(300);
+    still("27-lights-brighter");
+    touch(512, 416, 120);
+    run(500);
+    still("28-lights-floor-on");
+    lights_fake_offline(1, true);
+    run(400);
+    still("29-lights-offline");
+    lights_fake_offline(1, false);
+    lights_fake_auth(LIGHTS_NO_KEY);
+    run(400);
+    still("30-lights-no-key");
+    lights_fake_auth(LIGHTS_OK);
+    run(600);
+
+    // The password vault. The first press of password key 2: a new PIN,
+    // typed twice on the keyboard; then the password, typed twice, and
+    // "Enter after?". Then the key types it; locked, it asks for the PIN
+    // on a scrambled numpad; wrong PINs, the wait, the menu.
+    swipe(680, 160, 300, 220); // back to the keyboard
+    run(900);
+    deck_password_key(1);
+    run(500);
+    still("31-vault-new-pin");
+    hid_digits("246813");
+    run(300);
+    hid_digits("246");
+    still("32-vault-pin-again");
+    hid_digits("813");
+    run(600);
+    hid_password();
+    run(200);
+    still("33-vault-record");
+    deck_hid_key(0, 0x28);
+    run(300);
+    hid_password();
+    deck_hid_key(0, 0x28);
+    run(400);
+    still("34-vault-enter-after");
+    touch(126, 416, 120); // YES
+    run(800);
+    still("35-vault-open");
+    run(1500);
+    deck_password_key(1);
+    run(400);
+    still("36-vault-typed");
+    run(1200);
+    deck_vault_lock();
+    run(1500);
+    deck_password_key(1);
+    run(500);
+    still("37-vault-pin");
+    for (int i = 0; i < 6; i++) { // six taps on the scrambled numpad: a wrong PIN
+        touch(482 + (i % 3) * 120, 82 + (i / 3) * 96, 100);
+        run(160);
+    }
+    run(200);
+    still("38-vault-wrong");
+    run(600);
+    hid_digits("111111");
+    run(500);
+    hid_digits("222222");
+    run(600);
+    still("39-vault-wait");
+    skip(30000);
+    run(1100);
+    hid_digits("246813");
+    run(600);
+    still("40-vault-opened-typed");
+    run(1500);
+    touch(592, 54, 120); // the padlock
+    run(500);
+    still("41-vault-menu");
+    touch(126, 416, 120); // LOCK
+    run(1500);
 
     fprintf(stderr, "%d frames\n", frames);
     return 0;

@@ -11,10 +11,14 @@ What you can drop here
   deck-update.zip       "deck-update" download from GitHub Actions as it is
   deck.conf             edit the copy here (Notepad is fine) to change a
                         setting. The Pi saves it to its SD card too.
+                        A shelly_key= you put in is moved onto the Pi
+                        and blanked here: it never stays on this drive.
 
 What the Pi puts here
   DECK-STATUS.txt       the version running and what happened last
   deck-log.txt          what the screen did when it last started
+  deck-boot.txt         the Pi's own report from the last boot: display,
+                        touch, power, the kernel log
   deck-log-failed.txt   only after a new version that didn't start: its log.
                         The Pi went back to the version before by itself.
 

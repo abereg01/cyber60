@@ -1,8 +1,8 @@
 #pragma once
 
-// The Pi desk screen on the 7" Touch Display (800x480), two pages you swipe
-// between: the Prospector's Shoko screen with a Shiba in the bottom-right
-// corner, and Spotify. Plain LVGL; the Pi's main (pi/app/pi) and
+// The Pi desk screen on the 7" Touch Display (800x480), three pages you swipe
+// between: Shelly lights, the Prospector's Shoko screen with a puppy in the
+// bottom-right corner (where it opens), and Spotify. Plain LVGL; the Pi's main (pi/app/pi) and
 // pi/tools/preview both drive it. Every function must be called from the LVGL
 // thread.
 
@@ -34,6 +34,17 @@ void deck_set_wpm(uint8_t wpm);
 void deck_set_battery(int8_t level /* -1 = unknown */, bool connected);
 void deck_key(uint32_t position, bool pressed);
 void deck_scroll(int direction /* +1 / -1 per encoder step */);
+
+// The password vault (vault.h, page_vault.c). data_dir: where it lives
+// (root-only); minutes: how long it stays open without a key press.
+void deck_vault_start(const char *data_dir, uint32_t minutes);
+// From the keyboard link (kblink.h): the keyboard's password key slot
+// (0-based) was pressed; a key press while the keyboard is captured (HID
+// modifiers + usage); and "lock the vault now" (Win+L went by, the keyboard
+// disconnected, the computer's USB went to sleep).
+void deck_password_key(int slot);
+void deck_hid_key(uint8_t mods, uint8_t code);
+void deck_vault_lock(void);
 
 // A slate keycap that drops in at the top, over both pages ("Updated · …").
 // It goes away after ms, or stays until the next call when ms is 0; NULL

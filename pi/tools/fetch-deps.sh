@@ -4,6 +4,7 @@
 # workspace). Prints nothing when they're already there.
 #   lvgl   9.3.0   (MIT)  the UI library, same version as the Prospector's ZMK
 #   cJSON  1.7.18  (MIT)  Spotify's answers
+#   Monocypher 4.0.2 (CC0 / BSD-2)  the password vault: Argon2id, XChaCha20-Poly1305
 set -euo pipefail
 
 DEPS=${DECK_DEPS:-${DECK_CACHE:-/srv/mergerfs/pool/docker/appdata/zmk-west/.cache/deck}/deps}
@@ -19,3 +20,4 @@ fetch() { # name url
 
 fetch lvgl-9.3.0 https://github.com/lvgl/lvgl/archive/refs/tags/v9.3.0.tar.gz
 fetch cJSON-1.7.18 https://github.com/DaveGamble/cJSON/archive/refs/tags/v1.7.18.tar.gz
+fetch monocypher-4.0.2 https://github.com/LoupVaillant/Monocypher/archive/refs/tags/4.0.2.tar.gz

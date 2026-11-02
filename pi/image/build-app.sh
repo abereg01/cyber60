@@ -13,6 +13,7 @@ REPO=$(cd "$PI/.." && pwd)
 CACHE=${DECK_CACHE:?}
 LVGL=$CACHE/deps/lvgl-9.3.0
 CJSON=$CACHE/deps/cJSON-1.7.18
+MONO=$CACHE/deps/monocypher-4.0.2/src
 FONTS=$CACHE/fonts
 OUT=$PI/build
 APP=$PI/app
@@ -20,7 +21,7 @@ SHOKO=$REPO/boards/shields/prospector_screen/src/layouts/shoko
 CC=aarch64-linux-gnu-gcc
 
 CFLAGS=(-O2 -ffunction-sections -fdata-sections -I"$APP" -I"$APP/src" -I"$APP/pi" -I"$LVGL"
-    -I"$SHOKO" -I"$CJSON" -I/usr/include/libdrm -DLV_CONF_INCLUDE_SIMPLE -DLV_LVGL_H_INCLUDE_SIMPLE)
+    -I"$SHOKO" -I"$CJSON" -I"$MONO" -I/usr/include/libdrm -DLV_CONF_INCLUDE_SIMPLE -DLV_LVGL_H_INCLUDE_SIMPLE)
 
 # Fonts (SIL OFL), the same files the Prospector's assets come from.
 mkdir -p "$FONTS"
@@ -50,12 +51,14 @@ mkdir -p "$S/opt-deck/share" "$S/opt-deck/units"
 echo "==> building deck"
 # Cutting long strings to fit (snprintf) is meant everywhere: no truncation warnings.
 $CC "${CFLAGS[@]}" -Wall -Wextra -Wno-unused-parameter -Wno-missing-field-initializers -Wno-format-truncation \
-    "$APP"/src/*.c "$APP"/src/assets/*.c "$APP"/pi/*.c "$L/liblvgl.a" "$CJSON/cJSON.c" \
+    "$APP"/src/*.c "$APP"/src/assets/*.c "$APP"/pi/*.c "$L/liblvgl.a" "$CJSON/cJSON.c" "$MONO/monocypher.c" \
     -Wl,--gc-sections -ldrm -lcurl -ljpeg -lpthread -lm -o "$S/opt-deck/deck"
 aarch64-linux-gnu-strip "$S/opt-deck/deck"
-install -m 755 "$PI/image/files/deck-update.sh" "$PI/image/files/deck-drive.sh" "$S/opt-deck/"
+install -m 755 "$PI/image/files/deck-update.sh" "$PI/image/files/deck-drive.sh" "$PI/image/files/deck-report.sh" \
+    "$S/opt-deck/"
 install -m 644 "$PI/image/files/DRIVE-README.txt" "$S/opt-deck/"
-install -m 644 "$PI/image/files/deck.service" "$PI/image/files/deck-drive.service" "$S/opt-deck/units/"
+install -m 644 "$PI/image/files/deck.service" "$PI/image/files/deck-drive.service" \
+    "$PI/image/files/deck-report.service" "$S/opt-deck/units/"
 install -m 644 "$FONTS"/*.ttf "$APP/assets/dog.png" "$S/opt-deck/share/"
 # What the log and DECK-STATUS.txt call this build: when, and from which
 # commit when GitHub Actions builds it.

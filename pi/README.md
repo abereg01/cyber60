@@ -2,12 +2,15 @@
 
 A Raspberry Pi 4 with the official 7" Touch Display (800×480) that replaces
 the Prospector dongle: the Shoko screen, bigger, with a corgi puppy living in the
-bottom-right corner, and a Spotify page you swipe to. Started 2026-10-28.
+bottom-right corner, a Spotify page you swipe to on one side and Shelly lamps
+on the other, and a password vault. Started 2026-10-28.
 
-**Status:** the SD card image boots into the screen, with touch, wifi setup,
-Spotify, the DECK drive for updates without the SD card, and a demo that
-types by itself. It hasn't been tried on the real Pi yet. Still to come: the
-keyboard link (until then the keyboard firmware is unchanged).
+**Status:** the SD card image boots into the screen on the real Pi (first
+working boot 2026-11-02), with touch, wifi setup, Spotify, the lights, the
+DECK drive for updates without the SD card, and a pretend typist (`demo=1`,
+off by default). The vault's screens and encryption are done and tested here,
+but it needs the keyboard link to open. Still to come: the keyboard link
+(until then the keyboard firmware is unchanged).
 
 ## Planned topology
 
@@ -103,6 +106,7 @@ eject, DECK comes back with:
 |---|---|
 | `DECK-STATUS.txt` | the version running, what happened last, power (undervoltage), clock |
 | `deck-log.txt` | the screen's log since it last started |
+| `deck-boot.txt` | the Pi's report from the last boot: display outputs, touch, power, the screen's journal, the kernel log |
 | `deck-log-failed.txt` | only after a version that didn't come up: its log and the journal |
 | `deck.conf` | the settings: edit and eject (saved to the SD card's `bootfs` too) |
 | `README.txt` | this in short (`image/files/DRIVE-README.txt`) |
@@ -164,11 +168,20 @@ changes).
   the Pi installs it and deletes the file. Saved wifi and the Spotify login
   stay either way.
 - **Settings:** `deck.conf` on the `bootfs` drive: `rotate=180` if the picture
-  is upside down, `mac=1` for the ⌘ icon, `demo=0` to stop the self-typing,
-  `spotify_client_id`.
+  is upside down, `mac=1` for the ⌘ icon, `demo=1` for the pretend typist,
+  `spotify_client_id`, the lamps (`light=`, `shelly_server=`, `shelly_key=`,
+  see Lights) and `vault_minutes` (default 10).
 - **What happened:** `deck-log.txt` on the `bootfs` drive (display, touch,
-  wifi, Spotify, errors, seconds to start). Nobody can log in, so this is the
-  window into the Pi.
+  wifi, Spotify, errors, seconds to start) and `deck-boot.txt`
+  (`files/deck-report.sh`, written 30 s after every boot: the display outputs
+  the kernel found, touch, undervoltage, the screen's journal, the kernel log).
+  Nobody can log in, so these are the window into the Pi.
+- **Screen stays black:** the rainbow comes first (the Pi found the card), then
+  a black screen with at most a few error lines, then the screen after about
+  5-10 s. No rainbow: the card isn't readable (flash the `.img.xz` itself, not
+  GitHub's `.zip` around it). Rainbow but no screen: read `deck-boot.txt` and
+  `deck-log.txt` on `bootfs`. Neither file there after a minute: Linux stopped
+  before the app, and the error is on the screen.
 - **Wifi:** on the Spotify page, *SET UP WIFI* (or ⚙ → WIFI), tap the
   network, type the password on the touch keyboard, ✓. NetworkManager keeps
   it (on the Pi, root-only) and rejoins at every boot.
@@ -176,11 +189,12 @@ changes).
 How the image is made (`pi/image/`): the official Raspberry Pi OS Lite
 (`base-image.txt`, pinned with its hash) gets `/opt/deck` (the app, built by
 `build-app.sh` with the arm64 cross compiler) and a systemd unit
-(`files/deck.service`, started at sysinit, restarts if it stops), plus
-the DECK drive (`files/deck-drive.service`, `dwc2` in `config.txt`). The
-first-boot user wizard, cloud-init, avahi, the ssh switch and the console
-login are switched off, the kernel console moves off the screen, and the
-hostname becomes `deck`. `build-image.sh` does all of this on copies of the
+(`files/deck.service`, started at sysinit, restarts if it stops, no start
+limit), the DECK drive (`files/deck-drive.service`, `dwc2` in `config.txt`)
+and the boot report (`files/deck-report.service`). The first-boot user
+wizard, cloud-init, avahi, the ssh switch and the console login are switched
+off, the boot is quiet (errors only, still on the screen), and the hostname
+becomes `deck`. `build-image.sh` does all of this on copies of the
 partitions with mtools and debugfs: no root, no loop devices, no ARM
 emulation, so it runs the same in Docker on OMV and on GitHub's runners. Pi OS
 Lite already has everything the app links against (libdrm, libcurl, libjpeg,
@@ -189,8 +203,14 @@ NetworkManager).
 ## Files
 
 - `app/src/deck.h`: the screen's API. The Pi's main (`app/pi/main.c`) and
-  the preview both drive it. `deck.c` holds the two pages (a tileview), fonts,
-  keycaps, buttons and file loading.
+  the preview both drive it. `deck.c` holds the three pages (a tileview:
+  lights, keyboard, Spotify), fonts, keycaps, buttons and file loading.
+- `app/src/lights.c`: the Shelly Cloud on a worker thread; `page_lights.c` the
+  page.
+- `app/src/vault.c`: the password vault's file and keys (no LVGL in it);
+  `page_vault.c` its screens; `kblink.h` what it needs from the keyboard link
+  (`app/pi/kblink_stub.c` until the link exists). Monocypher (fetched by
+  `tools/fetch-deps.sh`) does the cryptography.
 - `app/src/wifi.c`: NetworkManager through `nmcli`, on a worker thread;
   `wifi_ui.c` is the setup screen and touch keyboard.
 - `app/src/spotify.c`: Spotify (login server, PKCE, Web API, covers) on a
@@ -198,8 +218,10 @@ NetworkManager).
   library, queue, devices and settings overlays. On the Pi it uses cJSON
   (fetched by `tools/fetch-deps.sh`), libcurl and libjpeg.
 - `app/preview/`: the preview's session and stand-ins (`wifi_fake.c`,
-  `spotify_fake.c`); `app/test/spotify_cli.c`: the real Spotify code without
-  a screen (`tools/spotify-test.sh`).
+  `spotify_fake.c`, `lights_fake.c`, `kblink_fake.c`); `app/test/`: the real
+  code without a screen: `spotify_cli.c` (`tools/spotify-test.sh`),
+  `lights_cli.c` + `shelly_mock.py` (`tools/shelly-test.sh`), `vault_test.c`
+  (`tools/vault-test.sh`).
 - `app/pi/`: only on the Pi: `main.c` (DRM display, or the framebuffer when
   turned 180°; evdev touch; settings; log; the DECK drive's ready/notice
   files) and `demo.c` (the self-typing keyboard).
@@ -229,7 +251,8 @@ scripted session (`app/preview/main.c`): typing faster and faster, every
 layer, tapping the dog (love, the top hat, a squee, a backflip), time away
 from the keyboard (reading, a peek over the book, TV, bed) and back, then the
 Spotify page and wifi setup (with made-up networks from
-`app/preview/wifi_fake.c`, since OMV has no wifi). It writes stills
+`app/preview/wifi_fake.c`, since OMV has no wifi), the DECK drive's notices,
+the Lights page and the password vault. It writes stills
 `draw/*.png` and the whole session as `draw/deck.mp4`. It needs gcc on the
 host and Docker for ffmpeg.
 
@@ -282,9 +305,95 @@ one-time setup.
 phone on the home wifi, then the player state. It also takes commands:
 `next`, `like`, `list devices`, `cover` and so on.
 
+## Lights
+
+Swipe right from the keyboard screen: one column per Shelly lamp (up to
+three). Drag the tall key up and down for the brightness; tap the key with the
+lamp's name to switch it on and off (aqua = on). Changes made in the Shelly
+app or at the wall show up within 5 s while the page is on screen.
+
+The Pi talks to the **Shelly Cloud** (Cloud Control API v2), not to the lamps:
+the lamps can be on any wifi with internet and stay in the Shelly app, and the
+Pi needs only the internet (the wifi set up for Spotify), never the network
+the lamps are on. `app/src/lights.c`, `app/src/page_lights.c`
+
+- **Setup**, in `deck.conf` on DECK, then eject:
+  - `light=DESK:a0b1c2d3e4f5`, one line per lamp: a one-word name and the
+    lamp's Device ID (Shelly app → the lamp → Settings → Device information).
+  - `shelly_server=` and `shelly_key=`: Shelly app → User settings →
+    Authorization cloud key shows both.
+- **The key** controls every device on that Shelly account, so it doesn't stay
+  in `deck.conf`: `deck-drive.sh` moves it into `/var/lib/deck/shelly-key`
+  (root-only) and blanks the line, on DECK and on the SD card. A separate
+  Shelly account for the desk lamps keeps what the key can reach small.
+- **Shelly allows one request a second.** The worker sends each lamp's latest
+  wish, spaced: dragging the fader sends a value a second and the last one,
+  never a backlog.
+- Any lamp with a light component works (Gen1 to Gen3+); Gen3 bulbs like the
+  Duo Gen3 also have Bluetooth, should the lamps ever need to work without
+  wifi.
+- **Not tried on a real bulb yet.** Whether `set/light` drives a Gen3 `cct`
+  bulb is the first thing to check (`tools/shelly-test.sh`, below); the v1
+  API is the fallback.
+
+```bash
+pi/tools/shelly-test.sh mock     # against a stand-in for the cloud: checks the 1 request/s spacing
+pi/tools/shelly-test.sh          # the real cloud: every lamp's state (setup in the script's comments)
+pi/tools/shelly-test.sh 30 0     # lamp 0 to 30%   (also: on, off, drag)
+```
+
+## Password vault
+
+Replaces the keyboard's password macros, which anyone at the desk could press
+at the lock screen. The passwords are encrypted on the Pi; a **PIN on the
+screen** and a **random key that only the keyboard holds** open them
+together. The SD card alone opens nothing, the keyboard alone opens nothing,
+and the keyboard's firmware holds no password (so GitHub can build it).
+
+1. Press a password key on the keyboard. If the vault is locked, a numpad
+   shows (in a new order every time, so smudges and a glance give nothing
+   away; the keyboard's digits work too).
+2. The right PIN opens the vault and the Pi types that password on the
+   computer, as if typed on the keyboard, plus Enter if it was saved with one.
+3. The vault stays open (a padlock key in the top row; tap it for the list,
+   NEW PIN and LOCK) until `vault_minutes` without a key (default 10), or
+   Win+L, the keyboard disconnecting or the computer going to sleep.
+
+- **First time:** the first password key asks for a new PIN (6 digits, twice).
+  A key with no password yet asks you to type it on the keyboard, twice, then
+  whether to press Enter after it. While those screens are up, nothing reaches
+  the computer.
+- **Wrong PINs:** 3 are free, then each try waits (30 s, doubling up to an
+  hour; a restart doesn't skip it). The 10th wrong PIN in a row erases the
+  vault: type the passwords in again.
+- **A password is kept as key presses**, the way it was typed, so it types
+  correctly in whatever layout the computer uses (like the old macros).
+- **Not like Bitwarden:** the Pi can't see the computer's screen, so it types
+  into whatever field has focus. Keep only the few passwords you type daily.
+- **How it's built:** `vault.bin` in `/var/lib/deck` (root-only):
+  Argon2id(PIN, salt, 64 MiB, key = the keyboard's 32 bytes) →
+  XChaCha20-Poly1305 over the passwords, with the header authenticated too
+  (Monocypher). The wrong-PIN count is saved before every try, so pulling the
+  plug mid-try doesn't buy a free guess. Open, the passwords sit in memory
+  locked in RAM and are wiped on lock. `app/src/vault.c`, `app/src/page_vault.c`
+- **What's still open:** it can't open until the keyboard link exists (the
+  keyboard's key and the password keys come over it). The Cyber60 side:
+  `&deck_pw N` keys that send "password N" to the Pi, and the key, made on the
+  keyboard by its random number generator the first time it's asked, kept in
+  its settings and given only to the Pi it was first given to. The old
+  `&pw1`/`&pw2` macros and `tools/make-passwords.py` go then.
+- What it doesn't protect against: someone with both the SD card and the
+  keyboard who reads the keyboard's chip directly can try PINs offline.
+
+```bash
+pi/tools/vault-test.sh   # 41 checks: PINs, waits, erase, tampering, a pulled plug, memory after lock
+```
+
 ## Not done yet
 
 1. The keyboard link: Bluetooth pairing, USB keyboard passthrough (needs the
    USB-C power/data splitter), and the Cyber60 firmware (keymap back on the
-   keyboard, plus the screen-data service).
+   keyboard, plus the screen-data service, the password keys and the vault
+   key). The vault waits for it.
 2. A read-only system, so pulling the plug can never damage it.
+3. A real Shelly bulb for the Lights page, and the case (`case/deck/`).

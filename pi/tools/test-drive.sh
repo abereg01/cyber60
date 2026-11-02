@@ -45,6 +45,7 @@ trap cleanup EXIT
 mkdir -p "$DECK_BOOT" "$DECK_OPT/units" "$DECK_DATA" "$DECK_RUN" "$LUN" "$DECK_UNITS" \
     "$(dirname "$STATE")" "$T/bin" "$T/sysd"
 cp "$F/deck.conf" "$DECK_BOOT/"
+sed -i 's/^shelly_key=.*/shelly_key=bootKEY123/' "$DECK_BOOT/deck.conf" # put there on the SD card itself
 echo "the first start" >"$DECK_BOOT/deck-log.txt"
 : >"$LUN/file"
 : >"$LUN/forced_eject"
@@ -183,6 +184,9 @@ check "README.txt, DECK-STATUS.txt and deck.conf on it" sh -c \
     "mtype -i '$IMG' ::README.txt && mtype -i '$IMG' ::DECK-STATUS.txt && mtype -i '$IMG' ::deck.conf"
 check "the status names version v1" status_has "Running:      v1"
 check "the screen's log is on it" sh -c "mtype -i '$IMG' ::deck-log.txt | grep -q 'the first start'"
+check "a Shelly key on the SD card moved onto the Pi" grep -qx bootKEY123 "$DECK_DATA/shelly-key"
+check "and blanked on the SD card and the drive" sh -c \
+    "! grep -q bootKEY123 '$DECK_BOOT/deck.conf' && ! mtype -i '$IMG' ::deck.conf | grep -q bootKEY123"
 
 echo "==> v2 as deck-update.tar.gz, then eject"
 make_update v2 good
@@ -215,14 +219,27 @@ plug
 sleep 0.3
 
 echo "==> deck.conf edited on the drive (Notepad: CRLF), then eject"
-host_cat deck.conf | sed 's/^demo=1/demo=0/' | sed 's/$/\r/' >"$T/deck.conf"
+host_cat deck.conf | sed 's/^demo=0/demo=1/' | sed 's/$/\r/' >"$T/deck.conf"
 host_put "$T/deck.conf"
 n=$(umounts)
 eject
 done_wait "$n"
-check "the SD card's deck.conf has demo=0" grep -q '^demo=0' "$DECK_BOOT/deck.conf"
+check "the SD card's deck.conf has demo=1" grep -q '^demo=1' "$DECK_BOOT/deck.conf"
 check "the screen showed 'Settings applied'" notice_was "Settings applied"
 check "no new version for a settings change" version_is v3
+
+echo "==> a Shelly key in deck.conf (CRLF), then eject"
+host_cat deck.conf | tr -d '\r' | sed 's/^shelly_key=.*/shelly_key=dGVzdC1rZXk0NTY=/' | sed 's/$/\r/' >"$T/deck.conf"
+host_put "$T/deck.conf"
+n=$(umounts)
+eject
+done_wait "$n"
+check "the key is on the Pi" grep -qx 'dGVzdC1rZXk0NTY=' "$DECK_DATA/shelly-key"
+check "only root can read it (600)" sh -c "[ \"\$(stat -c %a '$DECK_DATA/shelly-key')\" = 600 ]"
+check "not on the SD card's deck.conf" sh -c "! grep -q dGVzdC1rZXk0NTY '$DECK_BOOT/deck.conf'"
+check "not on the drive" sh -c "! mtype -i '$IMG' ::deck.conf | grep -q dGVzdC1rZXk0NTY"
+check "the rest of deck.conf survived" grep -q '^demo=1' "$DECK_BOOT/deck.conf"
+check "the screen showed 'Shelly key saved'" notice_was "Shelly key saved"
 
 echo "==> v4 that never comes up, then eject"
 make_update v4 crash

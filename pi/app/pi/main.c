@@ -29,6 +29,7 @@
 
 #include "deck.h"
 #include "demo.h"
+#include "lights.h"
 #include "spotify.h"
 #include "wifi.h"
 
@@ -36,7 +37,7 @@
 #define OPT "/opt/deck"
 #define SHARE OPT "/share"
 #define RUN "/run/deck"     // what the DECK drive (deck-drive.sh) and the screen tell each other
-#define DATA "/var/lib/deck" // the Spotify login (root-only)
+#define DATA "/var/lib/deck" // the Spotify login, the Shelly key, the vault (root-only)
 #define LOG_MAX (256 * 1024)
 
 static struct {
@@ -44,7 +45,9 @@ static struct {
     bool mac;   // ⌘ instead of the window icon
     bool demo;  // type by itself
     char spotify_client_id[64];
-} conf = {.demo = true};
+    char shelly_server[128];
+    int vault_minutes;
+} conf = {.vault_minutes = 10};
 
 // ── Log ──────────────────────────────────────────────────────────────────────
 // On the boot partition, so it can be read on any computer. Lines are rare
@@ -78,9 +81,14 @@ void deck_log(const char *fmt, ...) {
 // LVGL's own warnings, minus the glyph misses Tiny TTF reports every time a
 // symbol falls back to Montserrat (the touch keyboard's ⌫ and ✓), and capped:
 // each line is a write to the SD card.
+static int commit_errors; // display_watch() restarts the app when they pile up
+
 static void lvgl_log(lv_log_level_t level, const char *buf) {
     (void)level;
     static int lines;
+    if (strstr(buf, "drmModeAtomicCommit failed")) {
+        commit_errors++;
+    }
     if (strstr(buf, "ttf_get_glyph_dsc_cb") || ++lines > 100) {
         return;
     }
@@ -109,6 +117,12 @@ static void conf_load(const char *path) {
             conf.demo = atoi(val) != 0;
         } else if (!strcmp(key, "spotify_client_id")) {
             snprintf(conf.spotify_client_id, sizeof(conf.spotify_client_id), "%s", val);
+        } else if (!strcmp(key, "shelly_server")) {
+            snprintf(conf.shelly_server, sizeof(conf.shelly_server), "%s", val);
+        } else if (!strcmp(key, "vault_minutes")) {
+            conf.vault_minutes = atoi(val) > 0 ? atoi(val) : 10;
+        } else if (!strcmp(key, "light")) {
+            lights_add(val); // before deck_create: the Lights page has a column per lamp
         }
     }
     fclose(f);
@@ -116,70 +130,155 @@ static void conf_load(const char *path) {
 }
 
 // ── Display ──────────────────────────────────────────────────────────────────
+// The Touch Display is a DSI connector on vc4, the Pi's display driver. It
+// shows up a few seconds into the boot, and not always as the same card:
+// v3d (3D only, no outputs) and simpledrm (the firmware's boot picture, gone
+// the moment vc4 takes over) can be cards too. A display that never shows a
+// picture must not look like a working one, so every failure here ends the
+// app and systemd starts it again (deck.service), and the log says what the
+// Pi saw (deck-log.txt).
 
-// The DRM card with a connected display, preferring the DSI Touch Display
-// over HDMI; its connector in *conn. They appear a moment after boot.
-static bool find_display(char *path, size_t size, int64_t *conn) {
-    for (int tries = 0; tries < 100; tries++) {
-        int best = -1;
-        for (int c = 0; c < 4; c++) {
-            char p[32];
-            snprintf(p, sizeof(p), "/dev/dri/card%d", c);
-            int fd = open(p, O_RDWR | O_CLOEXEC);
-            if (fd < 0) {
+static char drm_path[32]; // the card in use, watched by display_watch()
+
+static const char *conn_type(uint32_t t) {
+    switch (t) {
+    case DRM_MODE_CONNECTOR_DSI: return "DSI";
+    case DRM_MODE_CONNECTOR_HDMIA: return "HDMI";
+    case DRM_MODE_CONNECTOR_Composite: return "TV";
+    case DRM_MODE_CONNECTOR_DPI: return "DPI";
+    case DRM_MODE_CONNECTOR_VIRTUAL: return "virtual";
+    default: return "other";
+    }
+}
+
+// One pass over /dev/dri: the best connected output (DSI 2, anything else 1)
+// in path/conn, and what each card has in *seen, for the log.
+static int scan_cards(char *path, size_t size, int64_t *conn, char *seen, size_t seen_size) {
+    int best = -1;
+    size_t n = 0;
+    seen[0] = '\0';
+    for (int c = 0; c < 4; c++) {
+        char p[32];
+        snprintf(p, sizeof(p), "/dev/dri/card%d", c);
+        int fd = open(p, O_RDWR | O_CLOEXEC);
+        if (fd < 0) {
+            continue;
+        }
+        drmVersion *v = drmGetVersion(fd);
+        const char *name = v && v->name ? v->name : "?";
+        n += snprintf(seen + n, n < seen_size ? seen_size - n : 0, "%scard%d %s", n ? "; " : "", c, name);
+        bool usable = strcmp(name, "simpledrm") != 0;
+        drmModeRes *res = drmModeGetResources(fd);
+        if (!res) {
+            n += snprintf(seen + n, n < seen_size ? seen_size - n : 0, " (no outputs)");
+        }
+        for (int i = 0; res && i < res->count_connectors; i++) {
+            drmModeConnector *k = drmModeGetConnector(fd, res->connectors[i]);
+            if (!k) {
                 continue;
             }
-            drmModeRes *res = drmModeGetResources(fd);
-            for (int i = 0; res && i < res->count_connectors; i++) {
-                drmModeConnector *k = drmModeGetConnector(fd, res->connectors[i]);
-                if (!k) {
-                    continue;
-                }
-                int score = k->connection != DRM_MODE_CONNECTED ? -1
-                            : k->connector_type == DRM_MODE_CONNECTOR_DSI ? 2
-                                                                           : 1;
-                if (score > best) {
-                    best = score;
-                    snprintf(path, size, "%s", p);
-                    *conn = k->connector_id;
-                }
-                drmModeFreeConnector(k);
+            bool on = k->connection == DRM_MODE_CONNECTED && k->count_modes > 0;
+            n += snprintf(seen + n, n < seen_size ? seen_size - n : 0, " %s%s", conn_type(k->connector_type),
+                          on ? "+" : "-");
+            int score = !on || !usable ? -1 : k->connector_type == DRM_MODE_CONNECTOR_DSI ? 2 : 1;
+            if (score > best) {
+                best = score;
+                snprintf(path, size, "%s", p);
+                *conn = k->connector_id;
             }
-            drmModeFreeResources(res);
-            close(fd);
+            drmModeFreeConnector(k);
         }
-        if (best > 0) {
+        drmModeFreeResources(res);
+        drmFreeVersion(v);
+        close(fd);
+    }
+    if (!n) {
+        snprintf(seen, seen_size, "no /dev/dri cards");
+    }
+    return best;
+}
+
+// Waits up to 20 s for a display: the Touch Display right away, HDMI only if
+// no Touch Display turned up in the first 8 s.
+static bool find_display(char *path, size_t size, int64_t *conn) {
+    char seen[256];
+    for (int tries = 0; tries < 200; tries++) {
+        int best = scan_cards(path, size, conn, seen, sizeof(seen));
+        if (best == 2 || (best == 1 && tries >= 80)) {
+            deck_log("display: found after %.1f s (%s; + = connected)", tries / 10.0, seen);
             return true;
         }
         usleep(100 * 1000);
     }
+    deck_log("display: none found in 20 s (%s; + = connected)", seen);
     return false;
+}
+
+static lv_display_t *fbdev_open(bool turned) {
+    for (int tries = 0; tries < 100 && access("/dev/fb0", F_OK) != 0; tries++) {
+        usleep(100 * 1000);
+    }
+    lv_display_t *d = lv_linux_fbdev_create();
+    lv_linux_fbdev_set_file(d, "/dev/fb0");
+    if (!lv_display_get_buf_active(d)) {
+        deck_log("display: /dev/fb0 didn't open either");
+        return NULL;
+    }
+    if (turned) {
+        lv_display_set_rotation(d, LV_DISPLAY_ROTATION_180);
+    }
+    snprintf(drm_path, sizeof(drm_path), "/dev/fb0");
+    deck_log("display: /dev/fb0%s, %dx%d", turned ? ", turned 180" : "",
+             (int)lv_display_get_horizontal_resolution(d), (int)lv_display_get_vertical_resolution(d));
+    return d;
 }
 
 static lv_display_t *display_open(void) {
     if (conf.rotate == 180) {
         // LVGL can only turn the picture in partial rendering, which the DRM
         // driver doesn't do; the framebuffer can (but may tear).
-        for (int tries = 0; tries < 100 && access("/dev/fb0", F_OK) != 0; tries++) {
-            usleep(100 * 1000);
-        }
-        lv_display_t *d = lv_linux_fbdev_create();
-        lv_linux_fbdev_set_file(d, "/dev/fb0");
-        lv_display_set_rotation(d, LV_DISPLAY_ROTATION_180);
-        deck_log("display: /dev/fb0, turned 180");
-        return d;
+        return fbdev_open(true);
     }
     char path[32];
     int64_t conn = -1;
     if (!find_display(path, sizeof(path), &conn)) {
-        deck_log("display: no connected display found");
         return NULL;
     }
     lv_display_t *d = lv_linux_drm_create();
     lv_linux_drm_set_file(d, path, conn);
+    if (!lv_display_get_buf_active(d)) {
+        // LVGL's own error is in the log line above this one.
+        deck_log("display: DRM on %s didn't start, trying the framebuffer", path);
+        lv_display_delete(d);
+        return fbdev_open(false);
+    }
+    snprintf(drm_path, sizeof(drm_path), "%s", path);
     deck_log("display: %s connector %lld, %dx%d", path, (long long)conn,
              (int)lv_display_get_horizontal_resolution(d), (int)lv_display_get_vertical_resolution(d));
     return d;
+}
+
+// The card going away (vc4 replacing what was there) or the picture no longer
+// reaching it: start again, so the next start finds the right one.
+static void display_watch(lv_timer_t *t) {
+    (void)t;
+    if (access(drm_path, F_OK) != 0) {
+        deck_log("display: %s went away, starting again", drm_path);
+        exit(1);
+    }
+    if (commit_errors >= 20) {
+        deck_log("display: the picture isn't reaching %s, starting again", drm_path);
+        exit(1);
+    }
+}
+
+static void first_frame(lv_event_t *e) {
+    (void)e;
+    static bool logged;
+    if (!logged) {
+        logged = true;
+        deck_log("display: first picture after %.1f s", uptime());
+    }
 }
 
 // Keep the text console off the screen (cursor, blanking).
@@ -271,9 +370,12 @@ int main(void) {
     lv_tick_set_cb(tick_ms);
     console_off();
 
-    if (!display_open()) {
+    lv_display_t *disp = display_open();
+    if (!disp) {
         return 1;
     }
+    lv_display_add_event_cb(disp, first_frame, LV_EVENT_FLUSH_FINISH, NULL);
+    lv_timer_create(display_watch, 1000, NULL);
     lv_evdev_discovery_start(input_found, NULL);
 
     static const enum deck_mod order[] = {DECK_MOD_GUI, DECK_MOD_ALT, DECK_MOD_CTRL, DECK_MOD_SHIFT};
@@ -281,11 +383,13 @@ int main(void) {
         deck_log("can't read the fonts in " SHARE);
         return 1;
     }
+    deck_vault_start(DATA, (uint32_t)conf.vault_minutes);
     wifi_start();
     spotify_start(conf.spotify_client_id, DATA);
+    lights_start(conf.shelly_server, DATA "/shelly-key"); // deck-drive.sh puts the key there
     if (conf.demo) {
         demo_start();
-        deck_log("demo: typing by itself (demo=0 in deck.conf turns it off)");
+        deck_log("demo: typing by itself (demo=1 in deck.conf; 0 turns it off)");
     }
     deck_log("up after %.1f s", uptime());
     drive_ready();

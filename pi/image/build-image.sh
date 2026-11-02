@@ -47,16 +47,18 @@ mtype -i "$W/boot.vfat" ::/config.txt >"$W/config.txt"
 cat >>"$W/config.txt" <<'CONF'
 
 [all]
-# Desk screen (pi/image/build-image.sh): no rainbow at power-on, no sound or
-# camera. The Touch Display is found by display_auto_detect above.
-disable_splash=1
+# Desk screen (pi/image/build-image.sh): no sound or camera. The rainbow at
+# power-on stays: it is the only sign that the Pi found the card and started.
+# The Touch Display is found by display_auto_detect above.
 dtparam=audio=off
 camera_auto_detect=0
 # The USB-C port as a USB device (the DECK drive, deck-drive.sh).
 dtoverlay=dwc2,dr_mode=peripheral
 CONF
-# Kernel messages stay off the screen (serial only); wifi country Sweden.
-mtype -i "$W/boot.vfat" ::/cmdline.txt | tr -d '\n' | sed 's/ console=tty1//' >"$W/cmdline.txt"
+# A quiet boot, but errors still reach the screen (console=tty1 stays), so a
+# boot that stops before the app shows why instead of staying black. Wifi
+# country Sweden.
+mtype -i "$W/boot.vfat" ::/cmdline.txt | tr -d '\n' >"$W/cmdline.txt"
 printf ' quiet loglevel=3 logo.nologo vt.global_cursor_default=0 consoleblank=0 cfg80211.ieee80211_regdom=SE\n' \
     >>"$W/cmdline.txt"
 mcopy -o -i "$W/boot.vfat" "$W/config.txt" "$W/cmdline.txt" "$F/deck.conf" "$F/DECK-README.txt" ::/
@@ -88,14 +90,18 @@ own /opt/deck/units 040755
 put "$D/deck" /opt/deck 0100755
 put "$D/deck-update.sh" /opt/deck 0100755
 put "$D/deck-drive.sh" /opt/deck 0100755
+put "$D/deck-report.sh" /opt/deck 0100755
 put "$D/VERSION" /opt/deck 0100644
 put "$D/DRIVE-README.txt" /opt/deck 0100644
 for f in "$D"/share/*; do put "$f" /opt/deck/share 0100644; done
 for f in "$D"/units/*; do put "$f" /opt/deck/units 0100644; done
 put "$F/deck.service" /etc/systemd/system 0100644
 put "$F/deck-drive.service" /etc/systemd/system 0100644
-printf 'symlink /etc/systemd/system/sysinit.target.wants/deck.service /etc/systemd/system/deck.service\n' >>"$R"
-printf 'symlink /etc/systemd/system/multi-user.target.wants/deck-drive.service /etc/systemd/system/deck-drive.service\n' >>"$R"
+put "$F/deck-report.service" /etc/systemd/system 0100644
+for w in sysinit.target.wants/deck.service multi-user.target.wants/deck-drive.service \
+    multi-user.target.wants/deck-report.service; do
+    printf 'symlink /etc/systemd/system/%s /etc/systemd/system/%s\n' "$w" "${w#*/}" >>"$R"
+done
 
 # Off: the first-boot user wizard (nobody logs in; it would also take the
 # screen), cloud-init (nothing to set up, slow), avahi (announces the Pi on
@@ -115,6 +121,14 @@ for f in hostname hosts; do
     printf 'cd /etc\nrm %s\nwrite %s %s\n' "$f" "$W/$f" "$f" >>"$R"
     own "/etc/$f" 0100644
 done
+
+# Wifi on: Pi OS ships NetworkManager with it switched off until Imager or
+# raspi-config sets it up (the screen's wifi.c switches it on too, for cards
+# made before this).
+printf '[main]\nWirelessEnabled=true\n' >"$W/NetworkManager.state"
+printf 'cd /var/lib/NetworkManager\nrm NetworkManager.state\nwrite %s NetworkManager.state\n' \
+    "$W/NetworkManager.state" >>"$R"
+own /var/lib/NetworkManager/NetworkManager.state 0100644
 
 debugfs -w -f "$R" "$W/root.ext4" 2>&1 | grep -iE 'error|not found|exists|could not' && exit 1
 e2fsck -fy "$W/root.ext4" >/dev/null || [ $? -le 1 ]

@@ -20,6 +20,9 @@ extern struct deck_fonts deck_font;
 void keys_page_create(lv_obj_t *page, const enum deck_mod order[DECK_MOD_COUNT], bool mac,
                       const char *share);
 void spotify_page_create(lv_obj_t *page);
+void lights_page_create(lv_obj_t *page); // after lights_add (lights.h): a column per lamp
+void vault_activity(void);          // a key was pressed: the vault's idle timer starts over
+void vault_keys_shown(bool shown);  // the padlock only shows on the keyboard screen
 void spotify_lists_open(int which); // enum sp_list; SP_LIST_ALBUMS opens the library on albums
 void spotify_settings_open(void);
 void wifi_ui_open(void); // the wifi setup screen, over everything
