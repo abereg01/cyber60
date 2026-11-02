@@ -135,6 +135,20 @@ printf '[main]\nWirelessEnabled=true\n' >"$W/NetworkManager.state"
 printf 'cd /var/lib/NetworkManager\nrm NetworkManager.state\nwrite %s NetworkManager.state\n' \
     "$W/NetworkManager.state" >>"$R"
 own /var/lib/NetworkManager/NetworkManager.state 0100644
+# No wifi power saving: on the Pi's chip it stalls connections (seen
+# 2026-11-02: a copy over SSH hung, ping went quiet).
+printf '%s\n' '# Desk screen: wifi power saving stalls connections on the Pi' '[connection]' 'wifi.powersave=2' \
+    >"$W/deck-wifi.conf"
+put "$W/deck-wifi.conf" /etc/NetworkManager/conf.d 0100644
+# The log kept across restarts (capped), so a restart or crash can be read
+# afterwards (deck-boot.txt, or over SSH). Pi OS has /var/log/journal but
+# keeps the log in RAM by its own setting; this one in /etc wins.
+printf '%s\n' '# Desk screen: keep the log across restarts' '[Journal]' 'Storage=persistent' 'SystemMaxUse=32M' \
+    >"$W/journald-deck.conf"
+printf 'mkdir /etc/systemd/journald.conf.d\n' >>"$R"
+own /etc/systemd/journald.conf.d 040755
+printf 'cd /etc/systemd/journald.conf.d\nwrite %s deck.conf\n' "$W/journald-deck.conf" >>"$R"
+own /etc/systemd/journald.conf.d/deck.conf 0100644
 
 debugfs -w -f "$R" "$W/root.ext4" 2>&1 | grep -iE 'error|not found|exists|could not' && exit 1
 e2fsck -fy "$W/root.ext4" >/dev/null || [ $? -le 1 ]

@@ -17,11 +17,13 @@ v=$(sed -n 's/^[[:space:]]*ssh[[:space:]]*=[[:space:]]*\([01]\).*/\1/p' "$BOOT/d
 if [ "$on" = 1 ] && [ -s "$KEYS" ]; then
     install -d -m 700 /root/.ssh
     install -m 600 "$KEYS" /root/.ssh/authorized_keys
+    # Read before Pi OS's rename_user.conf (first value wins), so its "SSH may
+    # not work until a valid user has been set up" banner stays away too.
     printf '%s\n' '# deck-ssh.sh: keys only' 'PermitRootLogin prohibit-password' 'PasswordAuthentication no' \
-        'KbdInteractiveAuthentication no' >/etc/ssh/sshd_config.d/deck.conf
+        'KbdInteractiveAuthentication no' 'Banner none' >/etc/ssh/sshd_config.d/deck.conf
     ssh-keygen -A >/dev/null # Pi OS makes the host keys at first boot through cloud-init, which is off
     systemctl enable ssh.service >/dev/null 2>&1
-    systemctl start --no-block ssh.service
+    systemctl reload-or-restart --no-block ssh.service
     echo "deck-ssh: on (root, key only)"
 else
     systemctl disable ssh.service ssh.socket >/dev/null 2>&1

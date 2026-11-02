@@ -6,6 +6,8 @@ The Set up wifi button is on top of the text first, blocking it.
 It feels as if it is time to crawl the git repo and look for files not needed. Like all the pngs. 
 Spotify does not work well at all. It is connected, I can go to playlists. But when I try to play a song from a playlist, it instantly start the first song. I am never allowed to choose song in the list.
 Dragging on the song.. I do no know what to call it. If I wanna move forward in the song I am listening too, the screen tries to move back to the default screen. Rendering me unable to jump in the song. 
+Add a clock next to the battery
+The screen is so bright it is better looking at it at a 45 degree angle than straight on. All the light colors like the keyboard and wpm staples as washed out unless locking from quite a steep angle. 
 
 
 Deck does not work, at least on mac. I need to pull out the SD card to reach bootfs. Must be fixed to live patch. 
