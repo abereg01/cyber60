@@ -127,6 +127,7 @@ tar -xzf "$T/out/v1/deck-update.tar.gz" -C "$DECK_OPT"
 # ── The computer ─────────────────────────────────────────────────────────────
 
 host_put() { mcopy -m -o -i "$IMG" "$1" "::${2:-$(basename "$1")}"; }
+host_put_dir() { mcopy -s -m -o -i "$IMG" "$1" ::/; }
 host_cat() { mtype -i "$IMG" "::$1"; }
 host_has() { mdir -b -i "$IMG" "::$1" >/dev/null 2>&1; }
 eject() { : >"$LUN/file"; }
@@ -286,6 +287,35 @@ eject
 done_wait "$n"
 check "and the new one still reads the drive" drive_said "ejected"
 
+echo "==> v8 as a Mac leaves GitHub's download: unpacked into a folder (._ files, no x bits), then eject"
+make_update v8 good
+mkdir -p "$T/mac/deck-update"
+cp -R "$T/out/v8/deck/." "$T/mac/deck-update/"
+find "$T/mac/deck-update" -type f -exec chmod 644 {} +
+: >"$T/mac/deck-update/._deck"
+: >"$T/mac/deck-update/.DS_Store"
+host_put_dir "$T/mac/deck-update"
+n=$(umounts)
+eject
+done_wait "$n"
+check "v8 is installed" version_is v8
+check "the screen can start (deck is executable again)" sh -c "[ -x '$DECK_OPT/deck' ]"
+check "no Mac files came along" sh -c "! find '$DECK_OPT' \\( -name '._*' -o -name .DS_Store \\) | grep -q ."
+check "the folder is gone from the drive" sh -c "! mdir -b -i '$IMG' ::deck-update"
+
+echo "==> v9 as a Mac's zip of that folder, any name (with __MACOSX), then eject"
+make_update v9 good
+mkdir -p "$T/mac2/deck-update" "$T/mac2/__MACOSX/deck-update"
+cp -R "$T/out/v9/deck/." "$T/mac2/deck-update/"
+echo junk >"$T/mac2/__MACOSX/deck-update/._VERSION"
+(cd "$T/mac2" && python3 -m zipfile -c "$T/Deck Update from Cyber60.zip" deck-update __MACOSX)
+host_put "$T/Deck Update from Cyber60.zip"
+n=$(umounts)
+eject
+done_wait "$n"
+check "v9 is installed" version_is v9
+check "the zip is gone from the drive" sh -c "! mdir -b -i '$IMG' '::*.zip'"
+
 echo "==> drive=0 on the drive, then eject"
 host_cat deck.conf | sed 's/^drive=1/drive=0/' >"$T/deck.conf"
 host_put "$T/deck.conf"
@@ -296,6 +326,34 @@ check "the USB port was let go" sh -c "[ -z \"\$(tr -d '\n' <'$DECK_GADGET/UDC')
 DRIVE_PID=
 "$DECK_OPT/deck-drive.sh" >>"$DRIVE_LOG" 2>&1 && rc=0 || rc=$?
 check "with drive=0 it doesn't start at all" [ "$rc" = 0 ]
+
+# The SD card's bootfs: deck.service runs deck-update.sh before the screen.
+mkdir -p "$DECK_BOOT/overlays" && : >"$DECK_BOOT/overlays/vc4-kms-v3d.dtbo"
+
+echo "==> power-on with a Mac-unpacked folder on bootfs"
+make_update v10 good
+mkdir -p "$DECK_BOOT/Deck Update from Cyber60"
+cp -R "$T/out/v10/deck/." "$DECK_BOOT/Deck Update from Cyber60/"
+"$DECK_OPT/deck-update.sh" >/dev/null
+check "v10 is installed" version_is v10
+check "the folder is gone from bootfs" sh -c "[ ! -e '$DECK_BOOT/Deck Update from Cyber60' ]"
+check "bootfs kept the rest" sh -c "[ -f '$DECK_BOOT/deck.conf' ] && [ -f '$DECK_BOOT/overlays/vc4-kms-v3d.dtbo' ]"
+
+echo "==> power-on with GitHub's zip and an older folder one level deeper on bootfs"
+make_update v11 good
+make_update v11old good
+mkdir -p "$DECK_BOOT/Downloads/deck-update"
+cp -R "$T/out/v11old/deck/." "$DECK_BOOT/Downloads/deck-update/"
+touch -d '1 hour ago' "$DECK_BOOT/Downloads/deck-update/VERSION"
+(cd "$T/out/v11" && python3 -m zipfile -c "$DECK_BOOT/deck-update.zip" deck-update.tar.gz)
+"$DECK_OPT/deck-update.sh" >/dev/null
+check "v11, the newest, is installed" version_is v11
+check "both are gone from bootfs" sh -c "[ ! -e '$DECK_BOOT/Downloads' ] && [ ! -e '$DECK_BOOT/deck-update.zip' ]"
+
+echo "==> power-on with nothing new"
+"$DECK_OPT/deck-update.sh" >/dev/null
+check "still v11" version_is v11
+check "bootfs untouched" sh -c "[ -f '$DECK_BOOT/deck.conf' ] && [ -d '$DECK_BOOT/overlays' ]"
 
 echo
 if [ "$FAILS" = 0 ]; then

@@ -7,10 +7,10 @@ deck-log.txt         What the screen did at the last start (written by the Pi).
 deck-boot.txt        The Pi's report from the last boot, 30 s after power-on:
                      display, touch, power, the screen's journal, the kernel
                      log. Screen stayed black? This file says why.
-deck-update.tar.gz   Drop a new version here (from pi/image/build.sh or the
-                     GitHub Actions "deck-update" artifact) instead of
-                     re-flashing: the Pi installs it at the next start and
-                     deletes the file. Saved wifi networks stay.
+(a new version)      Drop GitHub Actions' "deck-update" download here as it
+                     is (the .zip, or the folder your Mac unpacked it into),
+                     instead of re-flashing: the Pi installs it at the next
+                     start and deletes it. Saved wifi networks stay.
 deck-update.log      When an update was installed.
 
 Neither log here after a power-on (wait a minute first)? Then Linux never got

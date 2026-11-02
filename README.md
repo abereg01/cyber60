@@ -107,12 +107,12 @@ press SYSTEM + Left Shift to unlock, and remap without reflashing. (VIA and Vial
 are QMK things and don't work with ZMK.) Studio costs about 15 KB of the
 XIAO's RAM; if the dongle ever acts up, try `CONFIG_ZMK_STUDIO=n` first.
 
-**Desk screen.** GitHub Actions (`pi-image.yml`) builds the SD card image and
-an update file whenever `pi/` changes; `pi/image/build.sh` does the same on
-OMV. Flash the image with Raspberry Pi Imager ("Use custom"). After that,
+**Desk screen.** GitHub Actions (`pi-image.yml`, **Pi screen**) builds an update
+whenever `pi/` changes; the SD card image only when run by hand with *image*
+ticked. Flash the image with Raspberry Pi Imager ("Use custom"). After that,
 updates and settings go onto the **DECK** USB drive the Pi shows on the
-computer: drop the file, eject, and the screen restarts with it in about a
-second.
+computer (or the SD card's `bootfs`): drop the download as it is, eject, and
+the screen restarts with it in about a second.
 
 ## Secrets
 

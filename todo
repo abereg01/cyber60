@@ -1,6 +1,22 @@
+You should be able to reach it on wifi now. Please ask me to try new features and fixes as we go, and I can tell you when they work or not.
+
 Dog not to my liking. Try 5 different versions, show png, and I will decide which is better/we continue work on. 
-It says 87% battery. How? Nothing is connected.
-How do we connect a keyboard? Surely there must be some bluetooth menu for adding our keyboard. 
 Move Kate and the kanji to be on top of the keyboard. It is weirdly placed right now. And with the space vacant above the dog, we could add a spotify button. Or more buttons for future features.
 The Set up wifi button is on top of the text first, blocking it. 
+It feels as if it is time to crawl the git repo and look for files not needed. Like all the pngs. 
 
+as per the case/deck/README.md, here are the measurements
+screen width 192.96
+screen height 110.76
+thickness of screen 0.80
+thickness of screen including back 63.2
+black borders on width sides 19.5
+black borders on the top bottom sides 13.6
+depth of screen with pis tallest part 41.6
+the usb middle from glass left (looking at the back) around 67.3, very hard to measure
+the usb middle from glass bottom (looking at the back) around 28 very hard to measure
+the monitor height does not matter
+the lean should not be to much, nor to little. Easy to see the screen, but also a small lean to be able to easily touch and navigate the screen
+My monitor has usb power, untested as of now. The raspberry has usb A to the right if needed. 
+
+When all of the above is done, we wanna take a step back and employ more agents, specialized at each task and improve upon the code. Boot time, minimize the code needed, general improvments to make it better, faster more secure. 

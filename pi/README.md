@@ -111,16 +111,14 @@ eject, DECK comes back with:
 | `deck.conf` | the settings: edit and eject (saved to the SD card's `bootfs` too) |
 | `README.txt` | this in short (`image/files/DRIVE-README.txt`) |
 
-The loop when changing the screen:
-
-```bash
-pi/image/build.sh update   # → pi/build/deck-update.tar.gz
-```
-
-Copy `deck-update.tar.gz` onto DECK, eject, watch the screen. GitHub's
-`deck-update` artifact works as downloaded (`deck-update.zip`). So do
-Windows' second downloads, like `deck-update (1).tar.gz`: the newest file wins.
-Pulling the cable instead of ejecting works too.
+The loop when changing the screen: push, wait for the **Pi screen** run on
+GitHub Actions, download its `deck-update` artifact and drop it on DECK
+**as it is**, then eject and watch the screen. Any shape works
+(`deck-update.sh` finds it): the `.zip`, the folder a Mac unpacks it into
+(`deck`, `VERSION`, `share/`, `units/`..., also one folder deeper), a zip of
+that folder, or a `deck-update.tar.gz`. Mac `._*` files are dropped and file
+modes are set on the Pi. With several, the newest wins. Pulling the cable
+instead of ejecting works too.
 
 How it works (`image/files/deck-drive.sh`, run by `deck-drive.service`):
 
@@ -131,7 +129,7 @@ How it works (`image/files/deck-drive.sh`, run by `deck-drive.service`):
   pulled cable or a sleeping computer is noticed from the USB port's state.
   Then `fsck.fat -a`, a loop mount, the update or settings, then the image goes
   back. The computer sees a "new disk" and reads it afresh.
-- `deck-update.sh <file>` installs into `/opt/deck` and keeps the version
+- `deck-update.sh <file or folder>` installs into `/opt/deck` and keeps the version
   before in `/opt/deck.prev`. The screen restarts (`systemctl restart deck`)
   and has 15 s to write `/run/deck/ready` and then stay up 3 s. If it doesn't,
   the Pi goes back to the version before by itself.
@@ -145,28 +143,29 @@ How it works (`image/files/deck-drive.sh`, run by `deck-drive.service`):
 
 `pi/tools/test-drive.sh` runs the real scripts here on OMV against a
 stand-in Pi (a fake USB port, a real FAT image, a screen that comes up or
-crashes): eject, GitHub zip, unplugging, `deck.conf`, two broken versions
-rolling back, a broken and a working new `deck-drive.sh`, `drive=0`. It runs
-shellcheck as well. Run it after changing either script.
+crashes): eject, GitHub zip, a Mac-unpacked folder and a Mac zip of it,
+unplugging, `deck.conf`, two broken versions rolling back, a broken and a
+working new `deck-drive.sh`, `drive=0`, and the same shapes dropped on
+`bootfs` at power-on. It runs shellcheck as well. Run it after changing
+either script.
 
 ## SD card
 
-```bash
-pi/image/build.sh          # pi/build/deck-<date>.img.xz + deck-update.tar.gz
-pi/image/build.sh update   # only deck-update.tar.gz
-```
-
-Or take the `deck-image` / `deck-update` artifact of the latest **Pi image**
-run on GitHub Actions (`.github/workflows/pi-image.yml`, runs when `pi/`
-changes).
+GitHub Actions (`.github/workflows/pi-image.yml`, run name **Pi screen**)
+builds only the update (`deck-update`, about 5 MB) on every push to `pi/`.
+The SD card image (about 600 MB) is built only by hand, for a new card:
+Actions → **Pi screen** → *Run workflow* → tick *image*. That keeps GitHub
+from piling up images while the screen is still changing. On OMV,
+`pi/image/build.sh [update]` does the same, but it is heavy for the NAS (RAM,
+disk): use GitHub.
 
 - **New card:** Raspberry Pi Imager → *Choose OS* → *Use custom* → the
   `.img.xz`. Say no to Imager's "OS customisation" (no user, no wifi there:
   this image has its own).
-- **Update without re-flashing:** the DECK drive (above), or copy
-  `deck-update.tar.gz` onto the card's `bootfs` drive: at the next power-on
-  the Pi installs it and deletes the file. Saved wifi and the Spotify login
-  stay either way.
+- **Update without re-flashing:** the DECK drive (above), or drop the
+  `deck-update` download as it is (zip or unpacked folder) onto the card's
+  `bootfs` drive: at the next power-on the Pi installs it and deletes it.
+  Saved wifi and the Spotify login stay either way.
 - **Settings:** `deck.conf` on the `bootfs` drive: `rotate=180` if the picture
   is upside down, `mac=1` for the ⌘ icon, `demo=1` for the pretend typist,
   `spotify_client_id`, the lamps (`light=`, `shelly_server=`, `shelly_key=`,

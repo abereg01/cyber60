@@ -1,11 +1,14 @@
-# The Pi desk screen's SD card image and update file (pi/), built the same way
-# as pi/image/build.sh does on the OMV box. Runs when pi/ (or the Shoko scene
-# and key files it shares with the Prospector) changes, or by hand.
+# The Pi desk screen (pi/), built the same way as pi/image/build.sh does on the
+# OMV box. Every push that touches pi/ (or the Shoko scene and key files it
+# shares with the Prospector) builds only the update (deck-update, ~5 MB): drop
+# it on the Pi's bootfs or DECK drive as downloaded. The SD card image (~600 MB)
+# is only built by hand, for a new card: Actions -> Pi screen -> Run workflow,
+# tick "image".
 #
 # Artifacts of a public repo can be downloaded by anyone with a GitHub
-# account. That's fine here: the image holds no secrets (wifi and the Spotify
-# login are entered on the Pi and stay on it).
-name: Pi image
+# account. That's fine here: neither holds secrets (wifi and the Spotify login
+# are entered on the Pi and stay on it).
+name: Pi screen
 
 on:
   push:
@@ -15,39 +18,56 @@ on:
       - "boards/shields/prospector_screen/src/layouts/shoko/shoko_keys.h"
       - ".github/workflows/pi-image.yml"
   workflow_dispatch:
+    inputs:
+      image:
+        description: "Also build the SD card image (~600 MB, only for a new card)"
+        type: boolean
+        default: false
 
 jobs:
-  image:
+  build:
     runs-on: ubuntu-24.04
     env:
       DECK_CACHE: ${{ github.workspace }}/.deck-cache
     steps:
       - uses: actions/checkout@v4
 
-      - name: Cache base image, LVGL, fonts
+      - name: Cache LVGL, libraries, fonts
         uses: actions/cache@v4
         with:
           path: |
-            .deck-cache/raspios
             .deck-cache/deps
             .deck-cache/fonts
-          key: deck-${{ hashFiles('pi/image/base-image.txt', 'pi/tools/fetch-deps.sh') }}
+          key: deck-deps-${{ hashFiles('pi/tools/fetch-deps.sh') }}
 
-      - name: Build
+      - name: Cache the Raspberry Pi OS base image
+        if: inputs.image
+        uses: actions/cache@v4
+        with:
+          path: .deck-cache/raspios
+          key: deck-raspios-${{ hashFiles('pi/image/base-image.txt') }}
+
+      - name: Build the update
+        if: ${{ !inputs.image }}
+        run: pi/image/build.sh update
+
+      - name: Build the update and the SD card image
+        if: inputs.image
         run: pi/image/build.sh
 
-      - name: Image (flash with Raspberry Pi Imager, "Use custom")
-        uses: actions/upload-artifact@v4
-        with:
-          name: deck-image
-          path: pi/build/*.img.xz
-          compression-level: 0
-          retention-days: 14
-
-      - name: Update (copy onto the SD card's bootfs drive)
+      - name: Update (drop on bootfs or DECK as downloaded)
         uses: actions/upload-artifact@v4
         with:
           name: deck-update
           path: pi/build/deck-update.tar.gz
+          compression-level: 0
+          retention-days: 14
+
+      - name: Image (flash with Raspberry Pi Imager, "Use custom")
+        if: inputs.image
+        uses: actions/upload-artifact@v4
+        with:
+          name: deck-image
+          path: pi/build/*.img.xz
           compression-level: 0
           retention-days: 14

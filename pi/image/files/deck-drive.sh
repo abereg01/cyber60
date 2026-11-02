@@ -1,7 +1,8 @@
 #!/bin/sh
 # The DECK drive: the Pi shows up as a small USB drive on the computer its
-# USB-C port is plugged into. Copy a new version (deck-update.tar.gz, or the
-# deck-update.zip GitHub Actions hands out) or an edited deck.conf onto it and
+# USB-C port is plugged into. Copy a new version (GitHub Actions' deck-update
+# download as it is, the folder a Mac unpacks it into, or deck-update.tar.gz;
+# see deck-update.sh) or an edited deck.conf onto it and
 # eject it: the Pi installs it, restarts the screen (no reboot) and puts the
 # drive back with DECK-STATUS.txt and the screen's log on it. Pulling the cable
 # instead of ejecting works too. drive=0 in deck.conf turns all this off.
@@ -91,8 +92,8 @@ status() {
         echo "Clock:        a guess (no wifi), so the times above may be off"
     fi
     echo
-    echo "Drop a deck-update.tar.gz (or the deck-update.zip from GitHub) or an"
-    echo "edited deck.conf here, then eject this drive. README.txt has more."
+    echo "Drop a new version here (GitHub's deck-update download as it is, zip or"
+    echo "unpacked folder) or an edited deck.conf, then eject. README.txt has more."
 }
 
 # The Pi's side of the drive, refreshed before the computer gets it back.
@@ -179,24 +180,14 @@ process() {
     }
     update=
     restart=
-    # The newest new version, as a tarball or GitHub's zip; Windows names a
-    # second download "deck-update (1).tar.gz".
-    # shellcheck disable=SC2012 # ls -t: sorting by date is the point
-    u=$(ls -t "$MNT"/deck-update*.tar.gz "$MNT"/deck-update*.tgz "$MNT"/deck-update*.tar \
-        "$MNT"/deck-update*.zip 2>/dev/null | head -n1)
+    # The newest new version: a tarball, GitHub's zip, or the folder a Mac
+    # unpacked it into (deck-update.sh --find). Copied off the drive before
+    # the drive goes back to the computer, then off the drive.
+    u=$("$OPT/deck-update.sh" --find "$MNT")
     if [ -n "$u" ]; then
         rm -rf "$DATA/incoming" && mkdir -p "$DATA/incoming"
-        case $u in
-        *.zip)
-            unzip -qo "$u" -d "$DATA/incoming" 2>/dev/null
-            update=$(find "$DATA/incoming" -name 'deck-update*.tar*' | head -n1)
-            [ -n "$update" ] || last "$(basename "$u") has no deck-update.tar.gz in it, ignored"
-            ;;
-        *)
-            cp "$u" "$DATA/incoming/" && update=$DATA/incoming/$(basename "$u")
-            ;;
-        esac
-        rm -f "$MNT"/deck-update*
+        cp -R "$u" "$DATA/incoming/" && update=$DATA/incoming/$(basename "$u")
+        "$OPT/deck-update.sh" --clear "$MNT"
     fi
     key=
     [ -f "$MNT/deck.conf" ] && take_key "$MNT/deck.conf" && key=1

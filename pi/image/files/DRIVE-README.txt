@@ -7,8 +7,10 @@ The Pi reads the drive, the screen says "Reading DECK..." and restarts
 with the change a few seconds later. No reboot. Then DECK comes back.
 
 What you can drop here
-  deck-update.tar.gz    a new version (pi/image/build.sh update), or the
-  deck-update.zip       "deck-update" download from GitHub Actions as it is
+  a new version         GitHub Actions' "deck-update" download as it is:
+                        the .zip, or the folder your Mac unpacked it into
+                        (deck, VERSION, share, units...), or a
+                        deck-update.tar.gz from pi/image/build.sh
   deck.conf             edit the copy here (Notepad is fine) to change a
                         setting. The Pi saves it to its SD card too.
                         A shelly_key= you put in is moved onto the Pi
