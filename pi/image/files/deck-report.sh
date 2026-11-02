@@ -39,6 +39,20 @@ section() { printf '\n== %s\n' "$1"; }
     systemctl status deck.service --no-pager -n 0 2>&1
     journalctl -b -u deck.service --no-pager -n 60 -o short-monotonic 2>&1
 
+    section "The DECK drive (deck-drive.service)"
+    for u in /sys/class/udc/*; do
+        [ -e "$u/state" ] && echo "USB-C port ${u##*/}: $(cat "$u/state") (configured = a computer is using it)"
+    done
+    journalctl -b -u deck-drive.service --no-pager -n 30 -o short-monotonic 2>&1
+
+    section "Network"
+    nmcli -t radio wifi 2>&1
+    nmcli -t -f DEVICE,TYPE,STATE,CONNECTION device 2>&1
+    rfkill list 2>&1
+    ip -br addr 2>&1
+    echo "ssh: $(systemctl is-active ssh.service 2>&1)"
+    journalctl -b -u deck-ssh.service --no-pager -n 5 -o cat 2>&1
+
     section "Failed units"
     systemctl --failed --no-pager --plain 2>&1
 

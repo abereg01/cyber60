@@ -38,6 +38,10 @@ units() {
     systemctl daemon-reload
     # shellcheck disable=SC2086 # one word per unit
     systemctl enable $changed
+    # A new unit runs now, not only from the next power-on (one already
+    # running, like the screen itself, is left alone).
+    # shellcheck disable=SC2086
+    systemctl start --no-block $changed
     note "units updated:$changed"
 }
 

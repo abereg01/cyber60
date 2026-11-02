@@ -1,0 +1,12 @@
+# BUILD PHASE ONLY (deck-ssh.sh): SSH with OMV's key while the Pi is at home.
+# ssh=0 in deck.conf turns it off at the next power-on.
+[Unit]
+Description=Desk screen SSH (build phase)
+After=local-fs.target
+
+[Service]
+Type=oneshot
+ExecStart=/opt/deck/deck-ssh.sh
+
+[Install]
+WantedBy=multi-user.target

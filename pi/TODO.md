@@ -20,3 +20,16 @@ your phone; see "Spotify" in `README.md`).
      secret (the login uses PKCE, no client secret), so it can go in the repo.
 
 Player controls need Spotify Premium (you have it).
+
+# Before the Pi goes to work (~mid-December 2026): remove the build-phase SSH
+
+Added 2026-11-02 so Claude can reach the Pi from OMV while it sits at home
+(root, OMV's key only, no password).
+
+- [ ] Put `ssh=0` in `deck.conf` and power-cycle (takes the key off the Pi).
+- [ ] Delete `pi/image/files/deck-ssh.sh`, `deck-ssh.service`, `ssh/`, and
+      their lines in `pi/image/build-app.sh` and `pi/image/build-image.sh`
+      (marked "BUILD PHASE ONLY"), and `ssh=` in `files/deck.conf`.
+- [ ] On OMV: `Host deck` in `~/.ssh/config`, `~/.ssh/id_ed25519_deck*`,
+      `~/.ssh/known_hosts_deck`.
+- [ ] Build the final SD image (Actions → Pi screen → Run workflow → image).

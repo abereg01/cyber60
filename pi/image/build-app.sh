@@ -59,6 +59,11 @@ install -m 755 "$PI/image/files/deck-update.sh" "$PI/image/files/deck-drive.sh" 
 install -m 644 "$PI/image/files/DRIVE-README.txt" "$S/opt-deck/"
 install -m 644 "$PI/image/files/deck.service" "$PI/image/files/deck-drive.service" \
     "$PI/image/files/deck-report.service" "$S/opt-deck/units/"
+# BUILD PHASE ONLY: SSH with OMV's key (deck-ssh.sh). Remove before work.
+mkdir -p "$S/opt-deck/ssh"
+install -m 755 "$PI/image/files/deck-ssh.sh" "$S/opt-deck/"
+install -m 644 "$PI/image/files/deck-ssh.service" "$S/opt-deck/units/"
+install -m 644 "$PI/image/files/ssh/authorized_keys" "$S/opt-deck/ssh/"
 install -m 644 "$FONTS"/*.ttf "$APP/assets/dog.png" "$S/opt-deck/share/"
 # What the log and DECK-STATUS.txt call this build: when, and from which
 # commit when GitHub Actions builds it.

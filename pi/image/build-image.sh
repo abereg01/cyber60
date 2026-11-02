@@ -98,8 +98,14 @@ for f in "$D"/units/*; do put "$f" /opt/deck/units 0100644; done
 put "$F/deck.service" /etc/systemd/system 0100644
 put "$F/deck-drive.service" /etc/systemd/system 0100644
 put "$F/deck-report.service" /etc/systemd/system 0100644
+# BUILD PHASE ONLY: SSH with OMV's key (files/deck-ssh.sh). Remove before work.
+printf 'mkdir /opt/deck/ssh\n' >>"$R"
+own /opt/deck/ssh 040755
+put "$D/deck-ssh.sh" /opt/deck 0100755
+put "$D/ssh/authorized_keys" /opt/deck/ssh 0100644
+put "$F/deck-ssh.service" /etc/systemd/system 0100644
 for w in sysinit.target.wants/deck.service multi-user.target.wants/deck-drive.service \
-    multi-user.target.wants/deck-report.service; do
+    multi-user.target.wants/deck-report.service multi-user.target.wants/deck-ssh.service; do
     printf 'symlink /etc/systemd/system/%s /etc/systemd/system/%s\n' "$w" "${w#*/}" >>"$R"
 done
 
