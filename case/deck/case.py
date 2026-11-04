@@ -6,19 +6,21 @@ official 7" Touch Display 1 (800x480), leaning back on a swappable foot.
     frame     ivory  the mat round the picture, R8 corners, no screws in sight.
                      Prints face down, no supports.
     shell     ivory  a thin back panel the display screws to, and a pod over
-                     the Pi (8° draft sides, 45° roof with the exhaust slots,
-                     intake slots low on the back, SD slot on the right, USB-C
-                     hole in the bottom). Prints standing on its bottom face.
+                     the Pi (8° draft sides, a roof along the seat's line of
+                     sight with a 40 mm fan inside and its exhaust slots, intake slots low on the back, SD
+                     slot on the right, USB-C hole in the bottom). Prints
+                     standing on its bottom face.
     foot-NN   ivory  the stand, one per lean (8°, 12°, 18°). Its dovetail
                      tongue slides into the shell's groove from behind; the
                      groove's closed front end takes the push of a finger, a
                      magnet pair stops it sliding off. Prints as it sits.
-    fit-test         a 1.2 mm outline plate to lay on the real display first.
+    tests/           test prints: the fit plate, a frame corner, the dovetail pair,
+                     the roof over the fan (small cuts of the real parts).
 
 Hardware: 4x M3 through the shell into the display's own M3 holes; 4x M3
 heat-set inserts in the frame's top and bottom bands, M3 through the shell
 into them; 2 magnets (shell + foot); felt tape on the frame's lip; felt under
-the foot.
+the foot; a 40 x 40 x 10 fan (4x M3 x 16 + nuts through the roof).
 
 Coordinates (mm) are the display's, as in PLAN.md: X from the glass's left
 edge seen from the front, Y up from its bottom (FPC) edge, Z out of the glass
@@ -44,19 +46,23 @@ MATS = {"even": 0.0, "bottom": 8.0}  # extra mat under the picture (framed-print
 MAT = os.environ.get("DECK_MAT", "even")  # the one written as print files
 
 # Display: drawing LMD-D/5624/KIT-LC-V3 + the user's calipers (PLAN.md table).
-# Front view; a back-view x from the drawing is 192.96 - x here.
-GLASS_W, GLASS_H, GLASS_T = 192.96, 110.76, 0.80
+# Front view; a back-view x from the drawing is DRAW_W - x here.
+DRAW_W = 192.96  # the drawing's glass width: the datum for every drawing x below
+# Fit test 2026-11-04: the real glass is 0.94 wider than drawn. The height, the
+# picture and the M3 holes matched from the left edge (front view), so the
+# extra width is all on the right and nothing else moves.
+GLASS_W, GLASS_H, GLASS_T = DRAW_W + 0.94, 110.76, 0.80
 MODULE_T = 6.32  # glass front → module back (measured; the drawing says 5.96)
 PIC_X0, PIC_Y0, PIC_W, PIC_H = 19.44, 13.43, 154.08, 85.92
-METAL = (GLASS_W - 12.54 - 166.2, 3.53, 166.2, 100.6)  # x0, y0, w, h
-M3_X, M3_Y = (GLASS_W - 158.74, GLASS_W - 32.54), (23.53, 89.18)
-SO_X, SO_Y = (GLASS_W - 118.99, GLASS_W - 60.99), (34.33, 83.33)  # Pi standoffs
-PI_X0, PI_X1, PI_Y0, PI_Y1 = GLASS_W - 142.5, GLASS_W - 57.5, 30.8, 86.8
+METAL = (DRAW_W - 12.54 - 166.2, 3.53, 166.2, 100.6)  # x0, y0, w, h
+M3_X, M3_Y = (DRAW_W - 158.74, DRAW_W - 32.54), (23.53, 89.18)
+SO_X, SO_Y = (DRAW_W - 118.99, DRAW_W - 60.99), (34.33, 83.33)  # Pi standoffs
+PI_X0, PI_X1, PI_Y0, PI_Y1 = DRAW_W - 142.5, DRAW_W - 57.5, 30.8, 86.8
 DEPTH = 41.6  # glass front → top of the USB stack
 PCB_T = 1.4
 PI_Z = -(DEPTH - 16.0 - PCB_T)  # PCB underside (USB stack 16 mm tall)
 PCB_TOP = PI_Z - PCB_T
-USBC_X = GLASS_W - 68.7
+USBC_X = DRAW_W - 68.7
 SD_YC = PI_Y0 + 28.0  # assumed: the microSD slot centred on the Pi's short edge
 PIXEL_Z = -1.5  # assumed depth of the LCD pixels behind the glass front
 
@@ -68,6 +74,7 @@ FIT_DT = 0.25  # dovetail
 
 # Frame
 MAT_W = 22.0  # mat width from the picture edge (the even version)
+MAT_SIDE = MAT_W + (GLASS_W - DRAW_W)  # left/right: the wider glass keeps its wall on the right
 OUT_R = 8.0  # outer corners
 EDGE_R = 2.0  # round-over on the front edge (starts at 45°, so it prints face down)
 FELT = 0.8  # felt tape between the lip and the glass
@@ -75,7 +82,7 @@ LIP_T = 2.0  # mat thickness in front of the felt
 LAND = 0.4  # straight part of the opening behind its 45° chamfer
 SEAM_Z = -9.0  # frame back = shell front
 INSERT_D, INSERT_L = 4.0, 5.7  # M3 heat-set insert: hole Ø, length
-FRAME_SCREW_X = (10.0, GLASS_W - 10.0)
+FRAME_SCREW_X = (10.0, DRAW_W - 10.0)  # symmetric about the picture
 
 # Shell
 PANEL_T = 2.4
@@ -83,11 +90,23 @@ WALL = 2.4
 POD_CLR = 1.5  # round the Pi and its parts
 BACK_CLR = 2.0  # behind the tallest part
 POD_DRAFT = 8.0  # pod sides, degrees
-ROOF = 45.0  # pod roof, degrees from the back plane
+# The pod's roof follows the line of sight from the chair (about 45° above the
+# desk) over the top back edge, with the most upright foot: the fan raises the
+# roof, and this keeps the pod hidden from the seat anyway.
+SEAT_EYE = 45.0
 POD_R = 4.0
 BOSS_D = 7.0
 M3_CLEAR, HEAD_D, HEAD_H = 3.4, 5.5, 3.0
 LIP_H, LIP_W = 1.5, 1.2  # locating lip into the frame (top + sides)
+
+# Fan: a 40 × 40 × 10 against the inside of the roof, blowing out through the
+# roof slots. Air comes in through the slots low on the back and crosses the
+# Pi on its way up. It hangs over the GPIO header, so the roof sits higher.
+FAN, FAN_T, FAN_HOLES = 40.0, 10.0, 32.0  # size, thickness, screw spacing
+FAN_X0 = 72.0  # left edge (front view): under the middle two intake columns, clear of
+#                the Ethernet jack; GPIO pins 1-12 (5 V, GND) stay free for plugs
+FAN_CLR = 1.0  # fan to the Pi's parts (the GPIO pin tips)
+FAN_SCREW = 3.4  # 4 holes through the roof: M3 x 16 + nut, or the fan's own screws
 
 # Cable: a straight USB-C plug (check against the real one)
 PLUG_W, PLUG_T, PLUG_LEN = 12.5, 6.5, 28.0
@@ -112,15 +131,19 @@ SEG = 24  # points per quarter circle
 
 # ── Derived ──────────────────────────────────────────────────────────────────
 
-ZB_IN = -(DEPTH + BACK_CLR)  # inside of the pod's back
-ZB = ZB_IN - WALL  # outside of the pod's back
 PANEL_BACK = SEAM_Z - PANEL_T
 TW1 = TONGUE_W + 2 * TONGUE_H * math.tan(math.radians(DOVE))
 GROOVE_Z0 = PANEL_BACK - 2.0  # the groove's closed front end
 MAG_Z = GROOVE_Z0 - 2.0 - (MAG_D + 4) / 2
 FOOT_FRONT_Z = PANEL_BACK - 0.4
 T_DRAFT = math.tan(math.radians(POD_DRAFT))
-K_ROOF = 1 / math.tan(math.radians(ROOF))  # roof rise in Y per mm of Z
+K_ROOF = math.tan(math.radians(SEAT_EYE - min(LEANS)))  # roof rise in Y per mm of Z
+ROOF_N = math.sqrt(1 + K_ROOF ** 2)
+Y_TOP = PIC_Y0 + PIC_H + MAT_W  # top of the frame (both mats)
+
+# Print orientations: the frame face down, the shell on its bottom face.
+FACE_DOWN = np.array([[1, 0, 0, 0], [0, -1, 0, 0], [0, 0, -1, 0]], float)
+ON_BOTTOM = np.array([[1, 0, 0, 0], [0, 0, -1, 0], [0, 1, 0, 0]], float)
 
 # ── Shape helpers ────────────────────────────────────────────────────────────
 
@@ -225,21 +248,69 @@ def plug_proxy():
 # ── The case ────────────────────────────────────────────────────────────────
 
 
+def _roof_c(fan=True):
+    """The roof's inside is the plane y = ROOF_C + K_ROOF * z. Each Pi part
+    clears it at its own deepest top corner: by POD_CLR, or, where the fan
+    hangs over the part, by the fan's thickness + FAN_CLR."""
+    c = None
+    for b in PI_PARTS.values():
+        under = fan and b[0] < FAN_X0 + FAN + FAN_CLR and b[1] > FAN_X0 - FAN_CLR
+        v = b[3] + ((FAN_T + FAN_CLR) * ROOF_N if under else POD_CLR) - K_ROOF * b[4]
+        c = v if c is None else max(c, v)
+    return c
+
+
+ROOF_C = Y_TOP - WALL * ROOF_N - K_ROOF * PANEL_BACK  # outside through the top back edge
+assert _roof_c() <= ROOF_C, "the fan doesn't clear the Pi under this roof"
+FAN_V = np.array([0.0, K_ROOF, 1.0]) / ROOF_N  # up the roof, toward the panel
+FAN_N = np.array([0.0, 1.0, -K_ROOF]) / ROOF_N  # out of the roof
+# The fan sits as high as it goes: its top corner just under the flat top, so
+# the case only gets as deep as the fan's bottom corner needs.
+_tz = min((Y_TOP - WALL - 0.2 - ROOF_C) / K_ROOF,  # under the top
+          SEAM_Z - 0.3 - FAN_T * K_ROOF / ROOF_N)  # its inner top edge stays behind the frame
+FAN_TOP = np.array([0.0, ROOF_C + K_ROOF * _tz, _tz])
+FAN_BOT = FAN_TOP - FAN * FAN_V
+ZB_IN = min(-(DEPTH + BACK_CLR), FAN_BOT[2] - 0.2)  # inside of the pod's back
+ZB = ZB_IN - WALL  # outside of the pod's back
+FAN_SLOTS = ((73.0, 90.0), (94.0, 111.0))  # = the middle two intake columns
+
+
+def fan_frame():
+    """3x4: local x = X from the fan's left edge, local y = up the roof from its
+    bottom corner, local z = into the case (0 = the roof's inside)."""
+    return np.column_stack([[1.0, 0.0, 0.0], FAN_V, -FAN_N, FAN_BOT + [FAN_X0, 0, 0]])
+
+
+def fan_proxy():
+    return box(0.05, FAN - 0.05, 0.05, FAN - 0.05, 0.05, FAN_T).transform(fan_frame())
+
+
+def cavity_cap():
+    """Where the cavity may go at the top: under the top wall, and toward the
+    panel under a 45° slope that ends at the seam just under the locating lip,
+    so the lip's top bar is backed by the panel across the pod (and it all
+    prints without supports, clear of the fan's top face)."""
+    yc = Y_TOP - WALL
+    y_lip = GLASS_H + (GLASS_FIT - FIT) - LIP_W - 0.1  # under the lip's inner edge
+    z0, z1 = ZB_IN - 1, SEAM_Z + 1
+    zq = SEAM_Z - (yc - y_lip)
+    cs = CrossSection([[(z0, -50.0), (z1, -50.0), (z1, y_lip - (z1 - SEAM_Z)), (zq, yc), (z0, yc)]])
+    rot = np.array([[0, 0, -1, GLASS_W + 50], [0, 1, 0, 0], [1, 0, 0, 0]], float)
+    return cs.extrude(GLASS_W + 100).transform(rot)
+
+
 def _pod_limits():
-    """Pod cavity at its back (Z = ZB_IN): x0, x1, y1, from the Pi's parts.
-    The sides lean out by POD_DRAFT and the roof rises by ROOF toward the
-    panel, so each part only has to clear the wall at its own deepest point."""
-    x0 = y1 = None
-    x1 = None
+    """Pod cavity at its back (Z = ZB_IN): x0, x1 (the sides lean out by
+    POD_DRAFT toward the panel, so each part only has to clear the wall at its
+    own deepest point) and y1 (the roof)."""
+    x0 = x1 = None
     for b in PI_PARTS.values():
         d = b[4] - ZB_IN
         a = b[0] - POD_CLR + d * T_DRAFT
         c = b[1] + POD_CLR - d * T_DRAFT
-        e = b[3] + POD_CLR - d * K_ROOF
         x0 = a if x0 is None else min(x0, a)
         x1 = c if x1 is None else max(x1, c)
-        y1 = e if y1 is None else max(y1, e)
-    return x0, x1, y1
+    return x0, x1, ROOF_C + K_ROOF * ZB_IN
 
 
 POD_X0, POD_X1, POD_Y1 = _pod_limits()
@@ -248,10 +319,10 @@ POD_X0, POD_X1, POD_Y1 = _pod_limits()
 class Deck:
     def __init__(self, mat):
         self.mat = mat
-        self.x0 = PIC_X0 - MAT_W
-        self.x1 = PIC_X0 + PIC_W + MAT_W
+        self.x0 = PIC_X0 - MAT_SIDE
+        self.x1 = PIC_X0 + PIC_W + MAT_SIDE
         self.y0 = PIC_Y0 - MAT_W - MATS[mat]  # the bottom of everything
-        self.y1 = PIC_Y0 + PIC_H + MAT_W
+        self.y1 = Y_TOP
         self.cx = (self.x0 + self.x1) / 2
         bot = (self.y0 - GLASS_FIT) / 2
         top = (GLASS_H + GLASS_FIT + self.y1) / 2
@@ -321,7 +392,7 @@ class Deck:
         y0 = self.y0
         pod = self.pod_outer() ^ self.outline(ZB - 1, SEAM_Z)
         s = self.outline(PANEL_BACK, SEAM_Z) + pod
-        s -= self.cavity()
+        s -= self.cavity() ^ cavity_cap()
 
         # Keel along the groove + a boss for the shell's magnet.
         kh = TONGUE_H + FIT_DT + 1.6
@@ -350,11 +421,20 @@ class Deck:
         s -= self.along_z(self.tongue_cs(FIT_DT), ZB - 1, GROOVE_Z0)
         s -= ycyl(MAG_D + 0.2, g_top - 0.01, g_top + MAG_T + 0.2, self.cx, MAG_Z)
 
-        # Vents: exhaust slots across the roof, intake slots low on the back.
+        # Vents: intake slots low on the back, exhaust slots in the roof over the
+        # fan only (anywhere else they'd feed the fan straight from outside), and
+        # the fan's 4 screw holes.
         sx = [(52 + 21 * i, 52 + 21 * i + 17) for i in range(4)]
-        for y in np.arange(POD_Y1 + 6, self.pod_rect(PANEL_BACK, True)[3] - 5, 4.0):
-            for a, b in sx:
-                s -= box(a, b, y - 1.0, y + 1.0, ZB - 1, PANEL_BACK - 2.5)
+        hs = 1.0 / FAN_V[1]  # half a slot, measured along the roof
+        first = (FAN - FAN_HOLES) / 2 + FAN_SCREW / 2 + 1.5 + hs
+        for k in range(5):  # 5 rows between the screw holes
+            y = FAN_BOT[1] + (FAN / 2 + (FAN / 2 - first) / 2 * (k - 2)) * FAN_V[1]
+            for a, b in FAN_SLOTS:
+                s -= box(a, b, y - 1.0, y + 1.0, ZB - 1, (y - ROOF_C) / K_ROOF + 1.0)
+        for i in (-1, 1):
+            for j in (-1, 1):
+                u, v = FAN / 2 + i * FAN_HOLES / 2, FAN / 2 + j * FAN_HOLES / 2
+                s -= cyl(FAN_SCREW, -6, 1, u, v).transform(fan_frame())
         for y in (y0 + 9, y0 + 13, y0 + 17):
             for a, b in sx:
                 s -= box(a, b, y - 1.0, y + 1.0, ZB - 1, ZB_IN + 0.5)
@@ -431,8 +511,9 @@ class Deck:
         return box(b[0] + 0.5, POD_X1 + 40, b[2] + 0.3, b[3] - 0.3, b[4] + 0.2, b[5] - 0.2)
 
     def fit_test(self):
-        """1.2 mm plate: the glass outline, the frame's opening, bars with the
-        display's 4 M3 holes, pointers to the Pi board's corners and USB-C."""
+        """1.2 mm plate (v2, no pointers): the glass outline, the frame's
+        opening, bars with the display's 4 M3 holes, a small notch in the bottom
+        edge at the Pi's USB-C, a hole in the top-left corner seen from the front."""
         t = 1.2
         p = rr_box(0, GLASS_W, 0, GLASS_H, 0.5, 0, t)
         p -= rr_box(PIC_X0 - OPEN_MARGIN, PIC_X0 + PIC_W + OPEN_MARGIN, PIC_Y0 - OPEN_MARGIN,
@@ -441,18 +522,35 @@ class Deck:
             p += box(x - 4, x + 4, 1, GLASS_H - 1, 0, t)
             for y in M3_Y:
                 p -= cyl(M3_CLEAR, -1, t + 1, x, y)
-
-        def pointer(x, y_from, y_tip):
-            s = 1 if y_tip > y_from else -1
-            pts = [(x - 2.5, y_from), (x + 2.5, y_from), (x + 2.5, y_tip - s * 2.5), (x, y_tip),
-                   (x - 2.5, y_tip - s * 2.5)]
-            return CrossSection([pts if s > 0 else pts[::-1]]).extrude(t)
-
-        for x in (PI_X0, PI_X1):
-            p += pointer(x, 5, PI_Y0 - 0.5) + pointer(x, GLASS_H - 5, PI_Y1 + 0.5)
-        p += pointer(USBC_X, 5, PI_Y0 - 1.5)
+        notch = CrossSection([[(USBC_X - 1.5, -1.0), (USBC_X + 1.5, -1.0), (USBC_X, 2.0)]])
+        p -= notch.extrude(t + 2).translate((0, 0, -1))
         p -= cyl(3.0, -1, t + 1, 8, GLASS_H - 6)  # this hole = top-left seen from the front
         return p
+
+    def tests(self, frame, shell, foot, lean):
+        """Test prints: small cuts of the real parts, each printed the way its
+        part is, so they test the same fits and the same overhangs."""
+        y0 = self.y0
+        t = {"1-plate": self.fit_test()}
+        # The frame's bottom-right corner (front view): the glass corner in the
+        # tray, the opening's corner on the picture's (the side where the glass
+        # is wider than drawn), a heat-set insert in the thin bottom band, the
+        # mat's face and edges.
+        t["2-frame-corner"] = (frame ^ box(158.0, self.x1 + 1, y0 - 1, 26.0, SEAM_Z - 1, 10.0)
+                               ).transform(FACE_DOWN)
+        # The dovetail: the shell's groove with its closed end and magnet, and
+        # the front of the foot with its tongue and magnet.
+        g_top = y0 + TONGUE_H + FIT_DT
+        t["3-groove"] = (shell ^ box(self.cx - 14, self.cx + 14, y0 - 1, g_top + MAG_T + 1.7,
+                                     ZB - 1, SEAM_Z + 1)).transform(ON_BOTTOM)
+        yf = self.to_world(lean, (0, y0, FOOT_FRONT_Z))[1]
+        yb = self.to_world(lean, (0, y0, ZB))[1]
+        t["3-tongue"] = foot ^ box(-14, 14, yf - 1, yb + 3, -1, 300)
+        # The roof over the fan, on a thin base plate so it stands up while printing.
+        x0, x1, ya = FAN_X0 - 6, FAN_X0 + FAN + 6, POD_Y1 - 10
+        r = shell ^ box(x0, x1, ya, Y_TOP + 1, ZB - 1, SEAM_Z + 1)
+        t["4-fan-roof"] = (r + box(x0, x1, ya, ya + 1.2, ZB, SEAM_Z)).transform(ON_BOTTOM)
+        return t
 
     def decal(self, lean, offset=(0, 0, 0)):
         M = self.lean_matrix(lean)
@@ -495,6 +593,9 @@ def checks(d, frame, shell):
         "screw heads vs shell": (d.screws_proxy(), shell),
         "screwdriver vs shell": (d.driver_proxy(), shell),
         "sd card way out vs shell": (d.sd_path(), shell),
+        "fan vs shell": (fan_proxy(), shell),
+        "fan vs pi": (fan_proxy(), pi),
+        "fan vs display": (fan_proxy(), disp),
     }
     res = {}
     for k, (a, b) in pairs.items():
@@ -530,6 +631,10 @@ def lean_report(d, lean, frame, shell, foot):
     phi = math.radians(45 - lean)
     par = (FELT - PIXEL_Z) * math.tan(phi)
     front_bottom = d.to_world(lean, (0, d.y0, FELT + LIP_T))
+    # The pod, seen from the chair over the top back edge (display coordinates).
+    v = tm(shell).vertices
+    v = v[v[:, 2] < PANEL_BACK - 0.01]
+    over = v[:, 1] - (Y_TOP + math.tan(phi) * (v[:, 2] - PANEL_BACK))
     return {
         "mass_g_estimate": round(mass),
         "tap_at_top_of_picture_tips_it_at_gf": round(tip_gf),
@@ -540,6 +645,7 @@ def lean_report(d, lean, frame, shell, foot):
         "footprint_depth_mm": round(float(yr - d.to_world(lean, (0, d.y0, FELT + LIP_T))[1]), 1),
         "seat_view_black_line_at_bottom_mm": round(OPEN_MARGIN + par, 2),
         "seat_view_picture_hidden_at_top_mm": round(max(0.0, par - OPEN_MARGIN), 2),
+        "seat_view_pod_shows_over_the_top_mm": round(max(0.0, float(over.max())), 2),
     }
 
 
@@ -562,7 +668,8 @@ def main():
             M = d.lean_matrix(lean)
             tag = f"{mat}-{lean}"
             for name, m in (("frame", frame), ("shell", shell), ("display", display_proxy()),
-                            ("pi", pi_proxy()), ("plug", plug_proxy() + d.cable_local())):
+                            ("pi", pi_proxy()), ("plug", plug_proxy() + d.cable_local()),
+                            ("fan", fan_proxy())):
                 tm(m.transform(M)).export(os.path.join(asm, f"{name}-{tag}.stl"))
             tm(feet[lean]).export(os.path.join(asm, f"foot-{tag}.stl"))
             tm(d.cable_world(lean)).export(os.path.join(asm, f"cable-{tag}.stl"))
@@ -580,12 +687,9 @@ def main():
 
     d = d_main
     # Print orientation: frame face down, shell on its bottom face, feet as they sit.
-    face_down = np.array([[1, 0, 0, 0], [0, -1, 0, 0], [0, 0, -1, 0]], float)
-    on_bottom = np.array([[1, 0, 0, 0], [0, 0, -1, 0], [0, 1, 0, 0]], float)
-    prints = {"frame": frame_main.transform(face_down), "shell": shell_main.transform(on_bottom)}
+    prints = {"frame": frame_main.transform(FACE_DOWN), "shell": shell_main.transform(ON_BOTTOM)}
     for lean, f in feet_main.items():
         prints[f"foot-{lean:02d}"] = f
-    prints["fit-test"] = d.fit_test()
     scene = trimesh.Scene()
     x = 0.0
     report["print"] = {}
@@ -599,15 +703,48 @@ def main():
         x += (bb[3] - bb[0]) + 10
         sz = size(m)
         report["print"][name] = {"size_mm": sz, "fits_p1s": all(v <= 256 for v in sz),
+                                 "pieces": len(m.decompose()),
                                  "overhang_mm2": overhang_mm2(mesh),
                                  "volume_cm3": round(m.volume() / 1000, 1)}
     scene.export(os.path.join(out, "deck-case.3mf"))
+
+    # Test prints: one STL each, and all of them on one P1S plate in a 3MF
+    # (the plate along the bottom, the small pieces in a row above it).
+    tdir = os.path.join(out, "tests")
+    os.makedirs(tdir, exist_ok=True)
+    tests = d.tests(frame_main, shell_main, feet_main[LEAN], LEAN)
+    scene = trimesh.Scene()
+    x, y = 5.0, 5.0
+    report["tests"] = {}
+    for name, m in tests.items():
+        bb = m.bounding_box()
+        if name != "1-plate" and y == 5.0:
+            x, y = 5.0, 5.0 + (tests["1-plate"].bounding_box()[4] - tests["1-plate"].bounding_box()[1]) + 10
+        m = m.translate((-bb[0] + x, -bb[1] + y, -bb[2]))
+        mesh = tm(m)
+        mesh.export(os.path.join(tdir, f"test-{name}.stl"))
+        mesh.export(os.path.join(asm, f"test-{name}.stl"))
+        scene.add_geometry(mesh, node_name=f"test-{name}", geom_name=f"test-{name}")
+        x += (bb[3] - bb[0]) + 8
+        report["tests"][name] = {"size_mm": size(m), "volume_cm3": round(m.volume() / 1000, 1),
+                                 "overhang_mm2": overhang_mm2(mesh),
+                                 "pieces": len(m.decompose())}
+    allb = scene.bounds
+    report["tests_plate_mm"] = [round(float(v), 1) for v in allb[1][:2]]
+    scene.export(os.path.join(tdir, "deck-tests.3mf"))
 
     report["mat"] = MAT
     report["outside_mm"] = {m: [round(Deck(m).x1 - Deck(m).x0, 1), round(Deck(m).y1 - Deck(m).y0, 1)]
                             for m in MATS}
     report["depth_mm"] = round(FELT + LIP_T - ZB, 1)
     report["pod_back_mm"] = [round(v, 1) for v in d.pod_rect(ZB, True)]
+    report["fan"] = {
+        "x_mm": [FAN_X0, FAN_X0 + FAN],
+        "roof_angle_from_panel_deg": round(math.degrees(math.atan(K_ROOF)), 1),
+        "to_gpio_tips_mm": round(FAN_CLR + (ROOF_C - _roof_c()) / ROOF_N, 1),
+        "pod_deeper_mm": round(-(DEPTH + BACK_CLR) - ZB_IN, 1),
+        "screws": "4 x M3 x 16 + nut through the roof (or the fan's own)",
+    }
     report["screws"] = {
         "display (into its M3 holes)": f"M3 x {PANEL_T - MODULE_T - SEAM_Z:.1f} + thread depth",
         "frame (into the inserts)": f"M3 x {PANEL_T:.1f} + up to {INSERT_L:.1f}",
@@ -620,7 +757,7 @@ def main():
     report["bottom_insert_wall_mm"] = ins
     with open(os.path.join(asm, "info.json"), "w") as f:
         json.dump({"decals": decals, "report": report}, f, indent=1)
-    write_specs(out, decals, list(prints))
+    write_specs(out, decals, list(prints), list(tests))
     print(json.dumps(report, indent=1))
 
 
@@ -629,7 +766,7 @@ def main():
 IVORY, GLASS, BOARD, DARK = "#ebe5d8", "#101317", "#2f6b43", "#34373c"
 
 
-def write_specs(out, decals, print_names):
+def write_specs(out, decals, print_names, test_names):
     A, UI = "/out/assembly/", "/ui/0-base-idle.png"
 
     def assembly(tag, off=(0, 0, 0), ex=0.0, cable=True):
@@ -641,7 +778,8 @@ def write_specs(out, decals, print_names):
                     "offset": (o + np.asarray(shift)).tolist()}
 
         ps = [p("shell", IVORY), p("frame", IVORY, n * 110 * ex), p("display", GLASS, n * 55 * ex),
-              p("pi", BOARD, n * 55 * ex), p("plug", DARK, n * 55 * ex), p("foot", IVORY, sl * 70 * ex)]
+              p("pi", BOARD, n * 55 * ex), p("plug", DARK, n * 55 * ex), p("foot", IVORY, sl * 70 * ex),
+              p("fan", DARK, n * 55 * ex)]
         if cable:
             ps.append(p("cable", DARK))
         dc = dict(decals[tag], image=UI)
@@ -689,6 +827,9 @@ def write_specs(out, decals, print_names):
         "print": dict(base, shadow=400, parts=[
             {"file": f"{A}print-{k}.stl", "color": IVORY} for k in print_names],
             views=[{"name": "print-parts", "dir": [0.25, -1.0, 1.1], "zoom": 0.62}]),
+        "tests": dict(base, shadow=300, parts=[
+            {"file": f"{A}test-{k}.stl", "color": IVORY} for k in test_names],
+            views=[{"name": "test-prints", "dir": [0.15, -0.8, 1.2], "zoom": 0.8}]),
     }
     for name, s in specs.items():
         json.dump(s, open(os.path.join(out, f"spec-{name}.json"), "w"))

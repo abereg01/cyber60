@@ -26,6 +26,7 @@ rm -rf "$WORK" && mkdir -p "$WORK"
 docker run --rm --user "$(id -u):$(id -g)" -e DECK_MAT="${DECK_MAT:-even}" -v "$HERE":/src:ro \
     -v "$WORK":/out cadtools:local python3 /src/case.py /out >"$HERE/report.json"
 cp "$WORK"/deck-*.stl "$WORK"/deck-case.3mf "$HERE/"
+mkdir -p "$HERE/tests" && cp "$WORK"/tests/* "$HERE/tests/"
 cat "$HERE/report.json"
 
 [ "${1:-all}" = stl ] && exit 0
