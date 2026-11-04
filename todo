@@ -9,7 +9,6 @@ Dragging on the song.. I do no know what to call it. If I wanna move forward in 
 Add a clock next to the battery
 The screen is so bright it is better looking at it at a 45 degree angle than straight on. All the light colors like the keyboard and wpm staples as washed out unless locking from quite a steep angle. 
 
-
 Deck does not work, at least on mac. I need to pull out the SD card to reach bootfs. Must be fixed to live patch. 
 
 as per the case/deck/README.md, here are the measurements
@@ -26,4 +25,4 @@ the monitor height does not matter
 the lean should not be to much, nor to little. Easy to see the screen, but also a small lean to be able to easily touch and navigate the screen
 My monitor has usb power, untested as of now. The raspberry has usb A to the right if needed. 
 
-When all of the above is done, we wanna take a step back and employ more agents, specialized at each task and improve upon the code. Boot time, minimize the code needed, general improvments to make it better, faster more secure. 
+When all of the above is done, we wanna take a step back and employ more agents, specialized at each task and improve upon the code. Boot time, minimize the code needed, general improvments to make it better, faster more secure. Less code, less attack surface. And since the keyboard wont work without this hub, boot speed if of the essence. We can never be on par with the SEEED XIAO, but as close as possible. Use tricks to start as fast as possible, with bluetooth. Spotify etc can have some sort of delayed start/background start. As that wont be noticed in the extra 30 secs it takes or whatever.

@@ -1,0 +1,143 @@
+{
+ "checks": {
+  "display vs frame": 0.0,
+  "display vs shell": 0.0,
+  "pi vs shell": 0.0,
+  "pi vs frame": 0.0,
+  "plug vs shell": 0.0,
+  "cable vs shell": 0.0,
+  "frame vs shell": -0.0,
+  "screw heads vs shell": 0.0,
+  "screwdriver vs shell": 0.0,
+  "sd card way out vs shell": 0.0,
+  "foot 8\u00b0 vs shell": 0.0,
+  "cable vs foot 8\u00b0": 0.0,
+  "foot 12\u00b0 vs shell": 0.0,
+  "cable vs foot 12\u00b0": 0.0,
+  "foot 18\u00b0 vs shell": 0.0,
+  "cable vs foot 18\u00b0": 0.0
+ },
+ "lean": {
+  "8\u00b0": {
+   "mass_g_estimate": 511,
+   "tap_at_top_of_picture_tips_it_at_gf": 434,
+   "cg_behind_foot_front_mm": 10.3,
+   "frame_bottom_front_above_desk_mm": 13.8,
+   "foot_front_height_mm": 11.8,
+   "top_of_frame_above_desk_mm": 142.1,
+   "footprint_depth_mm": 114.5,
+   "seat_view_black_line_at_bottom_mm": 2.03,
+   "seat_view_picture_hidden_at_top_mm": 1.43
+  },
+  "12\u00b0": {
+   "mass_g_estimate": 515,
+   "tap_at_top_of_picture_tips_it_at_gf": 437,
+   "cg_behind_foot_front_mm": 14.2,
+   "frame_bottom_front_above_desk_mm": 17.1,
+   "foot_front_height_mm": 14.1,
+   "top_of_frame_above_desk_mm": 143.6,
+   "footprint_depth_mm": 114.3,
+   "seat_view_black_line_at_bottom_mm": 1.79,
+   "seat_view_picture_hidden_at_top_mm": 1.19
+  },
+  "18\u00b0": {
+   "mass_g_estimate": 519,
+   "tap_at_top_of_picture_tips_it_at_gf": 444,
+   "cg_behind_foot_front_mm": 19.9,
+   "frame_bottom_front_above_desk_mm": 22.1,
+   "foot_front_height_mm": 17.6,
+   "top_of_frame_above_desk_mm": 144.8,
+   "footprint_depth_mm": 113.9,
+   "seat_view_black_line_at_bottom_mm": 1.47,
+   "seat_view_picture_hidden_at_top_mm": 0.87
+  }
+ },
+ "print": {
+  "frame": {
+   "size_mm": [
+    198.1,
+    129.9,
+    11.8
+   ],
+   "fits_p1s": true,
+   "overhang_mm2": 0.0,
+   "volume_cm3": 63.3
+  },
+  "shell": {
+   "size_mm": [
+    198.1,
+    39.6,
+    129.9
+   ],
+   "fits_p1s": true,
+   "overhang_mm2": 3344.0,
+   "volume_cm3": 84.5
+  },
+  "foot-08": {
+   "size_mm": [
+    100.0,
+    100.0,
+    15.0
+   ],
+   "fits_p1s": true,
+   "overhang_mm2": 3036.3,
+   "volume_cm3": 62.2
+  },
+  "foot-12": {
+   "size_mm": [
+    100.0,
+    100.0,
+    17.1
+   ],
+   "fits_p1s": true,
+   "overhang_mm2": 3059.6,
+   "volume_cm3": 65.8
+  },
+  "foot-18": {
+   "size_mm": [
+    100.0,
+    100.0,
+    20.3
+   ],
+   "fits_p1s": true,
+   "overhang_mm2": 3111.7,
+   "volume_cm3": 70.6
+  },
+  "fit-test": {
+   "size_mm": [
+    193.0,
+    110.8,
+    1.2
+   ],
+   "fits_p1s": true,
+   "overhang_mm2": 0.0,
+   "volume_cm3": 11.6
+  }
+ },
+ "mat": "even",
+ "outside_mm": {
+  "even": [
+   198.1,
+   129.9
+  ],
+  "bottom": [
+   198.1,
+   137.9
+  ]
+ },
+ "depth_mm": 48.8,
+ "pod_back_mm": [
+  44.6,
+  138.8,
+  -8.6,
+  82.5
+ ],
+ "screws": {
+  "display (into its M3 holes)": "M3 x 5.1 + thread depth",
+  "frame (into the inserts)": "M3 x 2.4 + up to 5.7"
+ },
+ "bottom_insert_wall_mm": {
+  "even": 2.13,
+  "bottom": 6.13
+ }
+}

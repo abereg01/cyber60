@@ -1,7 +1,9 @@
 // Render STL parts to PNGs with three.js in headless Chromium.
 // Usage: node render.js spec.json   (run in the clipsnag:local image: Playwright + Chromium)
 // spec: { out: dir, size: [w,h], parts: [{file, color, offset:[x,y,z], opacity}],
-//         views: [{name, dir:[x,y,z], up:[0,0,1], zoom, section: {axis, at}}] }
+//         views: [{name, dir:[x,y,z], up:[0,0,1], zoom, section: {axis, at}}],
+//         optional: bg, fov, near, far, exposure, shadow (half-size of the shadow box, default 80),
+//         shadowBias, normalBias }
 const fs = require('fs');
 const path = require('path');
 const { chromium } = require('/app/node_modules/playwright');
@@ -18,13 +20,14 @@ const [W,H] = spec.size;
 const r = new THREE.WebGLRenderer({antialias:true, preserveDrawingBuffer:true});
 r.setSize(W,H); r.setPixelRatio(1); r.shadowMap.enabled = true;
 r.localClippingEnabled = true;
-r.outputColorSpace = THREE.SRGBColorSpace; r.toneMapping = THREE.ACESFilmicToneMapping; r.toneMappingExposure = 1.25;
+r.outputColorSpace = THREE.SRGBColorSpace; r.toneMapping = THREE.ACESFilmicToneMapping; r.toneMappingExposure = spec.exposure || 1.25;
 document.body.appendChild(r.domElement);
 const scene = new THREE.Scene();
 scene.background = new THREE.Color(spec.bg || '#eef1f4');
 scene.add(new THREE.HemisphereLight(0xffffff, 0x8899aa, 1.1));
-const key = new THREE.DirectionalLight(0xffffff, 2.8); key.position.set(-60,-80,120); key.castShadow = true;
-key.shadow.mapSize.set(2048,2048); Object.assign(key.shadow.camera,{left:-80,right:80,top:80,bottom:-80,near:1,far:400});
+const S = spec.shadow || 80;  // shadow box half-size, mm (bigger scenes)
+const key = new THREE.DirectionalLight(0xffffff, 2.8); key.position.set(-60,-80,120).multiplyScalar(S/80); key.castShadow = true;
+key.shadow.mapSize.set(4096,4096); key.shadow.bias = spec.shadowBias || 0; key.shadow.normalBias = spec.normalBias || 0; Object.assign(key.shadow.camera,{left:-S,right:S,top:S,bottom:-S,near:1,far:400*S/80});
 scene.add(key);
 const fill = new THREE.DirectionalLight(0xffffff, 0.6); fill.position.set(90,40,60); scene.add(fill);
 const loader = new STLLoader();
@@ -54,7 +57,7 @@ const center = box.getCenter(new THREE.Vector3());
 const radius = box.getSize(new THREE.Vector3()).length()/2;
 const ground = new THREE.Mesh(new THREE.PlaneGeometry(1000,1000), new THREE.ShadowMaterial({opacity:0.18}));
 ground.position.z = box.min.z - 0.01; ground.receiveShadow = true; scene.add(ground);
-const cam = new THREE.PerspectiveCamera(spec.fov||28, W/H, 0.1, 2000);
+const cam = new THREE.PerspectiveCamera(spec.fov||28, W/H, spec.near||0.1, spec.far||2000);
 window.renderView = (v) => {
   const d = new THREE.Vector3(...v.dir).normalize();
   const dist = radius / Math.sin((cam.fov*Math.PI/180)/2) * (v.zoom||1.15);
