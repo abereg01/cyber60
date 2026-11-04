@@ -678,7 +678,7 @@ def write_specs(out, decals, print_names):
         "exploded": spec([assembly(main, ex=1.0, cable=False)], shadow=300, views=[
             {"name": "exploded", "dir": [-0.9, -0.75, 0.6], "zoom": 0.7}]),
         "leans-side": spec([assembly(f"{MAT}-{lean}", (0, 190 * i, 0)) for i, lean in enumerate(LEANS)],
-                           shadow=450, fov=10, views=[{"name": "leans-side", "dir": [1, 0, 0.04],
+                           shadow=450, fov=4, far=30000, views=[{"name": "leans-side", "dir": [1, 0, 0.04],
                                                        "zoom": 0.62}]),
         "leans-seat": spec([assembly(f"{MAT}-{lean}", (250 * (i - 1), 0, 0)) for i, lean in
                             enumerate(LEANS)], shadow=450, views=[
