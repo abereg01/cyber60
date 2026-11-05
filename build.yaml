@@ -2,8 +2,10 @@
 # secrets file is gitignored, so the keymap falls back to placeholders).
 # Firmware with passwords is built locally: tools/build.sh.
 #
-#   cyber60@rev_e                     → the keyboard (split peripheral)
-#   xiao_ble + prospector_dongle(_screen) → the Prospector (central + screen + Studio)
+#   cyber60@rev_e                     → the keyboard (standalone: keymap, Studio,
+#                                       Bluetooth to the Pi desk screen, USB)
+#   xiao_ble + prospector_dongle(_screen) → the retired Prospector dongle, kept
+#                                       so CI proves its screen code compiles
 #   settings_reset                    → wipe Bluetooth bonds, flash once per
 #                                       device when (re)pairing, then reflash
 include:

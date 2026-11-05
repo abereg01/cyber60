@@ -1,0 +1,13 @@
+# deck-net.sh: rejoins the wifi when NetworkManager has given up on it.
+[Unit]
+Description=Desk screen wifi watchdog
+After=NetworkManager.service
+Wants=NetworkManager.service
+
+[Service]
+ExecStart=/opt/deck/deck-net.sh
+Restart=always
+RestartSec=10
+
+[Install]
+WantedBy=multi-user.target

@@ -3,9 +3,11 @@
  * screen colour (display_color_for_layer) to the Cyber60's underglow through
  * the global &lglow behavior. BASE (layer 0) turns the underglow off.
  *
- * The keyboard doesn't know about layers (the keymap lives on the dongle), so
- * this is the only way it can follow them. The colour is re-sent a few seconds
- * after the keyboard (re)connects, once the split link can carry commands.
+ * With the dongle, the keyboard doesn't know about layers (the keymap lives on
+ * the dongle), so this is the only way it can follow them. The colour is
+ * re-sent a few seconds after the keyboard (re)connects, once the split link
+ * can carry commands. The standalone Cyber60 compiles this same file (see the
+ * top-level CMakeLists.txt) and the behavior then runs locally.
  *
  * SPDX-License-Identifier: MIT
  */
@@ -18,7 +20,9 @@
 #include <zmk/behavior.h>
 #include <zmk/event_manager.h>
 #include <zmk/events/layer_state_changed.h>
+#if IS_ENABLED(CONFIG_SHIELD_PROSPECTOR_SCREEN)
 #include <zmk/events/split_central_status_changed.h>
+#endif
 #include <zmk/keymap.h>
 
 #include "layouts/operator/display_colors.h"
@@ -73,20 +77,24 @@ static void layer_glow_send(struct k_work *work) {
 static K_WORK_DELAYABLE_DEFINE(layer_glow_work, layer_glow_send);
 
 static int layer_glow_listener(const zmk_event_t *eh) {
+#if IS_ENABLED(CONFIG_SHIELD_PROSPECTOR_SCREEN)
     const struct zmk_split_central_status_changed *status = as_zmk_split_central_status_changed(eh);
 
     if (status) {
         if (status->connected) {
             k_work_reschedule(&layer_glow_work, RECONNECT_DELAY);
         }
-    } else {
-        k_work_reschedule(&layer_glow_work, LAYER_CHANGE_DELAY);
+        return ZMK_EV_EVENT_BUBBLE;
     }
+#endif
+    k_work_reschedule(&layer_glow_work, LAYER_CHANGE_DELAY);
     return ZMK_EV_EVENT_BUBBLE;
 }
 
 ZMK_LISTENER(layer_glow, layer_glow_listener);
 ZMK_SUBSCRIPTION(layer_glow, zmk_layer_state_changed);
+#if IS_ENABLED(CONFIG_SHIELD_PROSPECTOR_SCREEN)
 ZMK_SUBSCRIPTION(layer_glow, zmk_split_central_status_changed);
+#endif
 
 #endif

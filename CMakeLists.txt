@@ -13,10 +13,19 @@ zephyr_include_directories(include)
 zephyr_include_directories(${APPLICATION_SOURCE_DIR}/include)
 zephyr_library()
 
-# Layer glow: compiled on BOTH sides. The dongle invokes it on every layer
-# change; ZMK forwards it (global locality) to the Cyber60, which owns the LEDs.
+# Layer glow behavior: drives the underglow. On the standalone Cyber60 the
+# listener below invokes it locally; with the dongle, ZMK forwarded the call
+# (global locality) to the Cyber60, which owns the LEDs.
 if(CONFIG_DT_HAS_ZMK_BEHAVIOR_LAYER_GLOW_ENABLED)
         target_sources(app PRIVATE src/behaviors/behavior_layer_glow.c)
+endif()
+
+# Layer glow listener on the standalone Cyber60 (the dongle build compiles the
+# same file from the prospector_screen shield).
+if(CONFIG_CYBER60_LAYER_GLOW AND NOT CONFIG_SHIELD_PROSPECTOR_SCREEN)
+        target_sources(app PRIVATE boards/shields/prospector_screen/src/layer_glow.c)
+        # display_colors.h (the layer colours) includes modifier_order.h.
+        target_include_directories(app PRIVATE boards/shields/prospector_screen/include)
 endif()
 
 if(CONFIG_SHIELD_PROSPECTOR_SCREEN)

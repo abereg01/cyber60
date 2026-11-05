@@ -89,7 +89,7 @@ static inline uint32_t display_color_for_mod(enum modifier_type type) {
 // ── Per-layer accent ─────────────────────────────────────────────────────────
 // Each layer gets its own color, used for the layer-name label text and (via
 // src/layer_glow.c) the hue of the Cyber60 underglow. Indices match the layer
-// order in config/prospector_dongle.keymap:
+// order in config/cyber60.keymap:
 //   0 BASE / 1 SCROLL / 2 GAMING / 3 FN / 4 SYSTEM
 // SCROLL is purple rather than KLOR's teal: teal and SYSTEM's frost blue look
 // the same on LEDs.

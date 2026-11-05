@@ -107,10 +107,11 @@ config PROSPECTOR_LAYER_NAME_UPPERCASE
 config CYBER60_LAYER_GLOW
     bool "Light the Cyber60 underglow in the active layer's colour"
     default y
-    depends on SHIELD_PROSPECTOR_SCREEN
+    depends on SHIELD_PROSPECTOR_SCREEN || (ZMK_RGB_UNDERGLOW && !ZMK_SPLIT)
     help
-      On every layer change the dongle sends the layer's screen colour to the
-      keyboard, which shows it on its underglow. BASE turns the underglow off.
+      On every layer change the underglow takes the layer's screen colour;
+      BASE turns it off. On the standalone Cyber60 this runs on the keyboard
+      itself; with the (retired) dongle, the dongle sends the colour over.
 
 config CYBER60_LAYER_GLOW_SATURATION
     int "Underglow saturation for layer colours (0-100)"

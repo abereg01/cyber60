@@ -3,14 +3,15 @@
 # password macros if config/secrets/passwords.dtsi exists (CI never has them).
 #
 # Usage: tools/build.sh [keyboard|dongle|reset|update|all]   (default: all)
-#   keyboard  cyber60@rev_e                        → firmware/cyber60.uf2
+#   keyboard  cyber60@rev_e (standalone)           → firmware/cyber60.uf2
 #   dongle    xiao_ble + prospector_dongle(_screen)    → firmware/dongle.uf2
 #   reset     settings_reset for both boards        → firmware/reset-*.uf2
 #   update    refresh ZMK/Zephyr sources (west update)
 #
 # The west workspace (ZMK + Zephyr, a few GB) lives outside the repo, in
 # $ZMK_WEST (default below). firmware/ is gitignored and kept private (700),
-# because dongle.uf2 contains the passwords in plain bytes.
+# because cyber60.uf2 contains the passwords in plain bytes.
+# Flash the keyboard through the Pi desk screen: tools/flash.sh.
 set -euo pipefail
 
 REPO=$(cd "$(dirname "$0")/.." && pwd)
@@ -41,6 +42,9 @@ build() {
     [ -n "$shield" ] && args+=("-DSHIELD=$shield")
 
     echo "==> $name ($board${shield:+ / $shield})"
+    # ZMK caches which keymap and .conf it picked; drop the cache so a newly
+    # added or removed config file is noticed (objects are kept, so it's quick).
+    rm -f "$WEST/build/$name/CMakeCache.txt"
     run "${args[@]}"
     install -m 600 "$WEST/build/$name/zephyr/zmk.uf2" "$REPO/firmware/$name.uf2"
     echo "    firmware/$name.uf2"
