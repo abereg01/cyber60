@@ -30,5 +30,6 @@ while sleep 30; do
         sleep 10
     fi
     echo "wifi down for $((down / 2)) min: asking NetworkManager to join again"
-    nmcli --wait 45 device connect wlan0 || true
+    # (its progress spinner would land in the log as "blob data")
+    nmcli --wait 45 device connect wlan0 >/dev/null 2>&1 && echo "joined" || echo "join failed"
 done

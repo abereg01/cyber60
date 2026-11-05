@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # Cross-compile the screen for the Pi (arm64, Raspberry Pi OS Trixie) and pack
 # what goes into /opt/deck:
-#   pi/build/opt-deck/          deck, deck-update.sh, deck-drive.sh, VERSION,
+#   pi/build/opt-deck/          deck, deck-update.sh, deck-drive.sh, deck-net.sh, VERSION,
 #                               DRIVE-README.txt, units/, share/ (fonts, dog.png)
 #   pi/build/deck-update.tar.gz the same, to drop on the DECK drive or the SD
 #                               card's boot partition
@@ -55,10 +55,10 @@ $CC "${CFLAGS[@]}" -Wall -Wextra -Wno-unused-parameter -Wno-missing-field-initia
     -Wl,--gc-sections -ldrm -lcurl -ljpeg -lpthread -lm -o "$S/opt-deck/deck"
 aarch64-linux-gnu-strip "$S/opt-deck/deck"
 install -m 755 "$PI/image/files/deck-update.sh" "$PI/image/files/deck-drive.sh" "$PI/image/files/deck-report.sh" \
-    "$S/opt-deck/"
+    "$PI/image/files/deck-net.sh" "$S/opt-deck/"
 install -m 644 "$PI/image/files/DRIVE-README.txt" "$S/opt-deck/"
 install -m 644 "$PI/image/files/deck.service" "$PI/image/files/deck-drive.service" \
-    "$PI/image/files/deck-report.service" "$S/opt-deck/units/"
+    "$PI/image/files/deck-report.service" "$PI/image/files/deck-net.service" "$S/opt-deck/units/"
 # BUILD PHASE ONLY: SSH with OMV's key (deck-ssh.sh). Remove before work.
 mkdir -p "$S/opt-deck/ssh"
 install -m 755 "$PI/image/files/deck-ssh.sh" "$S/opt-deck/"

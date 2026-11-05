@@ -183,21 +183,26 @@ disk): use GitHub.
   before the app, and the error is on the screen.
 - **Wifi:** on the Spotify page, *SET UP WIFI* (or ⚙ → WIFI), tap the
   network, type the password on the touch keyboard, ✓. NetworkManager keeps
-  it (on the Pi, root-only) and rejoins at every boot.
+  it (on the Pi, root-only) and rejoins at every boot. If the wifi drops and
+  NetworkManager gives up on it (it then takes the password for wrong and
+  waits for a new one), `files/deck-net.sh` asks it to join again after a
+  minute, and also switches the radio off and on every 10 minutes the wifi
+  stays down.
 
 How the image is made (`pi/image/`): the official Raspberry Pi OS Lite
 (`base-image.txt`, pinned with its hash) gets `/opt/deck` (the app, built by
 `build-app.sh` with the arm64 cross compiler) and a systemd unit
 (`files/deck.service`, started at sysinit, restarts if it stops, no start
-limit), the DECK drive (`files/deck-drive.service`, `dwc2` in `config.txt`)
-and the boot report (`files/deck-report.service`). The first-boot user
-wizard, cloud-init, avahi, the ssh switch and the console login are switched
-off, the boot is quiet (errors only, still on the screen), and the hostname
-becomes `deck`. `build-image.sh` does all of this on copies of the
-partitions with mtools and debugfs: no root, no loop devices, no ARM
-emulation, so it runs the same in Docker on OMV and on GitHub's runners. Pi OS
-Lite already has everything the app links against (libdrm, libcurl, libjpeg,
-NetworkManager).
+limit), the DECK drive (`files/deck-drive.service`, `dwc2` in `config.txt`),
+the boot report (`files/deck-report.service`) and the wifi watchdog
+(`files/deck-net.service`). The first-boot user wizard, cloud-init, avahi,
+the ssh switch, the console login and Ctrl+Alt+Del (the keyboard can sit on
+the Pi's USB) are switched off, the boot is quiet (errors only, still on
+the screen), and the hostname becomes `deck`. `build-image.sh` does all of
+this on copies of the partitions with mtools and debugfs: no root, no loop
+devices, no ARM emulation, so it runs the same in Docker on OMV and on
+GitHub's runners. Pi OS Lite already has everything the app links against
+(libdrm, libcurl, libjpeg, NetworkManager).
 
 ## Files
 

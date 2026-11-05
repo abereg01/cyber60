@@ -91,6 +91,7 @@ put "$D/deck" /opt/deck 0100755
 put "$D/deck-update.sh" /opt/deck 0100755
 put "$D/deck-drive.sh" /opt/deck 0100755
 put "$D/deck-report.sh" /opt/deck 0100755
+put "$D/deck-net.sh" /opt/deck 0100755
 put "$D/VERSION" /opt/deck 0100644
 put "$D/DRIVE-README.txt" /opt/deck 0100644
 for f in "$D"/share/*; do put "$f" /opt/deck/share 0100644; done
@@ -98,6 +99,7 @@ for f in "$D"/units/*; do put "$f" /opt/deck/units 0100644; done
 put "$F/deck.service" /etc/systemd/system 0100644
 put "$F/deck-drive.service" /etc/systemd/system 0100644
 put "$F/deck-report.service" /etc/systemd/system 0100644
+put "$F/deck-net.service" /etc/systemd/system 0100644
 # BUILD PHASE ONLY: SSH with OMV's key (files/deck-ssh.sh). Remove before work.
 printf 'mkdir /opt/deck/ssh\n' >>"$R"
 own /opt/deck/ssh 040755
@@ -105,7 +107,8 @@ put "$D/deck-ssh.sh" /opt/deck 0100755
 put "$D/ssh/authorized_keys" /opt/deck/ssh 0100644
 put "$F/deck-ssh.service" /etc/systemd/system 0100644
 for w in sysinit.target.wants/deck.service multi-user.target.wants/deck-drive.service \
-    multi-user.target.wants/deck-report.service multi-user.target.wants/deck-ssh.service; do
+    multi-user.target.wants/deck-report.service multi-user.target.wants/deck-net.service \
+    multi-user.target.wants/deck-ssh.service; do
     printf 'symlink /etc/systemd/system/%s /etc/systemd/system/%s\n' "$w" "${w#*/}" >>"$R"
 done
 
@@ -117,6 +120,8 @@ for u in multi-user.target.wants/userconfig.service multi-user.target.wants/avah
     printf 'rm /etc/systemd/system/%s\n' "$u" >>"$R"
 done
 printf 'symlink /etc/systemd/system/getty@tty1.service /dev/null\n' >>"$R"
+# Ctrl+Alt+Del would restart the Pi: the keyboard can sit on its USB port.
+printf 'symlink /etc/systemd/system/ctrl-alt-del.target /dev/null\n' >>"$R"
 : >"$W/cloud-init.disabled"
 put "$W/cloud-init.disabled" /etc/cloud 0100644
 
