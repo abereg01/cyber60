@@ -3,11 +3,12 @@
  * press both, and only if no key was pressed in the 100 ms before, so normal
  * typing ("as", "cv"...) doesn't trigger them.
  *
- * Only active when BASE or SCROLL is the top layer, so never on GAMING (WASD
- * would fire A+S / S+D) or while holding Fn/System.
+ * The editing combos are only active when BASE or SCROLL is the top layer, so
+ * never on GAMING (WASD would fire A+S / S+D) or while holding Fn/System. The
+ * dongle-flash combo is the other way round: SYSTEM only.
  *
  * Positions (Cyber60 rev E):
- *   A=30 S=31 D=32   LShift=43  X=46 C=47 V=48   RShift=55
+ *   A=30 S=31 D=32 F=33   LShift=43  X=46 C=47 V=48   RShift=55
  */
 
 / {
@@ -71,6 +72,19 @@
             key-positions = <43 55>;
             bindings = <&caps_word>;
             layers = <BASE SCROLL>;
+        };
+
+        // Hold SYSTEM, then D + F ("dongle flash") → the dongle's bootloader:
+        // a USB drive appears on the computer, drop dongle.uf2 on it. Flashes
+        // the Prospector in place, no pin. It works because ZMK runs a reset
+        // fired by a combo on the central; SYSTEM's Flash key always acts on
+        // the keyboard. Standalone (keyboard-pi) this flashes the keyboard.
+        // Pressed one at a time, D and F just type d and f.
+        combo_dongle_flash {
+            timeout-ms = <50>;
+            key-positions = <32 33>;
+            bindings = <&bootloader>;
+            layers = <SYSTEM>;
         };
     };
 };

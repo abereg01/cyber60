@@ -100,12 +100,12 @@ the row here, not how many (so it's 1 sensor, 1 LRA and 1 haptic driver).
 
 | # | Part | Qty | Search for | Notes | ~kr |
 |---|------|-----|------------|-------|-----|
-| 1 | **Waveshare ESP32-S3-Touch-AMOLED-1.75**, standard version without case | 1 | `ESP32-S3-Touch-AMOLED-1.75` (Waveshare SKU 31261) | Waveshare store, AliExpress (Waveshare's own shop) or The Pi Hut. Check the schematic first, see "Before ordering" | 350–450 |
-| 2 | **TMAG5273 3D Hall sensor board**, A2 version | 1 | `Adafruit 6490` | The A2 (±133/266 mT), not the A1: strong magnets 1–2 mm away max out the A1. Add a JST-SH (STEMMA QT/Qwiic) to male-header cable | 100–140 |
+| 1 | **Waveshare ESP32-S3-Touch-AMOLED-1.75**, standard version without case | 1 | `ESP32-S3-Touch-AMOLED-1.75` (Waveshare SKU 31261) | Waveshare store, AliExpress (Waveshare's own shop) or The Pi Hut. **Not the `-G` (GPS) version**: its GPS takes GPIO17/18, two of the three free header pins | 350–450 |
+| 2 | **TMAG5273 3D Hall sensor board**, A2 version | 1 | `Adafruit 6490`; in Sweden: Electrokit art. 41036412, 92 kr ("TMAG5273 (A2) - Qwiic", Adafruit) | The A2 (±133/266 mT), not the A1: strong magnets 1–2 mm away max out the A1. Add **2 × Qwiic to 4× Dupont female, 100 mm** (Electrokit art. 41023467, 29 kr): board header → sensor, sensor's 2nd Qwiic port → DRV2605L. Black GND → header pin 2, red 3.3 V → pin 3 (not pin 1, that's 5 V), blue SDA → pin 6 (GPIO17), yellow SCL → pin 7 (GPIO18). The sensor's INT pin is not in the Qwiic cable: one extra wire to pin 8 (GPIO16). Dupont plugs are tall, so for the final case these are probably soldered instead | 100–140 |
 | 3 | **The 24 ring magnets: neodymium discs Ø5 × 2 mm, N52, axially magnetised** | 30 (24 + 6 spare) | `S-05-02-N52N` on supermagnete.se, or on AliExpress `neodymium magnet 5x2mm N52` (50-pack) | **Buy these new, all in one batch**, so all 24 are equally strong. Your own (stronger) magnets go in the dock (#13), not the ring: 24 magnets have to fit round the ring about 10 mm apart, so Ø5 is about the limit, and bigger ones would also max out the sensor. supermagnete is about 3–4 kr each, AliExpress less | 40–120 |
 | 4 | **Bearing 6810-ZZ** (50 × 65 × 7 mm) | 1 | `6810ZZ bearing` | **ZZ** (metal shields), not 2RS (rubber seals drag). Wash out the grease and add a drop of light oil for a free spin | 50–100 |
 | 5 | **DRV2605L haptic driver board** | 1 | `Adafruit 2305`, or on AliExpress `DRV2605L module` | Adafruit's is about 85 kr at RS Sweden; AliExpress clones about 40 kr | 40–85 |
-| 6 | **LRA click motor: Vybronics VG1040003D**, 10 mm coin (10 × 4 mm, 170 Hz, 2.5 Vrms) | 1 | `VG1040003D` (DigiKey, Mouser) | About 65 kr at DigiKey. It has contact pads, not wires: solder on two thin wires. **Same size with wires already on:** Precision Microdrives `C10-100` (10 × 3.7 mm, 175 Hz). **Cheap AliExpress option:** `0832 LRA linear vibration motor` (8 × 3.2 mm, 235 Hz, with wires; fits the same spot). It must say **LRA** or "linear": a plain "coin vibration motor" is an ERM and only buzzes. The firmware runs the DRV2605L at the LRA's own frequency (Vybronics advises open-loop at 170 Hz for this one) | 30–70 |
+| 6 | **LRA click motor: Vybronics VG1040003D**, 10 mm coin (10 × 4 mm, 170 Hz, 2.5 Vrms) | 1 | `VG1040003D` (DigiKey, Mouser) | About 65 kr at DigiKey. It has contact pads, not wires: solder on two thin wires. **Same size with wires already on:** Precision Microdrives `C10-100` (10 × 3.7 mm, 175 Hz). **Cheap AliExpress option:** `0832 LRA linear vibration motor` (8 × 3.2 mm, 235 Hz, with wires; fits the same spot). It must say **LRA** or "linear": a plain "coin vibration motor" is an ERM and only buzzes. The firmware runs the DRV2605L at the LRA's own frequency (Vybronics advises open-loop at 170 Hz for this one). **Checked 2026-11-06:** no Swedish shop stocks an LRA (Electrokit, Kjell, Botland). Cheapest real one: DigiKey `VG0832012` (8 mm, 235 Hz, wires on), about 40 kr incl. moms, but DigiKey charges 170 kr shipping below 615 kr, so only order it as part of a bigger DigiKey order. Until then, start with the ERM coin motors from the AliExpress order: the DRV2605L's ERM click effects (overdrive + braking) give a short tap, softer than an LRA. An LRA salvaged from an old phone also works, since the DRV2605L finds its frequency by itself | 30–70 |
 | 7 | **Flat LiPo, ~3000 mAh**, with a protection circuit, **no bigger than 8.5 × 60 × 86 mm** | 1 | `805080 lipo 3000mAh` | The size code reads thickness-width-length: 805080 = 8 × 50 × 80 mm. The board takes a **2-pin MX1.25** plug. **Check the polarity with a multimeter before plugging in**: sellers wire it both ways | 100–150 |
 | 8 | Mouse micro switches | 3 | — | **You have these.** Modelled as Omron D2F size (12.8 × 5.8 × 6.5); tell me yours | 0 |
 | 9 | **USB-C panel-mount extension**, male to female with screw ears, 15–20 cm, angled male end if possible | 1 | `USB C panel mount extension cable` | Brings charging/flashing to the back of the base | 40–80 |
@@ -126,9 +126,19 @@ the row here, not how many (so it's 1 sensor, 1 LRA and 1 haptic driver).
 
 ### Before ordering
 
-- [ ] **Header pins:** Waveshare's pages don't say which pins of the 8-pin
-  header carry I2C. The sensor and the haptic driver need I2C, plus one free
-  GPIO for the sensor's wake-up interrupt. Read the board's schematic first.
+- [x] **Header pins** (checked 2026-11-06 in Waveshare's GitHub repo,
+  `HARDWARE_REFERENCE.md` + the BSP header): the 8-pin header is
+  1 VBUS, 2 GND, 3 3V3, 4 GPIO44/RX, 5 GPIO43/TX, 6 GPIO17, 7 GPIO18,
+  8 GPIO16. The board's own I2C bus (GPIO14/15) is **not** on it, and it
+  couldn't be used anyway: the touch chip (CST9217) sits at 0x5A, the same
+  fixed address as the DRV2605L. So the sensor and the haptic driver get
+  their own second I2C bus on **GPIO17 (SDA) / GPIO18 (SCL)** (the ESP32-S3
+  has two I2C controllers and can put them on any pin), the sensor's
+  wake-up interrupt goes on **GPIO16** (an RTC pin, so it can wake the board
+  from deep sleep), and power comes from pin 3 (3V3). The press switches can
+  use GPIO43 or 44. **Pin 1 (VBUS) is the USB 5 V rail**, so the dock's
+  charging contacts can feed it and the board's own AXP2101 charges the
+  battery: no extra charger board.
 - [ ] **Board size:** get the board's real outline and glass size from
   Waveshare's drawing. The model *assumes* Ø48 glass, a Ø46 board and 6 mm of
   parts behind it (`GLASS_D`, `PCB_D`, `PARTS_H` in `knob.py`).

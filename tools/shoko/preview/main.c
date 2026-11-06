@@ -1,7 +1,8 @@
 /*
  * Render the Shoko screen on a PC: runs shoko_ui.c against real LVGL with a
- * fake clock, plays a scripted session (typing, modifiers, every layer, the
- * encoder, gaming) and writes a PPM per frame at 30 fps plus named stills.
+ * fake clock, plays a scripted session (typing, modifiers, every layer the
+ * keyboard can reach, gaming) and writes a PPM per frame at 30 fps plus named
+ * stills. (SCROLL needs the encoder, which isn't fitted since 2026-11-06.)
  * tools/shoko/preview.sh builds it and turns the frames into PNG/MP4.
  */
 #include <stdio.h>
@@ -173,26 +174,6 @@ int main(int argc, char **argv) {
     layer("BASE");
     run(700);
 
-    // Encoder press: SCROLL
-    tap(67, 80);
-    layer("SCROLL");
-    run(700);
-    for (int i = 0; i < 6; i++) {
-        shoko_ui_scroll(1);
-        run(110);
-    }
-    run(200);
-    for (int i = 0; i < 3; i++) {
-        shoko_ui_scroll(-1);
-        run(140);
-    }
-    run(120);
-    still("4-scroll");
-    run(400);
-    tap(67, 80);
-    layer("BASE");
-    run(700);
-
     // Double-tap corner: GAMING
     tap(66, 60);
     run(80);
@@ -208,7 +189,7 @@ int main(int argc, char **argv) {
     run(250);
     shoko_ui_key(61, true);
     run(60);
-    still("5-gaming");
+    still("4-gaming");
     shoko_ui_key(61, false);
     shoko_ui_key(30, false);
     run(150);
@@ -228,7 +209,7 @@ int main(int argc, char **argv) {
     shoko_ui_set_battery(14, true);
     layer("MOUSE");
     run(900);
-    still("6-generic-capsword-lowbatt");
+    still("5-generic-capsword-lowbatt");
 
     printf("%d frames\n", frame);
     return 0;

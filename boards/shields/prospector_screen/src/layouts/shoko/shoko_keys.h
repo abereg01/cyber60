@@ -2,13 +2,14 @@
 
 #include <stdint.h>
 
-// Physical layout of this Cyber60 build (ANSI, 6.25u space, encoder top right)
+// Physical layout of this Cyber60 build (ANSI, 6.25u space, Del top right)
 // for the mini keyboard on the screen, in quarter key units. `pos` is the key
 // position in config/prospector_dongle.keymap.
 //
-// Positions with no switch on this build are left out: 14 (Del, where the
-// encoder sits), 41 (ISO #), 44 (ISO <>). The three Space positions 60-62 share
-// one key (see shoko_key_slot), and 67 is the encoder press, drawn as the knob.
+// Positions with no switch on this build are left out: 41 (ISO #), 44 (ISO <>)
+// and 67 (the encoder's press: a Del switch took the encoder's spot on
+// 2026-11-06). The three Space positions 60-62 share one key (see
+// shoko_key_slot).
 
 #define SHOKO_KEYMAP_LEN 68 // bindings per layer in the keymap
 
@@ -18,10 +19,10 @@ struct shoko_key {
 };
 
 static const struct shoko_key shoko_keys[] = {
-    // Row 0: Esc 1-0 - = \  + knob
+    // Row 0: Esc 1-0 - = \ Del
     {0, 0, 0, 4},   {1, 4, 0, 4},   {2, 8, 0, 4},   {3, 12, 0, 4},  {4, 16, 0, 4},
     {5, 20, 0, 4},  {6, 24, 0, 4},  {7, 28, 0, 4},  {8, 32, 0, 4},  {9, 36, 0, 4},
-    {10, 40, 0, 4}, {11, 44, 0, 4}, {12, 48, 0, 4}, {13, 52, 0, 4}, {67, 56, 0, 4},
+    {10, 40, 0, 4}, {11, 44, 0, 4}, {12, 48, 0, 4}, {13, 52, 0, 4}, {14, 56, 0, 4},
     // Row 1: Tab Q-] <>|
     {15, 0, 1, 6},  {16, 6, 1, 4},  {17, 10, 1, 4}, {18, 14, 1, 4}, {19, 18, 1, 4},
     {20, 22, 1, 4}, {21, 26, 1, 4}, {22, 30, 1, 4}, {23, 34, 1, 4}, {24, 38, 1, 4},
@@ -40,7 +41,7 @@ static const struct shoko_key shoko_keys[] = {
 };
 
 #define SHOKO_KEY_SLOTS (sizeof(shoko_keys) / sizeof(shoko_keys[0]))
-#define SHOKO_KNOB_POS 67
+#define SHOKO_KNOB_POS 67 // the encoder's press; only the Pi's page_keys.c still draws it
 
 // Key position → index into shoko_keys, or -1 if this build has no such key.
 static inline int shoko_key_slot(uint32_t pos) {

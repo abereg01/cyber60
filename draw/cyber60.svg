@@ -135,7 +135,7 @@ text.hold { fill: #d8dee9; }
 .encoder text { fill: #2e3440; }
 rect.combo { fill: #5e81ac; stroke: none; }
 path.combo { stroke: #5e81ac; }
-.keypos-14, .keypos-41, .keypos-44, .keypos-60, .keypos-62 { display: none; }
+.keypos-67, .keypos-41, .keypos-44, .keypos-60, .keypos-62 { display: none; }
 /* the key that gets you to each layer, in the layer's colour */
 .layer-FN .keypos-61 rect.key { fill: #a3be8c; }
 .layer-SYSTEM .keypos-64 rect.key { fill: #88c0d0; }
@@ -1016,8 +1016,11 @@ path.combo { stroke: #5e81ac; }
 <g transform="translate(812, 28)" class="key trans keypos-14">
 <rect rx="6" ry="6" x="-26" y="-26" width="52" height="52" class="key trans"/>
 </g>
-<g transform="translate(42, 84)" class="key trans keypos-15">
-<rect rx="6" ry="6" x="-40" y="-26" width="80" height="52" class="key trans"/>
+<g transform="translate(42, 84)" class="key keypos-15">
+<rect rx="6" ry="6" x="-40" y="-26" width="80" height="52" class="key"/>
+<text x="0" y="0" class="key tap">
+<tspan x="0" dy="-0.6em">BT</tspan><tspan x="0" dy="1.2em">CLR</tspan>
+</text>
 </g>
 <g transform="translate(112, 84)" class="key trans keypos-16">
 <rect rx="6" ry="6" x="-26" y="-26" width="52" height="52" class="key trans"/>
@@ -1197,6 +1200,11 @@ path.combo { stroke: #5e81ac; }
 </g>
 <g transform="translate(812, 28)" class="key trans keypos-67">
 <rect rx="6" ry="6" x="-26" y="-26" width="52" height="52" class="key trans"/>
+</g>
+<g class="combo combopos-0">
+<rect rx="6" ry="6" x="252" y="127" width="28" height="26" class="combo"/>
+<text x="266" y="140" class="combo tap">Flash</text>
+<text x="266" y="151" class="combo hold">dongle</text>
 </g>
 </g>
 </g>

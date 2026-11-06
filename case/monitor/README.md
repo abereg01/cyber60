@@ -103,7 +103,11 @@ tight under the monitor if the monitor isn't 67 mm deep there.
 
 ## Reset / flashing
 
-A pin hole in the base, near the back, sits under the XIAO's reset button.
+The everyday way needs no pin: hold SYSTEM on the keyboard and press D + F.
+The dongle restarts as a USB drive; drop `dongle.uf2` on it.
+
+For when the dongle's firmware won't start: a pin hole in the base, near the
+back (right beside the USB plug), sits under the XIAO's reset button.
 Double-tap it for the bootloader. As in the Shoko case, the button position
 comes from Seeed's photo, not a drawing (`RST_X` / `RST_Y`).
 

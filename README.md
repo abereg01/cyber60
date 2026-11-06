@@ -25,7 +25,7 @@ Today:
 
 ```
 Computer ←USB── Prospector dongle (keymap, screen, Studio)
-                    └──BLE── Cyber60 (keys, encoder, battery, underglow)
+                    └──BLE── Cyber60 (keys, battery, underglow)
 ```
 
 Later, with the desk screen (parked; the firmware for it is `tools/build.sh
@@ -46,13 +46,14 @@ software, nothing installed. The Pi's wifi only ever reaches the internet
 | # | Layer | How | Underglow |
 |---|-------|-----|-----------|
 | 0 | BASE | default. Letters, digits and symbols **auto-shift** (hold 175 ms) | off |
-| 1 | SCROLL | press the encoder (toggle): it scrolls instead of changing volume | purple |
+| 1 | SCROLL | press the encoder (toggle): it scrolls instead of changing volume. Idle while a Del switch sits in the encoder's spot (since 2026-11-06) | purple |
 | 2 | GAMING | double-tap the bottom-right corner key (toggle): plain keys, no combos | red |
 | 3 | FN | hold Space: F-keys, arrows on HJKL, ^Z/^X/^C/^V, Home/End | green |
 | 4 | SYSTEM | hold SYS: media, desktops, Win+Tab, passwords, bootloader, Studio unlock | blue |
 
 **Combos** (BASE and SCROLL): A+S = Ctrl+A, S+D = Ctrl+S, X+C = copy,
-C+V = paste, X+V = cut, both Shifts = Caps Word.
+C+V = paste, X+V = cut, both Shifts = Caps Word. On SYSTEM: D+F = put the
+**dongle** in bootloader mode, to flash it in place.
 
 The keymap is `config/cyber60.keymap` (the layer order matters: see the
 comment at its top). The dongle's `prospector_dongle.keymap` just includes
@@ -64,7 +65,8 @@ with [keymap-drawer](https://github.com/caksoylar/keymap-drawer) in Docker.
 ## The screens
 
 **Shoko**: the three Pantones on GMK Shoko's kit sheet (656 C pale, 5425 C
-slate, 2975 C aqua) on white. Each layer gets its own scene with a huge pale
+slate, 2975 C aqua). BASE is white; every other layer's scene takes its
+underglow colour (FN green, SYSTEM blue, GAMING red), with a huge pale
 katakana word behind it, and a keycap-row wipe runs between layers. A mini
 keyboard echoes your presses, and modifiers show as keycaps. On the
 Prospector: `boards/shields/prospector_screen/src/layouts/shoko/`, previewed
@@ -101,7 +103,7 @@ tools/build.sh update       # refresh ZMK/Zephyr (pinned to ZMK main in config/w
 | File | Flash to |
 |------|----------|
 | `firmware/cyber60.uf2` | the keyboard, as the dongle's peripheral: SYSTEM + Flash (the Ctrl/Bsp key), or double-tap reset, then drag the file onto the drive |
-| `firmware/dongle.uf2` | the Prospector: double-tap the XIAO's reset, drag the file |
+| `firmware/dongle.uf2` | the Prospector: SYSTEM + D + F on the keyboard (or double-tap the XIAO's reset, through the case's pin hole), drag the file |
 | `firmware/reset-*.uf2` | either, to wipe Bluetooth bonds; then flash the normal file |
 | `firmware/cyber60-pi.uf2` | the keyboard, standalone for the Pi desk screen (later) |
 
@@ -170,9 +172,9 @@ Items 1 to 4 wait until the desk screen comes back.
    stand-in for the Shelly cloud).
 3. **The desk screen's case** (`case/deck/README.md` lists the measurements).
 4. A read-only system on the Pi, so pulling the plug can never damage it.
-5. Keymap odds and ends: the `&none` keys marked TODO in the keymap, a home
-   for **Del** (top right on the M60-A, where the encoder is now), and whether
-   the M60-A's `~/.` macro comes along.
+5. Keymap odds and ends: the `&none` keys marked TODO in the keymap, and
+   whether the M60-A's `~/.` macro comes along. (Del got its home on
+   2026-11-06: a switch where the encoder was.)
 
 ## Where things come from
 

@@ -2,8 +2,8 @@
 #
 # draw/layout.json is the physical layout of this build: all 68 key positions
 # of the rev E board, so combo positions match the keymap. The five without a
-# switch (14 Del slot, 41 ISO #, 44 ISO <>, 60 and 62 split-space parts) are
-# hidden below, and 67 (encoder push) sits where the Del switch would be.
+# switch (67 encoder push, 41 ISO #, 44 ISO <>, 60 and 62 split-space parts)
+# are hidden below. 67 sits on 14 (Del): with the encoder back, hide 14 instead.
 
 parse_config:
   trans_legend: {t: "", type: trans}
@@ -33,6 +33,7 @@ parse_config:
   zmk_combos:
     combo_cut: {align: bottom, o: 0.15}
     combo_caps_word: {align: bottom, o: 0.15}
+    combo_dongle_flash: {k: {t: Flash, h: dongle}}
 
   # Replaces keymap-drawer's default map, so the symbols are listed too.
   zmk_keycode_map:
@@ -94,7 +95,7 @@ draw_config:
     .encoder text { fill: #2e3440; }
     rect.combo { fill: #5e81ac; stroke: none; }
     path.combo { stroke: #5e81ac; }
-    .keypos-14, .keypos-41, .keypos-44, .keypos-60, .keypos-62 { display: none; }
+    .keypos-67, .keypos-41, .keypos-44, .keypos-60, .keypos-62 { display: none; }
     /* the key that gets you to each layer, in the layer's colour */
     .layer-FN .keypos-61 rect.key { fill: #a3be8c; }
     .layer-SYSTEM .keypos-64 rect.key { fill: #88c0d0; }

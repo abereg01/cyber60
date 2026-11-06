@@ -292,7 +292,7 @@ layers:
   - {type: trans}
   - {type: trans}
   - {type: trans}
-  - {type: trans}
+  - BT CLR
   - {type: trans}
   - {type: trans}
   - {type: trans}
@@ -368,3 +368,6 @@ combos:
   l: [BASE, SCROLL]
   a: bottom
   o: 0.15
+- p: [32, 33]
+  k: {t: Flash, h: dongle}
+  l: [SYSTEM]

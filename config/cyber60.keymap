@@ -6,14 +6,17 @@
  * into a standalone keyboard instead. Edit the keymap here only.
  *
  * Base layer copied from the Rama M60-A (work keyboard) so muscle memory
- * carries over, plus auto shift, a GAMING layer and the encoder.
+ * carries over, plus auto shift and a GAMING layer. The top-right corner is a
+ * Del switch since 2026-11-06 (the rotary encoder that sat there came out).
  *
  * Layer order matters:
  *   - GAMING sits above SCROLL so combos stay off while gaming (combos check
  *     the top layer) and the screen shows GAMING.
  *   - FN and SYSTEM sit above GAMING so holding them still works while gaming.
  *   - Only BASE and SCROLL have sensor-bindings; the encoder falls through the
- *     other layers to whichever of those is on top.
+ *     other layers to whichever of those is on top. With no encoder fitted
+ *     they (and SCROLL) are idle, but kept: the layer numbers stay put, and
+ *     putting the encoder back needs no firmware change.
  * The screen/underglow colours are indexed by this order
  * (boards/shields/prospector_screen/src/layouts/operator/display_colors.h).
  *
@@ -50,8 +53,8 @@
         base_layer {
             display-name = "BASE";
 /*  ┌────┬────┬────┬────┬────┬────┬────┬────┬────┬────┬────┬────┬────┬────┬────┐
-    │Esc │ 1  │ 2  │ 3  │ 4  │ 5  │ 6  │ 7  │ 8  │ 9  │ 0  │ -  │ =  │ \  │(Del│  Del: no switch there when
-    ├────┴──┬─┴──┬─┴──┬─┴──┬─┴──┬─┴──┬─┴──┬─┴──┬─┴──┬─┴──┬─┴──┬─┴──┬─┴──┬─┴────┤        the encoder is fitted
+    │Esc │ 1  │ 2  │ 3  │ 4  │ 5  │ 6  │ 7  │ 8  │ 9  │ 0  │ -  │ =  │ \  │Del │
+    ├────┴──┬─┴──┬─┴──┬─┴──┬─┴──┬─┴──┬─┴──┬─┴──┬─┴──┬─┴──┬─┴──┬─┴──┬─┴──┬─┴────┤
     │ Tab   │ Q  │ W  │ E  │ R  │ T  │ Y  │ U  │ I  │ O  │ P  │ [  │ ]  │ <>|  │
     ├───────┴┬───┴┬───┴┬───┴┬───┴┬───┴┬───┴┬───┴┬───┴┬───┴┬───┴┬───┴┬───┴──────┤
     │Ctrl/Bsp│ A  │ S  │ D  │ F  │ G  │ H  │ J  │ K  │ L  │ ;  │ '  │  Enter   │
@@ -63,7 +66,9 @@
     └─────┴─────┴─────┴───────────────────────────────┴─────┴─────┴─────┴─────┘
     All letters, digits and symbols auto-shift (hold = shifted).
     ?/G x2: double-tap toggles GAMING; single tap undecided.
-    Encoder: turn = volume, press = SCROLL mode on/off.                            */
+    Del is a switch where the encoder was (2026-11-06). The encoder and Del share
+    that spot on the board, so whichever is fitted works: Del is position 14,
+    the encoder's push 67 (turn = volume, press = SCROLL mode on/off).          */
             bindings = <
 &kp ESC        AS(N1) AS(N2) AS(N3) AS(N4) AS(N5) AS(N6) AS(N7) AS(N8) AS(N9) AS(N0) AS(MINUS) AS(EQUAL) AS(BSLH) &kp DEL
 &kp TAB        AS(Q)  AS(W)  AS(E)  AS(R)  AS(T)  AS(Y)  AS(U)  AS(I)  AS(O)  AS(P)  AS(LBKT)  AS(RBKT)  AS(NUBS)
@@ -78,7 +83,8 @@
         scroll_layer {
             display-name = "SCROLL";
 /*  Toggled by pressing the encoder. Every key is transparent; only the encoder
-    changes: turning it scrolls (mouse wheel) instead of changing volume.      */
+    changes: turning it scrolls (mouse wheel) instead of changing volume.
+    Unreachable while no encoder is fitted (since 2026-11-06).                 */
             bindings = <
 &trans &trans &trans &trans &trans &trans &trans &trans &trans &trans &trans &trans &trans &trans &trans
 &trans &trans &trans &trans &trans &trans &trans &trans &trans &trans &trans &trans &trans &trans
@@ -149,6 +155,8 @@
     forgets the Bluetooth host on the current profile: with the dongle, the
     dongle's own host (when it runs on Bluetooth instead of USB); standalone,
     the Pi (profile 1).
+    D + F together (combo) = put the DONGLE in bootloader mode, to flash it in
+    place (combos.dtsi: a reset fired by a combo runs on the dongle).
     Studio = unlock ZMK Studio for editing.  Desk←/→ = Ctrl+Win+←/→.
     PW1/PW2 = password macros &pw1 (Swedish layout) / &pw2 (English layout),
     on the same keys as the M60-A's layer 3 (<>|, B, N = PW1; M = PW2).        */

@@ -317,12 +317,7 @@ static void key_area(int slot, lv_area_t *a) {
     a->y2 = a->y1 + MAP_UNIT - MAP_GAP - 1;
 }
 
-static bool is_bound(uint8_t pos) {
-    if (pos == SHOKO_KNOB_POS) {
-        return false; // the knob press toggles SCROLL on every layer
-    }
-    return use_bound && (bound[pos / 8] & (1 << (pos % 8)));
-}
+static bool is_bound(uint8_t pos) { return use_bound && (bound[pos / 8] & (1 << (pos % 8))); }
 
 static void minimap_draw(lv_event_t *e) {
     lv_layer_t *layer = lv_event_get_layer(e);
@@ -337,14 +332,7 @@ static void minimap_draw(lv_event_t *e) {
         lv_color_t c = hex(is_bound(pos) ? scene->key_lit : scene->key_idle);
         d.bg_color = heat[i] ? lv_color_mix(hex(scene->key_hot), c, heat[i]) : c;
         d.radius = 3;
-        if (pos == SHOKO_KNOB_POS) {
-            d.radius = LV_RADIUS_CIRCLE;
-            d.border_width = 2;
-            d.border_color = hex(scene->ink_soft);
-            d.border_opa = LV_OPA_COVER;
-        }
         lv_draw_rect(layer, &d, &a);
-        d.border_width = 0;
     }
 }
 
