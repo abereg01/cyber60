@@ -38,7 +38,12 @@ for spec in "$WORK"/spec-*.json; do
         node /t/render.js "/out/$(basename "$spec")" | grep -E '^wrote|rror' || true
 done
 cp "$WORK/ui/screen.png" "$HERE/renders/screen-ui.png"
-rm -f "$HERE/renders/section.png"
+rm -f "$HERE/renders/section.png" "$HERE/renders/hero-stand.png" "$HERE/renders/stand-side.png"  # old renders
 docker run --rm --user "$(id -u):$(id -g)" -v "$HERE":/src:ro -v "$WORK":/out -v "$HERE/renders":/renders \
     -v "$FONTS":/fonts:ro cadtools:local python3 /src/label.py /out /renders /fonts
+# renders/ is gitignored; KNOB.md shows these copies (in git)
+mkdir -p "$HERE/../../img/knob"
+for f in hero hero-dock dock-empty dock-side dock-close exploded-labelled; do
+    cp "$HERE/renders/$f.png" "$HERE/../../img/knob/"
+done
 ls "$HERE/renders"

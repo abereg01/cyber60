@@ -17,7 +17,7 @@ parked for later.
 | **Prospector dongle** (`boards/shields/prospector_*`) | XIAO BLE + 1.69" screen: holds the keymap, draws the Shoko screen, runs ZMK Studio | in use |
 | **Desk screen** (`pi/`) | Raspberry Pi 4 + official 7" Touch Display: the Shoko screen, a 3D corgi, Spotify, Shelly lights, a password vault, updates over USB | runs on the Pi; parked 2026-11-05, keyboard link half built |
 | **Cases** (`case/`) | `case/3d/`: a giant Shoko keycap for the Prospector. `case/monitor/`: the Prospector taped under the monitor, only the screen showing. `case/deck/`: a picture-frame case for the desk screen | designed; test prints next |
-| **Desk knob** ([KNOB.md](KNOB.md), `case/knob/`) | Battery Bluetooth knob: a big printed ring with a finger dimple turning round a round touch screen, a square battery base, and a 45° stand | concept renders + shopping list; nothing bought |
+| **Desk knob** ([KNOB.md](KNOB.md), `case/knob/`) | Battery Bluetooth knob: a big printed ring with a finger dimple turning round a round touch screen, a square battery base, and a small 45° slot dock | concept renders + shopping list; nothing bought |
 
 ## How it fits together
 

@@ -3,8 +3,9 @@
 Desk knob, CONCEPT model (renders only, nothing here is ready to print).
 
 A big printed ring with a finger dimple turns around a fixed round touch
-screen, on a square base that holds the battery. A separate 45° stand holds
-it like a mixing-desk control. See ../../KNOB.md for the why and the parts list.
+screen, on a square base that holds the battery. A small dock with a 45° slot
+holds it like a mixing-desk control (think headphone charging stand). See
+../../KNOB.md for the why and the parts list.
 
     base      slate  square shell: battery on the floor, a mid frame with the
                      click switches and the haptic driver, USB-C in the back
@@ -13,17 +14,21 @@ it like a mixing-desk control. See ../../KNOB.md for the why and the parts list.
     ring      white  the knob: dimple on top, knurled side; a steel weight and
                      24 magnets (alternating N/S) sit in its underside
     bezel     black  holds the screen module on top of the post
-    stand     light  45° frame; the base's feet drop into pockets in its face
+    dock      light  a small block, narrower than the knob, with a V-shaped
+                     slot: the knob's front edge drops in, its bottom rests on
+                     the slot's back face. Optional charging: magnetic pogo pins
+                     in that face, pads in the knob's bottom
 
 Stand-ins (bought parts): Waveshare ESP32-S3-Touch-AMOLED-1.75 board (sizes
 ASSUMED until we have the drawing), 6810-ZZ bearing, 5x2 mm magnets, steel
 weight, flat LiPo, 3 mouse switches (Omron D2F-size body), DRV2605L board,
-10 mm LRA, TMAG5273 board, panel-mount USB-C, silicone feet.
+10 mm LRA, TMAG5273 board, panel-mount USB-C, silicone feet, pogo connector.
 
 Coordinates: knob axis = z, z = 0 at the bottom of the base, -y = towards you.
+Docked: the bottom of the slot is at y = 0.
 
 Run:  python3 knob.py OUTDIR
-Writes OUTDIR/assembly/{flat,stand}/*.stl, info.json and the render specs.
+Writes OUTDIR/assembly/{flat,dock}/*.stl, info.json and the render specs.
 """
 import json
 import math
@@ -86,13 +91,29 @@ SW_ANGLES = (90.0, 210.0, 330.0)
 # Flat LiPo pack, largest that fits
 BAT_W, BAT_L, BAT_T = 60.0, 86.0, 8.5
 
-# 45° stand
-STAND_ANGLE = 45.0
-STAND_W = 112.0
-STAND_LIFT = 10.0  # knob's front edge above the desk
-LIP_H, LIP_T = 6.0, 4.0
-STAND_BACK = 2.0  # face runs this far past the knob's back edge
-STAND_FRAME = 7.0  # frame thickness round the side window
+# 45° dock: a slot the knob drops into. Narrower than the knob, and narrower
+# than the gap between its feet, so it hides behind the knob and the feet hang
+# past its sides.
+DOCK_ANGLE = 45.0
+DOCK_W = 60.0
+DOCK_H0 = 5.0  # material under the bottom of the slot
+DOCK_BACK = 52.0  # the slot's back face: supports the knob's bottom this far
+DOCK_FRONT = 16.0  # the slot's front face: supports the knob's front this far
+DOCK_TOP = 6.0  # flat top either side of the slot
+DOCK_ROUND = 3.0
+DOCK_CLEAR = 0.3
+COM_H = 15.0  # rough height of the knob's centre of mass (battery low, ring high)
+
+# Optional charging: a magnetic 2-pin pogo connector. Pads sit flush in the
+# knob's bottom near the front edge (hidden on the desk), spring pins in the
+# dock's back face. Face size + how far in from the knob's front edge.
+POGO_W, POGO_D, POGO_AT = 12.0, 5.0, 6.0
+
+# Two magnets under the dock's back face pull on two steel discs flush in the
+# knob's bottom, so it snaps into the slot and a tap on the ring can't tip it.
+DOCK_MAG_D, DOCK_MAG_T = 10.0, 3.0
+DISC_D, DISC_T = 10.0, 1.0
+DOCK_MAG_X, DOCK_MAG_AT = 16.0, 22.0  # ±x; this far in from the knob's front edge
 
 # ── Derived heights ─────────────────────────────────────────────────────────
 
@@ -163,10 +184,9 @@ def polar(m, r, deg):
     return m.rotate((0, 0, deg)).translate((r * math.cos(a), r * math.sin(a), 0))
 
 
-def extrude_x(poly_yz, x0, x1):
-    """A (y, z) outline swept along x."""
-    m = CrossSection([ccw(poly_yz)]).extrude(x1 - x0)
-    return m.transform(np.array([[0, 0, 1, x0], [1, 0, 0, 0], [0, 1, 0, 0]], float))
+def sweep_x(cs, x0, x1):
+    """A (y, z) cross-section swept along x."""
+    return cs.extrude(x1 - x0).transform(np.array([[0, 0, 1, x0], [1, 0, 0, 0], [0, 1, 0, 0]], float))
 
 
 def union(ms):
@@ -186,19 +206,31 @@ def corner_r(w):
     return BASE_R * w / BASE_W
 
 
-def base():
+def base_outer():
     c = TOP_CHAMFER
-    outer = Manifold.batch_hull([
+    return Manifold.batch_hull([
         rr_slab(BASE_W - 1.6, corner_r(BASE_W) - 0.8, 0.0),
         rr_slab(BASE_W, corner_r(BASE_W), 0.8),
         rr_slab(BASE_TOP_W, corner_r(BASE_TOP_W), BASE_H - c),
         rr_slab(BASE_TOP_W - 2 * c, corner_r(BASE_TOP_W) - c, BASE_H - 0.01)])
+
+
+def pogo_box(grow, z0, z1):
+    """The pogo connector's footprint on the knob's bottom (knob coordinates)."""
+    y = -BASE_W / 2 + POGO_AT
+    return box(-POGO_W / 2 - grow, POGO_W / 2 + grow, y - POGO_D / 2 - grow, y + POGO_D / 2 + grow, z0, z1)
+
+
+def base():
     wf, wd = base_width(FLOOR) - 2 * WALL, base_width(Z_DECK0) - 2 * WALL
     cavity = Manifold.batch_hull([rr_slab(wf, corner_r(wf) - WALL, FLOOR),
                                   rr_slab(wd, corner_r(wd) - WALL, Z_DECK0 - 0.01)])
-    m = outer - cavity
+    m = base_outer() - cavity
     m -= cyl(PLATE_D + 0.8, Z_DECK0 - 0.5, BASE_H + 1)  # press plate opening
     m -= box(-4.6, 4.6, 40.0, 60.0, 14.4, 17.6)  # USB-C
+    m -= pogo_box(0.2, -0.01, FLOOR + 0.01)  # charging pads
+    for sx in (-1, 1):  # steel discs for the dock's magnets
+        m -= cyl(DISC_D + 0.3, -0.01, DISC_T + 0.1, sx * DOCK_MAG_X, -BASE_W / 2 + DOCK_MAG_AT, seg=48)
     for sx in (-1, 1):  # bosses for the mid frame
         for sy in (-1, 1):
             m += cyl(7.0, FLOOR - 0.01, Z_MID0, 40.0 * sx, 40.0 * sy, seg=48)
@@ -249,32 +281,79 @@ def bezel():
     return wall + ledge
 
 
-def stand_matrix():
-    a = math.radians(STAND_ANGLE)
+def dock_matrix():
+    """Knob → docked: tilted DOCK_ANGLE back, its front bottom edge in the bottom
+    of the slot (y = 0, z = DOCK_H0), DOCK_CLEAR off both faces of the slot."""
+    a = math.radians(DOCK_ANGLE)
+    c, s, t = math.cos(a), math.sin(a), DOCK_CLEAR
+    ty = BASE_W / 2 * c + t * (c - s)
+    tz = DOCK_H0 + BASE_W / 2 * s + t * (c + s)
+    return np.array([[1, 0, 0, 0], [0, c, -s, ty], [0, s, c, tz]], float)
+
+
+def dock_outline():
+    """Side view (y, z) of the dock: two flat tops either side of a 90° V-slot."""
+    a = math.radians(DOCK_ANGLE)
     c, s = math.cos(a), math.sin(a)
-    return np.array([[1, 0, 0, 0], [0, c, -s, 0], [0, s, c, BASE_W / 2 * s + STAND_LIFT]], float)
+    v = np.array([0.0, DOCK_H0])
+    back = v + DOCK_BACK * np.array([c, s])
+    front = v + DOCK_FRONT * np.array([-s, c])
+    return [(front[0] - DOCK_TOP, 0.0), (front[0] - DOCK_TOP, front[1]), front, v, back,
+            (back[0] + DOCK_TOP, back[1]), (back[0] + DOCK_TOP, 0.0)]
 
 
-def feet_pockets():
-    return union([cyl(FOOT_D + 0.8, -FOOT_H - 0.3, 0.01, FOOT_AT * sx, FOOT_AT * sy, seg=48)
-                  for sx in (-1, 1) for sy in (-1, 1)])
+def dock_back_face():
+    return dock_outline()[-1][0]
 
 
-def stand():
-    a = math.radians(STAND_ANGLE)
-    c, s = math.cos(a), math.sin(a)
-    fd, nd = np.array([c, s]), np.array([-s, c])
-    p = np.array([-BASE_W / 2 * c, STAND_LIFT])  # the knob's front bottom edge
-    lip_out = p - LIP_T * fd + LIP_H * nd
-    lip_in = p + LIP_H * nd
-    back = p + (BASE_W + STAND_BACK) * fd
-    poly = [(lip_out[0], 0.0), lip_out, lip_in, p, back, (back[0], 0.0)]
-    m = extrude_x(poly, -STAND_W / 2, STAND_W / 2)
-    window = CrossSection([ccw(poly)]).offset(-STAND_FRAME, JoinType.Round)
-    m -= window.extrude(STAND_W + 2).transform(
-        np.array([[0, 0, 1, -STAND_W / 2 - 1], [1, 0, 0, 0], [0, 1, 0, 0]], float))
-    m -= feet_pockets().transform(stand_matrix())
+def dock():
+    poly = dock_outline()
+    y0, y1 = poly[0][0], poly[-1][0]
+    top = max(z for _, z in poly)
+    cs = CrossSection([ccw(poly)]).offset(-DOCK_ROUND, JoinType.Round).offset(DOCK_ROUND, JoinType.Round)
+    m = sweep_x(cs, -DOCK_W / 2, DOCK_W / 2)
+    m ^= rr_prism(DOCK_W, y1 - y0, 8.0, -1, top + 1, y=(y0 + y1) / 2)  # soft corners seen from above
+    M = dock_matrix()
+    m -= base_outer().transform(M)  # exact seat for the knob
+    m -= pogo_box(0.3, -5.0, 0.5).transform(M)  # pin connector pocket
+    m -= union([cyl(DOCK_MAG_D + 0.3, -DOCK_MAG_T - 0.3 - 0.6, -0.6, sx * DOCK_MAG_X, -BASE_W / 2 + DOCK_MAG_AT,
+                    seg=48) for sx in (-1, 1)]).transform(M)  # magnets, 0.6 mm under the face
+    # USB-C in the back, a small cavity for its board, and a wire channel to the pins
+    bf = dock_back_face()
+    m -= box(-8, 8, bf - 15, bf - 1.6, 3.0, 13.0)
+    m -= box(-4.6, 4.6, bf - 2.0, bf + 1.0, 6.4, 10.0)
+    pin_y = float((M @ np.array([0, -BASE_W / 2 + POGO_AT, -2.5, 1]))[1])
+    ztop = DOCK_H0 + pin_y * math.tan(math.radians(DOCK_ANGLE)) - 1.2
+    m -= box(-3, 3, pin_y, bf - 14, 3.0, min(ztop, 9.0))
     return m
+
+
+def dock_feet():
+    y0, y1 = dock_outline()[0][0], dock_back_face()
+    return union([cyl(10.0, -1.5, 0.0, (DOCK_W / 2 - 8) * sx, y, seg=48)
+                  for sx in (-1, 1) for y in (y0 + 8, y1 - 8)])
+
+
+def dock_usb():
+    bf = dock_back_face()
+    return box(-7, 7, bf - 13, bf - 1.8, 4.6, 6.4) + box(-4.4, 4.4, bf - 8, bf - 0.2, 6.6, 9.8)
+
+
+def pogo_pins():
+    return pogo_box(0.0, -4.0, 0.0).transform(dock_matrix())
+
+
+def pogo_pads():
+    return pogo_box(0.0, 0.0, FLOOR)
+
+
+def steel_discs():
+    return union([cyl(DISC_D, 0.0, DISC_T, sx * DOCK_MAG_X, -BASE_W / 2 + DOCK_MAG_AT, seg=48) for sx in (-1, 1)])
+
+
+def dock_magnets():
+    return union([cyl(DOCK_MAG_D, -DOCK_MAG_T - 0.75, -0.75, sx * DOCK_MAG_X, -BASE_W / 2 + DOCK_MAG_AT, seg=48)
+                  for sx in (-1, 1)]).transform(dock_matrix())
 
 
 # ── Stand-ins for the bought parts ──────────────────────────────────────────
@@ -340,7 +419,9 @@ def feet():
 # ── Output ──────────────────────────────────────────────────────────────────
 
 COLOURS = {  # Shoko: white caps, slate 5425 C, aqua 2975 C
-    "ring": "#f4f5f3", "base": "#62808f", "stand": "#dde5ed", "bezel": "#1c1f23",
+    "ring": "#f4f5f3", "base": "#62808f", "dock": "#dde5ed", "bezel": "#1c1f23",
+    "pogo_pads": "#c9a64b", "pogo_pins": "#c9a64b", "dock_feet": "#2b2d31", "dock_usb": "#d9dadc",
+    "steel_discs": "#7b8188", "dock_magnets": "#aeb4ba",
     "glass": "#08090b", "panel": "#15181c", "pcb": "#1b1e22", "pcb_parts": "#3b4650",
     "plate": "#c3cad0", "mid_frame": "#a9b4bc", "bearing": "#cfd3d7", "steel": "#7b8188",
     "magnets_n": "#c4575b", "magnets_s": "#4d7db5", "battery": "#c9d0d6", "switches": "#26272b",
@@ -349,7 +430,7 @@ COLOURS = {  # Shoko: white caps, slate 5425 C, aqua 2975 C
 
 # Exploded view: how far each part moves up (mm)
 EXPLODE = {
-    "feet": -16, "base": 0, "usb_c": 0, "battery": 34, "mid_frame": 58, "switches": 58, "drv2605": 58,
+    "feet": -16, "base": 0, "usb_c": 0, "pogo_pads": 0, "steel_discs": 0, "battery": 34, "mid_frame": 58, "switches": 58, "drv2605": 58,
     "plate": 84, "lra": 84, "tmag": 84, "bearing": 108, "steel": 118, "magnets_n": 118,
     "magnets_s": 118, "ring": 134, "bezel": 156, "pcb_parts": 174, "pcb": 174, "panel": 174, "glass": 174,
 }
@@ -368,20 +449,24 @@ def size(m):
 
 def main():
     out = sys.argv[1] if len(sys.argv) > 1 else "."
-    flat_dir, stand_dir = os.path.join(out, "assembly", "flat"), os.path.join(out, "assembly", "stand")
+    flat_dir, dock_dir = os.path.join(out, "assembly", "flat"), os.path.join(out, "assembly", "dock")
     os.makedirs(flat_dir, exist_ok=True)
-    os.makedirs(stand_dir, exist_ok=True)
+    os.makedirs(dock_dir, exist_ok=True)
 
     parts = {"base": base(), "mid_frame": mid_frame(), "plate": plate(), "ring": ring(), "bezel": bezel(),
              **screen_parts(), "bearing": bearing(), "steel": steel(), "magnets_n": magnets(0),
              "magnets_s": magnets(1), "switches": switches(), "drv2605": drv2605(), "lra": lra(),
-             "tmag": tmag(), "battery": battery(), "usb_c": usb_c(), "feet": feet()}
-    st = stand()
-    M = stand_matrix()
+             "tmag": tmag(), "battery": battery(), "usb_c": usb_c(), "feet": feet(), "pogo_pads": pogo_pads(),
+             "steel_discs": steel_discs()}
+    M = dock_matrix()
+    dock_parts = {"dock": dock(), "dock_feet": dock_feet(), "dock_usb": dock_usb(), "pogo_pins": pogo_pins(),
+                  "dock_magnets": dock_magnets()}
     for name, m in parts.items():
         tm(m).export(os.path.join(flat_dir, f"{name}.stl"))
-        tm(m.transform(M)).export(os.path.join(stand_dir, f"{name}.stl"))
-    tm(st).export(os.path.join(stand_dir, "stand.stl"))
+        tm(m.transform(M)).export(os.path.join(dock_dir, f"{name}.stl"))
+    for name, m in dock_parts.items():
+        tm(m).export(os.path.join(dock_dir, f"{name}.stl"))
+    st = dock_parts["dock"]
 
     # Every pair that must not overlap (mm³; touching faces count as 0).
     pairs = [("ring", "bezel"), ("ring", "bearing"), ("ring", "base"), ("ring", "plate"),
@@ -389,37 +474,55 @@ def main():
              ("bezel", "panel"), ("bezel", "pcb_parts"), ("plate", "pcb_parts"), ("plate", "base"),
              ("plate", "switches"), ("plate", "bearing"), ("plate", "tmag"), ("mid_frame", "battery"),
              ("mid_frame", "base"), ("mid_frame", "switches"), ("drv2605", "lra"), ("lra", "switches"),
-             ("battery", "base"), ("usb_c", "base"), ("usb_c", "mid_frame"), ("feet", "base")]
+             ("battery", "base"), ("usb_c", "base"), ("usb_c", "mid_frame"), ("feet", "base"),
+             ("pogo_pads", "base"), ("pogo_pads", "battery"), ("steel_discs", "base"),
+             ("steel_discs", "battery"), ("steel_discs", "feet")]
     checks = {f"{a} vs {b}": round((parts[a] ^ parts[b]).volume(), 2) for a, b in pairs}
-    knob_all = union([parts[n].transform(M) for n in ("base", "ring", "feet", "bezel", "plate")])
-    checks["stand vs knob"] = round((st ^ knob_all).volume(), 2)
+    knob_all = union([parts[n].transform(M) for n in parts])
+    for n, m in dock_parts.items():
+        checks[f"{n} vs docked knob"] = round((m ^ knob_all).volume(), 2)
+    checks["dock vs dock_usb"] = round((st ^ dock_parts["dock_usb"]).volume(), 2)
+    checks["dock vs pogo_pins"] = round((st ^ dock_parts["pogo_pins"]).volume(), 2)
+    checks["dock vs dock_magnets"] = round((st ^ dock_parts["dock_magnets"]).volume(), 2)
 
     bb_st = st.bounding_box()
-    a = math.radians(STAND_ANGLE)
+    a = math.radians(DOCK_ANGLE)
     screen_c = M @ np.array([0, 0, Z_GLASS1, 1.0])
+    com = M @ np.array([0, 0, COM_H, 1.0])
+    back_end = dock_outline()[4][0]  # where the slot's back face ends
     info = {
         "checks": checks,
         "size_mm": {"knob (w, d, h incl. feet)": [BASE_W, BASE_W, round(Z_RING1 + FOOT_H, 1)],
-                    "ring": [RING_OD, RING_H], "stand (w, d, h)": size(st)},
+                    "ring": [RING_OD, RING_H], "dock (w, d, h)": size(st)},
         "ring_top_above_desk_mm": round(Z_RING1 + FOOT_H, 1),
         "screen_glass_d_mm": GLASS_D, "ring_width_mm": round((RING_OD - RING_BORE) / 2, 1),
         "press_travel_mm": PRESS_TRAVEL,
-        "on_stand": {"angle_deg": STAND_ANGLE, "screen_centre_above_desk_mm": round(float(screen_c[2]), 1),
-                     "stand_footprint_depth_mm": round(float(bb_st[4] - bb_st[1]), 1)},
+        "docked": {"angle_deg": DOCK_ANGLE, "screen_centre_above_desk_mm": round(float(screen_c[2]), 1),
+                   "tip_margin_mm (centre of mass in front of the slot's back edge, rough)":
+                       round(float(back_end - com[1]), 1)},
         "volume_cm3": {n: round(parts[n].volume() / 1000, 1) for n in ("base", "ring", "plate", "bezel", "mid_frame")}
-        | {"stand": round(st.volume() / 1000, 1)},
+        | {"dock": round(st.volume() / 1000, 1)},
     }
     v = [0.0, math.cos(a), math.sin(a)]
     info["bbox"] = {n: [round(float(x), 2) for x in parts[n].bounding_box()] for n in parts}
+
+    def bbox_all(ms):
+        b = np.array([m.bounding_box() for m in ms], float)
+        return b[:, :3].min(axis=0), b[:, 3:].max(axis=0)
+
+    lo_f, hi_f = bbox_all([m.transform(M) for m in parts.values()] + list(dock_parts.values()))
+    lo_e, hi_e = bbox_all(list(dock_parts.values()))
+    info["scene"] = {"docked_centre": ((lo_f + hi_f) / 2).tolist(),
+                     "radius_ratio": float(np.linalg.norm(hi_f - lo_f) / np.linalg.norm(hi_e - lo_e))}
     info["decal"] = {
         "flat": {"center": [0.0, 0.0, Z_GLASS1 + 0.05], "u": [1, 0, 0], "v": [0, 1, 0]},
-        "stand": {"center": (M @ np.array([0, 0, Z_GLASS1 + 0.05, 1.0])).tolist(), "u": [1, 0, 0], "v": v},
+        "dock": {"center": (M @ np.array([0, 0, Z_GLASS1 + 0.05, 1.0])).tolist(), "u": [1, 0, 0], "v": v},
         "size": ACTIVE_D,
     }
     with open(os.path.join(out, "assembly", "info.json"), "w") as f:
         json.dump(info, f, indent=1)
     write_specs(out, list(parts), info)
-    print(json.dumps({k: v for k, v in info.items() if k not in ("decal", "bbox")}, indent=1))
+    print(json.dumps({k: v for k, v in info.items() if k not in ("decal", "bbox", "scene")}, indent=1))
 
 
 # ── Render specs (tools in ../3d/tools/render.js) ───────────────────────────
@@ -436,8 +539,11 @@ def write_specs(out, names, info):
         return [x]
 
     flat = [{"file": a + f"flat/{n}.stl", "color": COLOURS[n]} for n in names]
-    tilted = [{"file": a + f"stand/{n}.stl", "color": COLOURS[n]} for n in names] + [
-        {"file": a + "stand/stand.stl", "color": COLOURS["stand"]}]
+    dock_only = [{"file": a + f"dock/{n}.stl", "color": COLOURS[n]}
+                 for n in ("dock", "dock_feet", "dock_usb", "pogo_pins", "dock_magnets")]
+    docked = [{"file": a + f"dock/{n}.stl", "color": COLOURS[n]} for n in names] + dock_only
+    sc = info["scene"]
+    hero_dock = {"name": "hero-dock", "dir": [-0.7, -1.0, 0.42], "zoom": 0.95}
     exploded = [{"file": a + f"flat/{n}.stl", "color": COLOURS[n], "offset": [0, 0, EXPLODE[n]]} for n in names]
     common = {"out": "/renders", "bg": "#e9ecef", "exposure": 1.4, "shadowBias": -0.0004, "normalBias": 0.4}
     specs = {
@@ -450,9 +556,15 @@ def write_specs(out, names, info):
              "section": {"normal": [-1, 0, 0], "at": 0.0}}]),
         "exploded": dict(common, size=[1900, 1500], cameraOut="/out", parts=exploded, decals=decal("flat", EXPLODE["glass"]),
                          shadow=170, views=[{"name": "exploded", "dir": [-0.85, -1.1, 0.5], "zoom": 1.0, "target": [44.0, -34.0, 98.5]}]),
-        "stand": dict(common, size=[1400, 1000], parts=tilted, decals=decal("stand"), shadow=130, views=[
-            {"name": "hero-stand", "dir": [-0.7, -1.0, 0.42], "zoom": 0.95},
-            {"name": "stand-side", "dir": [1.0, 0.0, 0.02], "zoom": 0.95}]),
+        "dock": dict(common, size=[1400, 1000], parts=docked, decals=decal("dock"), shadow=110, views=[
+            hero_dock,
+            {"name": "dock-side", "dir": [1.0, 0.0, 0.02], "zoom": 0.95},
+            {"name": "dock-back", "dir": [0.75, 1.0, 0.55], "zoom": 0.95}]),
+        # Same camera as hero-dock, knob taken away: how much is left on the desk
+        "dock-empty": dict(common, size=[1400, 1000], parts=dock_only, shadow=110, views=[
+            dict(hero_dock, name="dock-empty", target=sc["docked_centre"],
+                 zoom=hero_dock["zoom"] * sc["radius_ratio"]),
+            {"name": "dock-close", "dir": [-0.7, -1.0, 0.7], "zoom": 1.0}]),
     }
     for name, s in specs.items():
         with open(os.path.join(out, f"spec-{name}.json"), "w") as f:
