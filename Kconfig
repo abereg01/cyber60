@@ -6,27 +6,12 @@
 
 choice PROSPECTOR_STATUS_SCREEN_LAYOUT
     prompt "Status screen layout"
-    default PROSPECTOR_STATUS_SCREEN_CLASSIC
-
-config PROSPECTOR_STATUS_SCREEN_CLASSIC
-    bool "Classic layout"
-    help
-        Standard Prospector status screen
-
-config PROSPECTOR_STATUS_SCREEN_RADII
-    bool "Radii layout"
-    help
-        Colorful grid layout with rounded widgets
-
-config PROSPECTOR_STATUS_SCREEN_FIELD
-    bool "Field layout"
-    help
-        Minimal layout with flowing typing activity visualization
+    default PROSPECTOR_STATUS_SCREEN_SHOKO
 
 config PROSPECTOR_STATUS_SCREEN_OPERATOR
     bool "Operator layout"
     help
-        Technical and information dense layout
+        Technical and information dense layout (the rollback screen)
 
 config PROSPECTOR_STATUS_SCREEN_SHOKO
     bool "Shoko layout"
@@ -53,15 +38,6 @@ config PROSPECTOR_ROTATE_DISPLAY_180
 config PROSPECTOR_SHOW_MODIFIERS
     bool "Display modifier key indicators (Cmd, Opt, Ctrl, Shift)"
     default y
-
-config PROSPECTOR_SHOW_INACTIVE_MODIFIERS
-    bool "Show inactive modifier indicators (dim when not pressed)"
-    default y
-    depends on PROSPECTOR_SHOW_MODIFIERS
-    help
-      When enabled, inactive modifiers are shown with a dim color.
-      When disabled, inactive modifiers are hidden completely.
-      Only affects classic and field layouts.
 
 config PROSPECTOR_MODIFIER_ORDER
     string "Modifier display order"

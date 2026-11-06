@@ -1,21 +1,22 @@
 # Cyber60 desk setup
 
 A white **4pplet Cyber60** running [ZMK](https://zmk.dev), with GMK Shoko caps
-and a desk screen in the same colours. Today the screen is the small
-Prospector dongle. Next it's a Raspberry Pi with a 7" touchscreen: the same
-Shoko screen at 800×480 with a puppy in the corner, plus Spotify, the desk
-lamps and a password vault.
+and a desk screen in the same colours. The screen is the small Prospector
+dongle, which now also has a case that hangs under the monitor. A Raspberry
+Pi with a 7" touchscreen (the same Shoko screen at 800×480 with a puppy in
+the corner, plus Spotify, the desk lamps and a password vault) is built and
+parked for later.
 
-![The desk screen: the Shoko keyboard scene with the puppy](pi/draw/0-base-idle.png)
+![The desk screen: the Shoko keyboard scene with the puppy](img/0-base-idle.png)
 
 ## What's here
 
 | Part | What it is | Status |
 |------|------------|--------|
-| **Keyboard** (`config/`, `boards/4pplet/`) | ZMK config for the Cyber60 rev E (nRF52840). The base layer copies the Rama M60-A, so muscle memory carries over | works, with the dongle |
-| **Prospector dongle** (`boards/shields/prospector_*`) | XIAO BLE + 1.69" screen: holds the keymap, draws the Shoko screen, runs ZMK Studio | works |
-| **Desk screen** (`pi/`) | Raspberry Pi 4 + official 7" Touch Display: the Shoko screen, a 3D corgi, Spotify, Shelly lights, a password vault, updates over USB | built and previewed, not yet on the Pi |
-| **Cases** (`case/`) | `case/3d/`: a giant Shoko keycap for the Prospector. `case/deck/`: a quiet picture-frame case for the desk screen | designed, not printed / planned |
+| **Keyboard** (`config/`, `boards/4pplet/`) | ZMK config for the Cyber60 rev E (nRF52840). The base layer copies the Rama M60-A, so muscle memory carries over | in use, as the dongle's peripheral |
+| **Prospector dongle** (`boards/shields/prospector_*`) | XIAO BLE + 1.69" screen: holds the keymap, draws the Shoko screen, runs ZMK Studio | in use |
+| **Desk screen** (`pi/`) | Raspberry Pi 4 + official 7" Touch Display: the Shoko screen, a 3D corgi, Spotify, Shelly lights, a password vault, updates over USB | runs on the Pi; parked 2026-11-05, keyboard link half built |
+| **Cases** (`case/`) | `case/3d/`: a giant Shoko keycap for the Prospector. `case/monitor/`: the Prospector taped under the monitor, only the screen showing. `case/deck/`: a picture-frame case for the desk screen | designed; test prints next |
 
 ## How it fits together
 
@@ -26,7 +27,8 @@ Computer ←USB── Prospector dongle (keymap, screen, Studio)
                     └──BLE── Cyber60 (keys, encoder, battery, underglow)
 ```
 
-Next, with the desk screen:
+Later, with the desk screen (parked; the firmware for it is `tools/build.sh
+keyboard-pi`):
 
 ```
 Cyber60 ──BLE──► Pi desk screen ──USB (a plain keyboard)──► any computer
@@ -51,11 +53,12 @@ software, nothing installed. The Pi's wifi only ever reaches the internet
 **Combos** (BASE and SCROLL): A+S = Ctrl+A, S+D = Ctrl+S, X+C = copy,
 C+V = paste, X+V = cut, both Shifts = Caps Word.
 
-The keymap is `config/prospector_dongle.keymap` (the layer order matters: see
-the comment at its top). `tools/draw.sh` redraws `draw/cyber60.png` from it,
+The keymap is `config/cyber60.keymap` (the layer order matters: see the
+comment at its top). The dongle's `prospector_dongle.keymap` just includes
+it, and so does the Pi variant. `tools/draw.sh` redraws `img/cyber60.png` from it,
 with [keymap-drawer](https://github.com/caksoylar/keymap-drawer) in Docker.
 
-<img src="draw/cyber60.png" alt="The keymap: BASE, GAMING, FN and SYSTEM" width="560">
+<img src="img/cyber60.png" alt="The keymap: BASE, GAMING, FN and SYSTEM" width="560">
 
 ## The screens
 
@@ -71,9 +74,9 @@ and `shoko_keys.h` with the Prospector, and swipes sideways to more:
 
 | | |
 |---|---|
-| ![Spotify](pi/draw/11-spotify-player.png) | ![Lights](pi/draw/26-lights.png) |
+| ![Spotify](img/11-spotify-player.png) | ![Lights](img/26-lights.png) |
 | **Spotify**: player, library, queue, devices; login by QR code on a phone | **Lights**: Shelly lamps through the Shelly cloud, a fader and a switch each |
-| ![Password vault](pi/draw/37-vault-pin.png) | ![The corgi reading](pi/draw/7a-reading.png) |
+| ![Password vault](img/37-vault-pin.png) | ![The corgi reading](img/7a-reading.png) |
 | **Password vault**: a PIN on a scrambled numpad plus a key only the keyboard holds | **The corgi** reacts to your typing speed, reads, watches TV and sleeps when you're away |
 
 Everything about it, from the SD card image to the DECK drive that updates it
@@ -88,19 +91,24 @@ password macros. Builds with passwords are made locally on the OMV box, in
 ZMK's own Docker image:
 
 ```bash
-tools/build.sh            # keyboard + dongle + settings_reset → firmware/
-tools/build.sh dongle     # just the dongle
-tools/build.sh update     # refresh ZMK/Zephyr (pinned to ZMK main in config/west.yml)
+tools/build.sh              # keyboard + dongle + settings_reset → firmware/
+tools/build.sh dongle       # just the dongle
+tools/build.sh keyboard-pi  # the standalone keyboard for the Pi desk screen
+tools/build.sh update       # refresh ZMK/Zephyr (pinned to ZMK main in config/west.yml)
 ```
 
 | File | Flash to |
 |------|----------|
-| `firmware/cyber60.uf2` | the keyboard: SYSTEM + Caps (or double-tap reset), drag the file onto the drive |
+| `firmware/cyber60.uf2` | the keyboard, as the dongle's peripheral: SYSTEM + Flash (the Ctrl/Bsp key), or double-tap reset, then drag the file onto the drive |
 | `firmware/dongle.uf2` | the Prospector: double-tap the XIAO's reset, drag the file |
 | `firmware/reset-*.uf2` | either, to wipe Bluetooth bonds; then flash the normal file |
+| `firmware/cyber60-pi.uf2` | the keyboard, standalone for the Pi desk screen (later) |
 
 To pair from scratch: flash both resets, let each boot once, flash the normal
-files, plug the dongle in first, then switch the keyboard on.
+files, plug the dongle in first, then switch the keyboard on. Switching the
+keyboard between the dongle and the Pi always needs that: it remembers the
+other one otherwise. `tools/flash.sh` flashes the keyboard through the Pi
+when it hangs off one of the Pi's USB ports.
 
 **ZMK Studio** runs on the dongle: plug it in, open <https://zmk.studio>,
 press SYSTEM + Left Shift to unlock, and remap without reflashing. (VIA and Vial
@@ -140,14 +148,18 @@ boards/4pplet/cyber60/  the Cyber60 board definition (from 4pplet, two marked lo
 boards/shields/         prospector_dongle (central) + prospector_screen (Shoko and Operator layouts)
 src/, drivers/, include/, dts/   ZMK modules: layer glow, caps word, screen events
 tools/                  build.sh, draw.sh, make-passwords.py, shoko/ (screen assets + preview)
-draw/                   the keymap drawing and the Prospector's screen previews
-pi/                     the desk screen: app/ (LVGL), image/ (SD card), tools/, draw/ (previews)
+draw/                   the keymap drawing's sources (keymap-drawer); screen previews are generated, not in git
+img/                    the pictures in this README
+pi/                     the desk screen: app/ (LVGL), image/ (SD card), tools/
 case/3d/                the Prospector's keycap case (parametric, manifold3d)
-case/deck/              the desk screen's case: design brief, waiting for measurements
+case/monitor/           the Prospector's under-monitor case (same tools)
+case/deck/              the desk screen's case
 docs/spotify/           the GitHub Pages hop for the desk screen's Spotify login
 ```
 
 ## Next
+
+Items 1 to 4 wait until the desk screen comes back.
 
 1. **The keyboard link**: the Pi pairs with the Cyber60 over Bluetooth and
    becomes a USB keyboard for the computer; the keymap moves onto the

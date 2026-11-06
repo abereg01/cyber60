@@ -116,7 +116,8 @@ at the top of the picture that would tip it back (about 440 gf), the heights
 above the desk, and the black line the seat view would show at the bottom of
 the picture.
 
-Renders (`renders/`): `hero`, `seat` (from the chair, about 45° above),
-`front`, `side`, `back`, `underside`, `section-centre`, `section-cable`,
-`exploded`, `leans-side` and `leans-seat` (8°/12°/18°), `mats-front` and
-`mats-seat` (even vs bottom-weighted), `print-parts`.
+Renders (`renders/`, made by `./build.sh`, not in git): `hero`, `seat` (from
+the chair, about 45° above), `front`, `side`, `back`, `underside`,
+`section-centre`, `section-cable`, `exploded`, `leans-side` and `leans-seat`
+(8°/12°/18°), `mats-front` and `mats-seat` (even vs bottom-weighted),
+`print-parts`.

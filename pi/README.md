@@ -12,30 +12,80 @@ off by default). The vault's screens and encryption are done and tested here,
 but it needs the keyboard link to open. Still to come: the keyboard link
 (until then the keyboard firmware is unchanged).
 
-## Planned topology
+## The keyboard link
 
 ```
-Cyber60 ──Bluetooth──► Pi 4 + 7" ──USB (a plain keyboard)──► any computer
+Cyber60 ──Bluetooth──► Pi 4 + 7" ──USB-C (keyboard + DECK drive)──► any computer
 (keymap, ZMK)            ▲
                    wall power through a USB-C power/data splitter
 ```
 
-- The keymap moves back onto the Cyber60, which pairs with the Pi like any
-  Bluetooth keyboard. The Pi passes the keys on to the computer over USB.
-  Windows, macOS and Linux all see a plain keyboard, with no drivers or
-  software on the computer.
-- A small addition to the keyboard firmware sends the screen its data (layer,
-  key presses, battery) over the encrypted Bluetooth link, separate from the
-  typing.
-- Wifi only for Spotify, set up on the touch screen. Nothing can connect to
-  the Pi: no user, no SSH, no open ports, avahi off.
+- The keymap lives on the Cyber60, which pairs with the Pi like any
+  Bluetooth keyboard. Plugged into the Pi's USB-A port to charge, it works
+  over the cable too.
+- The Pi passes every key on to the computer over USB. The computer sees a
+  plain keyboard, with media keys and mouse keys, next to the DECK drive: no
+  drivers or software on Windows, macOS or Linux. It is a boot keyboard, so
+  a PC's setup screen and the BitLocker PIN work too.
+- What the Pi types itself (the vault's passwords; later the call keys, SSH
+  quick-connect and JOIN) goes in between your keys and never lets go of a
+  key you hold. Text comes out in the computer's layout: `pc_layout` in
+  `deck.conf`, `sv` (default) or `us`. Caps Lock on the computer is undone
+  for letters, so a password types as saved.
+- The screen reads the same keys: the mini keyboard, the modifiers, the WPM
+  (counted on the Pi over the last 5 s), the encoder and the battery (from
+  BlueZ, once a minute). The layer stays BASE until the keyboard's own
+  Bluetooth service exists.
+- The Pi itself never acts on the keys: the screen holds them, so nothing
+  else on the Pi sees them, SysRq is off and Ctrl+Alt+Del does nothing.
+- The vault locks on Win+L, when the keyboard disconnects, and when the
+  computer goes to sleep or lets go of USB.
+- Wifi only for the internet, set up on the touch screen. Nothing can connect
+  to the Pi: no user, no SSH, no open ports, avahi off.
 - If the Pi is off, plug the keyboard into the computer with a USB cable.
+
+How it works (`app/pi/kblink.c`, `image/files/deck-drive.sh`):
+
+- `deck-drive.sh` builds one USB gadget with three parts: `hid.usb0`, the
+  boot keyboard (`/dev/hidg0`); `hid.usb1`, the media keys and mouse with the
+  Cyber60's own report IDs, so they pass through byte for byte
+  (`/dev/hidg1`, `kbd/`); and the DECK drive. `drive=0` takes only the drive
+  away. A gadget an older `deck-drive.sh` made gets the keyboard added (the
+  computer sees the drive go and come back once).
+- A thread in the screen finds the Cyber60's hidraw node (ZMK's USB IDs
+  1d50:615e, over Bluetooth or USB, both at once too), holds its input nodes
+  (`EVIOCGRAB`) and writes the computer's reports. It is the only writer,
+  so the Pi's own typing and your keys merge into one stream.
+- Writes never wait. A report the computer hasn't taken yet waits in a short
+  queue. With the computer asleep or unplugged nothing is sent and nothing
+  is typed.
+- The touch screen is only ever the Touch Display's panel (`main.c`): a
+  keyboard or mouse can't move the pointer.
+
+```bash
+pi/tools/kblink-test.sh   # 55 checks: passthrough, typing over held keys, sv/us text, Caps Lock,
+                          # the vault's capture, Win+L, sleep, unplugging, both cables at once, WPM
+pi/tools/test-drive.sh    # the gadget too: the boot keyboard, the descriptors, drive=0, an old gadget
+```
 
 ## The screen
 
 The Prospector's Shoko screen 1:1 (same scenes, colours, layer wipe, mini
 keyboard), laid out for 800×480, with the bottom-right 160×160 square kept
 free on every layer for the dog. `app/src/page_keys.c`
+
+Added on the Pi:
+
+- **Clock:** 24-hour `HH:MM`, left of the battery, in Swedish time (`TZ` in
+  `deck.service`; new cards are set to Stockholm too). The Pi has no clock of
+  its own, so it shows up once the network time is in, after the wifi.
+- **Now playing:** above the dog, on every layer, in that layer's keycap
+  colours. The cover, a play/pause key and the title. Tap the cover or the
+  title for the Spotify page. Without a player it is one **SPOTIFY** key with
+  *TAP TO SET UP* (no wifi, not logged in) or *NOTHING PLAYING*; tap it for
+  the Spotify page. While that page is hidden, the Pi asks Spotify every
+  10 s, so a new song shows up within 10 s.
+- **KATE・スクービー** stands on top of the mini keyboard (BASE).
 
 ### The dog
 
@@ -81,7 +131,7 @@ puff). `tools/puppy/sheet.py` packs them all into `app/assets/dog.png` plus its
 layout `app/src/assets/dog_sheet.h`.
 
 ```bash
-pi/tools/gen-dog.sh          # everything, ~10 minutes; also draw/dog.png (the whole sheet on white and night)
+pi/tools/gen-dog.sh          # everything, ~10 minutes; also build/dog-sheet.png (the whole sheet on white and night)
 pi/tools/gen-dog.sh hat      # re-render only animations starting with "hat" (keeps the rest) and repack
 pi/tools/gen-dog.sh fx       # only the effects
 ```
@@ -240,7 +290,7 @@ GitHub's runners. Pi OS Lite already has everything the app links against
   the same as the Prospector. On the Pi they sit with `dog.png` in one "share"
   directory.
 - Icons are generated: `tools/gen-icons.sh` → `app/src/assets/deck_icons.c`
-  (plus `draw/icons.png`). The Shoko icons come from `tools/shoko/icons.py` at
+  (plus `build/icons.png`). The Shoko icons come from `tools/shoko/icons.py` at
   twice the size. (The dog's hearts and sparkles are in `dog.png`.)
 - `app/lv_conf.h`: LVGL 9.3 config, shared by the Pi build and the preview.
 
@@ -257,26 +307,35 @@ from the keyboard (reading, a peek over the book, TV, bed) and back, then the
 Spotify page and wifi setup (with made-up networks from
 `app/preview/wifi_fake.c`, since OMV has no wifi), the DECK drive's notices,
 the Lights page and the password vault. It writes stills
-`draw/*.png` and the whole session as `draw/deck.mp4`. It needs gcc on the
-host and Docker for ffmpeg.
+`build/preview/*.png` and the whole session as `build/preview/deck.mp4` (not in
+git; the main README's pictures are copies in the top-level `img/`). It needs
+gcc on the host and Docker for ffmpeg.
 
 ## Spotify
 
 Swipe left from the keyboard screen. The page shows one of these:
 
-- **No wifi:** a button to set it up.
+- **No wifi:** the message, with a button under it to set the wifi up.
 - **Logged out:** a QR code. Scan it with your phone (on the same wifi), log in
   to Spotify and tap Agree. Once is enough: the Pi keeps the login.
 - **The player:**
   - **Track:** the cover, the title (scrolls when long), the artist and the album.
   - **♥:** saves to or removes from your library.
-  - **Progress:** tap or drag it to seek.
+  - **Progress:** tap or drag it to seek (dragging along it never turns the
+    page).
   - **Keys:** shuffle, previous, play/pause (the aqua Enter key), next, and
     repeat (off → all → one).
   - **Device line:** the device it's playing on.
-- **Bottom row:** **LIBRARY** (Liked Songs, playlists, and saved albums on a
-  tab; tap to play), **QUEUE**, **DEVICES** (tap one to move the music there)
-  and **⚙** (wifi, log out).
+- **Bottom row:** **LIBRARY**, **QUEUE**, **DEVICES** (tap one to move the
+  music there) and **⚙** (wifi, log out).
+- **LIBRARY:** Liked Songs and your playlists, and your saved albums on a tab.
+  Tap one for its songs:
+  - Tap a song to play the list from there, so next and previous follow the
+    list. **PLAY ALL** plays it from the top. **BACK** goes back to the
+    library, where you were.
+  - 50 songs at a time: **MORE SONGS** at the end loads the next 50, up to 200.
+  - A playlist that isn't yours may show no songs, only PLAY ALL. Spotify's
+    rules for apps in development mode keep its songs from the app.
 
 How the login works (`app/src/spotify.c`):
 
@@ -298,6 +357,21 @@ Everything else runs on a worker thread with libcurl:
 - **Covers:** decoded with libjpeg off the screen's thread.
 - **Commands:** run in order. The screen changes at once and the next poll
   confirms.
+- **Songs:** `/playlists/{id}/items`, `/albums/{id}/tracks` and `/me/tracks`,
+  50 at a time. A song plays as `offset.uri` in its playlist or album. Liked
+  Songs isn't a context Spotify documents: the Pi tries it as one
+  (`spotify:user:<id>:collection`, which keeps "Liked Songs" in the Spotify
+  app), and if Spotify says no, plays the songs loaded on the screen as a list
+  from that song. `deck-log.txt` says when that happens.
+- **No connection:** a failure that repeats (no wifi, no DNS, the clock not set
+  yet so TLS fails, Spotify down) is logged once with the reason, and once
+  when it works again. A fresh login token is tried again after 5 s, then
+  10 s, 20 s and so on, up to every 5 minutes. Swiping to the page, a tap on
+  a control or a new wifi address tries again at once.
+- **Build phase only:** `touch /run/deck/spotify-probe` (root, over SSH) makes
+  the app call a few list endpoints with its own login and log only their
+  shape (status, JSON keys, counts) as `spotify probe:` lines. It goes with
+  the SSH pieces (`pi/TODO.md`).
 
 The Client ID is `spotify_client_id` in `deck.conf`. It isn't a secret.
 Spotify's Feb 2026 API rules apply: Premium for the controls, likes through
@@ -307,7 +381,8 @@ one-time setup.
 **Trying it without the Pi:** `pi/tools/spotify-test.sh` runs the same
 `spotify.c` on OMV against the real Spotify. It prints a login address for a
 phone on the home wifi, then the player state. It also takes commands:
-`next`, `like`, `list devices`, `cover` and so on.
+`next`, `like`, `list devices`, `songs <uri> [offset]`, `play <uri> [track]`,
+`cover` and so on.
 
 ## Lights
 
@@ -395,9 +470,8 @@ pi/tools/vault-test.sh   # 41 checks: PINs, waits, erase, tampering, a pulled pl
 
 ## Not done yet
 
-1. The keyboard link: Bluetooth pairing, USB keyboard passthrough (needs the
-   USB-C power/data splitter), and the Cyber60 firmware (keymap back on the
-   keyboard, plus the screen-data service, the password keys and the vault
-   key). The vault waits for it.
+1. The keyboard's own Bluetooth service for the screen (layer, the password
+   keys, the vault key); the vault waits for it. The passthrough (the
+   keyboard link, above) is built and waits for its first live test.
 2. A read-only system, so pulling the plug can never damage it.
 3. A real Shelly bulb for the Lights page, and the case (`case/deck/`).

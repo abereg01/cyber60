@@ -7,8 +7,9 @@
 #   pi/tools/spotify-test.sh                       log in / show what's playing for 20 s
 #   pi/tools/spotify-test.sh next                  playpause | next | prev | shuffle | repeat | like
 #   pi/tools/spotify-test.sh list devices          playlists | albums | queue | devices
-#   pi/tools/spotify-test.sh play <uri>            transfer <device id>
-#   pi/tools/spotify-test.sh cover                 saves the current cover to pi/draw/cover-test.png
+#   pi/tools/spotify-test.sh songs <uri> [offset]  a page of a playlist's, an album's or Liked Songs' songs
+#   pi/tools/spotify-test.sh play <uri> [track]    from that song (a uri from "songs"); transfer <device id>
+#   pi/tools/spotify-test.sh cover                 saves the current cover to pi/build/cover-test.png
 set -euo pipefail
 
 PI=$(cd "$(dirname "$0")/.." && pwd)
@@ -33,7 +34,8 @@ gcc -O1 -w -DDECK_PREVIEW -DLV_CONF_INCLUDE_SIMPLE -DLV_LVGL_H_INCLUDE_SIMPLE -I
 exec /tmp/spotify_cli "$0" /cache/spotify-test "${@}"' "$ID" "${ARGS[@]}"
 
 if [ "${1:-}" = cover ] && [ -f "$CACHE/spotify-test/cover.ppm" ]; then
-    docker run --rm --user "$(id -u):$(id -g)" -v "$CACHE/spotify-test":/c -v "$PI/draw":/o --entrypoint ffmpeg \
+    mkdir -p "$PI/build"
+    docker run --rm --user "$(id -u):$(id -g)" -v "$CACHE/spotify-test":/c -v "$PI/build":/o --entrypoint ffmpeg \
         ghcr.io/alexta69/metube:latest -loglevel error -y -i /c/cover.ppm /o/cover-test.png
-    echo "cover: $PI/draw/cover-test.png"
+    echo "cover: $PI/build/cover-test.png"
 fi

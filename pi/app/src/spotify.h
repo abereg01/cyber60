@@ -62,12 +62,16 @@ void spotify_seek(uint32_t ms);
 void spotify_set_shuffle(bool on);
 void spotify_set_repeat(enum sp_repeat r);
 void spotify_set_liked(bool liked);
-void spotify_play_uri(const char *context_uri); // a playlist, an album, Liked Songs
+// Play a playlist, an album or Liked Songs (context_uri), from track_uri if
+// given (NULL: from the top), so next and previous follow that list.
+void spotify_play_uri(const char *context_uri, const char *track_uri);
 void spotify_transfer(const char *device_id);   // play on that device
 void spotify_logout(void);
 
 // Lists, fetched on request; the callback runs on the LVGL thread.
-enum sp_list { SP_LIST_PLAYLISTS, SP_LIST_ALBUMS, SP_LIST_QUEUE, SP_LIST_DEVICES };
+// SP_LIST_TRACKS: the songs of a playlist, an album or Liked Songs, a page of
+// SP_MAX_ITEMS at a time.
+enum sp_list { SP_LIST_PLAYLISTS, SP_LIST_ALBUMS, SP_LIST_QUEUE, SP_LIST_DEVICES, SP_LIST_TRACKS };
 
 struct sp_item {
     char name[128];
@@ -77,9 +81,20 @@ struct sp_item {
     bool active;     // the device playing now
 };
 
-#define SP_MAX_ITEMS 50
-typedef void (*sp_list_cb)(enum sp_list kind, const struct sp_item *items, int count, bool ok);
+#define SP_MAX_ITEMS 50   // one page
+#define SP_MAX_TRACKS 200 // a track list stops after four pages
+
+struct sp_list_page {
+    const struct sp_item *items;
+    int count;
+    int total;  // in the whole list
+    int next;   // offset of the next page, -1 if this was the last
+    int status; // HTTP: 200 fine, 403 Spotify won't show this list, 0 no connection
+};
+typedef void (*sp_list_cb)(enum sp_list kind, const struct sp_list_page *page);
 void spotify_fetch(enum sp_list kind, sp_list_cb cb);
+// A page of SP_LIST_TRACKS from `offset` (0, then page->next).
+void spotify_fetch_tracks(const char *context_uri, int offset, sp_list_cb cb);
 
 // A thumbnail (SP_THUMB_PX square, RGB565) for a list image URL; cb runs on
 // the LVGL thread when it's there (at once if cached). The image stays valid.

@@ -2,10 +2,12 @@
 # Render the Pi desk screen on this box, without a Pi: compiles the real screen
 # code (pi/app/src + assets) against LVGL, plays the session scripted in
 # pi/app/preview/main.c and writes
-#   pi/draw/*.png      stills (scenes, the dog, Spotify: login, player, lists, wifi setup, lights)
-#   pi/draw/deck.mp4   the whole session at 30 fps
+#   pi/build/preview/*.png      stills (scenes, the dog, Spotify: login, player, lists, wifi setup, lights)
+#   pi/build/preview/deck.mp4   the whole session at 30 fps
+# (not in git; the README's pictures are copies in img/, refreshed by hand)
 #
 # Usage: pi/tools/preview.sh [win|mac]   (modifier icon style, default win)
+#        PREVIEW_OUT=<dir> PREVIEW_BIN=<file> pi/tools/preview.sh   (stills elsewhere)
 # Needs gcc on the host and Docker for ffmpeg.
 set -euo pipefail
 
@@ -19,8 +21,9 @@ SHARE=$CACHE/share # what the Pi has in /opt/deck/share: fonts + dog.png
 FFMPEG_IMAGE=${FFMPEG_IMAGE:-ghcr.io/alexta69/metube:latest}
 APP=$PI/app
 SHOKO=$REPO/boards/shields/prospector_screen/src/layouts/shoko
-B=$CACHE/preview-build
-OUT=$PI/draw
+B=$CACHE/preview-build # LVGL, shared
+BIN=${PREVIEW_BIN:-$B/preview} # own binary and stills dir, so several previews can run at once
+OUT=${PREVIEW_OUT:-$PI/build/preview}
 
 MONO=$CACHE/deps/monocypher-4.0.2/src # the vault's crypto, from fetch-deps.sh
 CFLAGS=(-O2 -w -I"$APP" -I"$APP/src" -I"$LVGL" -I"$SHOKO" -I"$MONO" -DLV_CONF_INCLUDE_SIMPLE
@@ -42,13 +45,15 @@ if [ ! -f "$B/liblvgl.a" ] || [ "$APP/lv_conf.h" -nt "$B/liblvgl.a" ] ||
 fi
 
 echo "==> building preview"
-# The app's code minus wifi.c, spotify.c and lights.c: preview/*_fake.c stand
-# in (OMV has no wifi; the preview shows made-up music and lamps).
-SRCS=$(ls "$APP"/src/*.c | grep -vE '/(wifi|spotify|lights)\.c$')
+# The app's code minus wifi.c, spotify.c, lights.c, weather.c and calendar.c:
+# preview/*_fake.c stand in (OMV has no wifi; the preview shows made-up music,
+# lamps, weather and meetings).
+SRCS=$(ls "$APP"/src/*.c | grep -vE '/(wifi|spotify|lights|weather|calendar)\.c$')
 gcc "${CFLAGS[@]}" "$APP/preview/main.c" "$APP/preview/wifi_fake.c" "$APP/preview/spotify_fake.c" \
-    "$APP/preview/lights_fake.c" "$APP/preview/kblink_fake.c" "$MONO/monocypher.c" $SRCS \
+    "$APP/preview/lights_fake.c" "$APP/preview/kblink_fake.c" "$APP/preview/weather_fake.c" \
+    "$APP/preview/calendar_fake.c" "$MONO/monocypher.c" $SRCS \
     "$APP"/src/assets/*.c \
-    "$B/liblvgl.a" -lm -o "$B/preview"
+    "$B/liblvgl.a" -lm -o "$BIN"
 
 mkdir -p "$SHARE"
 ln -sf "$FONTS"/DelaGothicOne-Regular.ttf "$FONTS"/MPLUSRounded1c-ExtraBold.ttf "$APP/assets/dog.png" "$SHARE/"
@@ -56,7 +61,7 @@ ln -sf "$FONTS"/DelaGothicOne-Regular.ttf "$FONTS"/MPLUSRounded1c-ExtraBold.ttf 
 echo "==> rendering"
 rm -f "$OUT"/[0-9]*-*.png "$OUT"/*.ppm "$OUT"/deck.mp4 # icons.png, dog.png: the gen scripts'
 mkdir -p "$OUT"
-"$B/preview" "$OUT" "$SHARE" "${1:-win}" |
+"$BIN" "$OUT" "$SHARE" "${1:-win}" |
     docker run -i --rm --user "$(id -u):$(id -g)" -v "$OUT":/o --entrypoint ffmpeg "$FFMPEG_IMAGE" \
         -loglevel error -y -f rawvideo -pixel_format rgb565le -video_size 800x480 -framerate 30 -i - \
         -c:v libx264 -pix_fmt yuv420p -crf 16 /o/deck.mp4

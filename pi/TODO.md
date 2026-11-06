@@ -1,27 +1,26 @@
-# To do: Spotify setup
+# Commit the repo cleanup (approved 2026-11-05)
 
-After pushing `pi/` and `docs/` to GitHub, two one-time steps so the desk
-screen can log in to Spotify (the QR code on the screen opens the login on
-your phone; see "Spotify" in `README.md`).
+The files are already changed (dead upstream layouts and fonts gone, README
+pictures in `img/`, previews and renders no longer tracked, `todo` ignored).
+Untracking is a git step, so it's yours:
 
-- [ ] **Turn on GitHub Pages**
-  1. github.com/abereg01/cyber60 → **Settings** → **Pages**.
-  2. *Source*: **Deploy from a branch**. *Branch*: **main**, folder **/docs** → **Save**.
-  3. After a minute or two, https://abereg01.github.io/cyber60/spotify/ shows
-     "Desk screen login". That page is the last step of the phone login.
+```bash
+cd /srv/mergerfs/pool/VARIOUS/keyboard/CYBER60
+git rm -r --cached pi/draw draw/shoko case/3d/renders case/deck/renders todo
+git add -u
+git add .gitignore img/
+git status
+```
 
-- [ ] **Create the Spotify developer app**
-  1. https://developer.spotify.com/dashboard → log in → **Create app**.
-  2. *App name*: Desk screen. *App description*: anything.
-  3. *Redirect URI*: exactly `https://abereg01.github.io/cyber60/spotify/`
-     (with the `/` at the end) → **Add**.
-  4. *Which API/SDKs*: tick **Web API**. Accept the terms → **Save**.
-  5. **Settings** → copy the **Client ID** and give it to Claude. It isn't a
-     secret (the login uses PKCE, no client secret), so it can go in the repo.
+`git status` should show `img/` as new and nothing from `pi/draw/`,
+`draw/shoko/`, the renders, `todo`, `firmware/` or `config/secrets/`. Note that
+`git add -u` also stages the other work in progress on tracked files; new files
+(`pi/tools/dev.sh`, `pi/kbd/`, `pi/PHONE-DESIGN.md`, `pi/app/src/tone.c`,
+weather/calendar/keyboard-link files) need their own `git add` when they're
+ready. Deleted files stay in git history; shrinking that needs a history
+rewrite and a force-push (your call).
 
-Player controls need Spotify Premium (you have it).
-
-# Before the Pi goes to work (~mid-December 2026): remove the build-phase SSH
+# Before the Pi goes to work (~mid-December 2026): remove the build-phase access
 
 Added 2026-11-02 so Claude can reach the Pi from OMV while it sits at home
 (root, OMV's key only, no password).
@@ -30,6 +29,10 @@ Added 2026-11-02 so Claude can reach the Pi from OMV while it sits at home
 - [ ] Delete `pi/image/files/deck-ssh.sh`, `deck-ssh.service`, `ssh/`, and
       their lines in `pi/image/build-app.sh` and `pi/image/build-image.sh`
       (marked "BUILD PHASE ONLY"), and `ssh=` in `files/deck.conf`.
+- [ ] Delete the Spotify API probe in `pi/app/src/spotify.c` (marked "BUILD
+      PHASE ONLY").
+- [ ] `pi/tools/dev.sh` (the live loop over SSH) stops working: delete it. On
+      the Pi, `/opt/deck.release` (the copy it kept) can go.
 - [ ] On OMV: `Host deck` in `~/.ssh/config`, `~/.ssh/id_ed25519_deck*`,
       `~/.ssh/known_hosts_deck`.
 - [ ] Build the final SD image (Actions → Pi screen → Run workflow → image).

@@ -20,6 +20,12 @@
  * once run, so a poll that started before a command can't undo its
  * optimistic change on screen.
  *
+ * A failure that repeats (no wifi, no DNS, the clock not set yet so TLS fails,
+ * Spotify down) is logged once when it starts, with why, and once when it's
+ * over. Token calls that fail are retried 5 s, 10 s, 20 s ... up to 5 min
+ * apart; the page coming on screen, a command or a new network address tries
+ * again at once.
+ *
  * SPDX-License-Identifier: MIT
  */
 
@@ -54,12 +60,18 @@
 #define SCOPES                                                                                     \
     "user-read-playback-state user-modify-playback-state user-read-currently-playing "            \
     "playlist-read-private playlist-read-collaborative user-library-read user-library-modify"
+#ifndef API // the test can point these at a stand-in
 #define API "https://api.spotify.com/v1"
+#define TOKEN_URL "https://accounts.spotify.com/api/token"
+#endif
 #define POLL_SHOWN_MS 1000
 #define POLL_HIDDEN_MS 10000
+#define BACKOFF_FIRST_MS 5000
+#define BACKOFF_MAX_MS 300000
 #define CMDS 16
-#define THUMB_QUEUE 64
-#define THUMB_CACHE 96
+// More than a track list's rows, so no row on screen loses its picture.
+#define THUMB_QUEUE 256
+#define THUMB_CACHE 256
 
 static uint32_t now_ms(void) {
     struct timespec ts;
@@ -76,6 +88,7 @@ struct cmd {
     enum cmd_kind kind;
     int64_t arg;
     char str[128];
+    char track[96]; // C_PLAY_URI: the song to start at, "" for the top
 };
 
 struct thumb_px {
@@ -97,11 +110,14 @@ static struct {
     struct cmd cmds[CMDS];
     int cmd_head, cmd_len;
 
-    int list_req; // enum sp_list, -1 none
-    bool list_done, list_ok;
+    int list_req;       // enum sp_list, -1 none
+    char list_ctx[128]; // SP_LIST_TRACKS: whose songs, from list_offset
+    int list_offset;
+    uint32_t list_seq, list_done_seq; // the newest request; the one list[] answers
+    bool list_done;
     enum sp_list list_kind;
     struct sp_item list[SP_MAX_ITEMS];
-    int list_count;
+    struct sp_list_page list_page; // without items: those are list[]
 
     char thumb_q[THUMB_QUEUE][256]; // to fetch
     int thumb_qn;
@@ -109,6 +125,7 @@ static struct {
     int thumb_dn;
 
     bool visible, kick; // kick: the page just came on screen, poll now
+    bool retry_now;     // the page came on screen or a command came: don't wait out a backoff
 } sh = {.list_req = -1};
 
 // ── Worker-only ──────────────────────────────────────────────────────────────
@@ -121,6 +138,13 @@ static int srv = -1;
 static char verifier[96], pending_state[128];
 static char cur_uri[64], cur_cover[256];
 static uint32_t done_local;
+static uint32_t backoff_ms, retry_at; // token calls: see the top
+static int token_fails;
+static char fail_ip[INET_ADDRSTRLEN]; // the network address when they started failing
+static char http_error[CURL_ERROR_SIZE + 16]; // why the last request got no answer
+// Liked Songs as loaded on the screen so far, for play_context().
+static char liked[SP_MAX_TRACKS][96];
+static int liked_n;
 
 // ── Small helpers ────────────────────────────────────────────────────────────
 
@@ -275,7 +299,27 @@ static void random_text(char *out, size_t n) {
         pthread_mutex_unlock(&mu);                                                                 \
     } while (0)
 
-static void message(const char *m) { PUBLISH(copy(st->message, sizeof(st->message), m)); }
+static void message(const char *m) {
+    pthread_mutex_lock(&mu);
+    bool same = !strcmp(sh.st.message, m);
+    pthread_mutex_unlock(&mu);
+    if (!same) { // a repeated "NO CONNECTION" needn't repaint the page
+        PUBLISH(copy(st->message, sizeof(st->message), m));
+    }
+}
+
+// Wait on cv (mu held) for at most ms, or until something signals it.
+static void wait_ms(int32_t ms) {
+    struct timespec until;
+    clock_gettime(CLOCK_REALTIME, &until);
+    until.tv_sec += ms / 1000;
+    until.tv_nsec += (long)(ms % 1000) * 1000000;
+    if (until.tv_nsec >= 1000000000) {
+        until.tv_sec++;
+        until.tv_nsec -= 1000000000;
+    }
+    pthread_cond_timedwait(&cv, &mu, &until);
+}
 
 // ── HTTP ─────────────────────────────────────────────────────────────────────
 
@@ -308,7 +352,8 @@ static size_t on_header(char *p, size_t size, size_t n, void *arg) {
     return size * n;
 }
 
-// One request. Returns the HTTP status (0 = no connection); the body in *out.
+// One request. Returns the HTTP status (0 = no answer, why in http_error); the
+// body in *out.
 static long http(const char *method, const char *url, const char *auth, const char *type,
                  const char *body, struct buf *out) {
     struct curl_slist *h = NULL;
@@ -337,11 +382,15 @@ static long http(const char *method, const char *url, const char *auth, const ch
         // PUT/POST with no body still need Content-Length: 0 for Spotify.
         curl_easy_setopt(curl, CURLOPT_POSTFIELDS, body ? body : "");
     }
+    char err[CURL_ERROR_SIZE] = "";
+    curl_easy_setopt(curl, CURLOPT_ERRORBUFFER, err);
     retry_after = 0;
     CURLcode rc = curl_easy_perform(curl);
     long status = 0;
     if (rc == CURLE_OK) {
         curl_easy_getinfo(curl, CURLINFO_RESPONSE_CODE, &status);
+    } else {
+        snprintf(http_error, sizeof(http_error), "curl %d: %s", rc, err[0] ? err : curl_easy_strerror(rc));
     }
     curl_slist_free_all(h);
     return status;
@@ -391,14 +440,21 @@ static void logged_out(const char *why) {
             copy(st->message, sizeof(st->message), why));
 }
 
-// The token endpoint: form in, tokens out.
+static bool local_ip(char *ip, size_t size);
+
+// The token endpoint: form in, tokens out. Only the first failure of a streak
+// is logged.
 static bool token_call(const char *form) {
     struct buf b = {0};
-    long status = http("POST", "https://accounts.spotify.com/api/token", NULL,
-                       "application/x-www-form-urlencoded", form, &b);
+    long status = http("POST", TOKEN_URL, NULL, "application/x-www-form-urlencoded", form, &b);
     cJSON *o = b.data ? cJSON_Parse(b.data) : NULL;
     bool ok = status == 200 && *jstr(o, "access_token");
     if (ok) {
+        if (token_fails) {
+            deck_log("spotify: token call works again (after %d failed tries)", token_fails);
+        }
+        token_fails = 0;
+        backoff_ms = 0;
         copy(access_token, sizeof(access_token), jstr(o, "access_token"));
         token_until = now_ms() + (uint32_t)(jnum(o, "expires_in") - 60) * 1000;
         if (*jstr(o, "refresh_token")) { // PKCE refresh tokens rotate
@@ -409,18 +465,65 @@ static bool token_call(const char *form) {
         deck_log("spotify: the login was revoked or expired");
         logged_out("LOGGED OUT BY SPOTIFY: SCAN AGAIN");
     } else {
-        deck_log("spotify: token call failed (%ld): %.200s", status, b.data ? b.data : "");
+        if (!token_fails++) {
+            if (status) {
+                deck_log("spotify: token call failed (%ld): %.200s", status, b.data ? b.data : "");
+            } else {
+                deck_log("spotify: token call failed (no answer: %s)", http_error);
+            }
+        }
     }
     cJSON_Delete(o);
     free(b.data);
     return ok;
 }
 
+static bool token_valid(void) { return access_token[0] && (int32_t)(now_ms() - token_until) < 0; }
+
+// A new access token, unless the backoff says not yet. A failure starts or
+// doubles the backoff (see the top).
 static bool refresh(void) {
+    if (backoff_ms && (int32_t)(now_ms() - retry_at) < 0) {
+        return false;
+    }
     char form[1400], enc[1100];
     urlenc(enc, sizeof(enc), refresh_token);
     snprintf(form, sizeof(form), "grant_type=refresh_token&refresh_token=%s&client_id=%s", enc, client_id);
-    return token_call(form);
+    if (token_call(form)) {
+        return true;
+    }
+    if (refresh_token[0]) { // not logged out by it
+        backoff_ms = backoff_ms ? LV_MIN(backoff_ms * 2, BACKOFF_MAX_MS) : BACKOFF_FIRST_MS;
+        retry_at = now_ms() + backoff_ms;
+        if (token_fails == 1) {
+            deck_log("spotify: trying again in 5 s, then less and less often (up to every 5 min)");
+        }
+        if (!local_ip(fail_ip, sizeof(fail_ip))) {
+            fail_ip[0] = '\0';
+        }
+    }
+    return false;
+}
+
+// Logged in, no token, waiting out the backoff: back after at most 5 s, at
+// once (backoff over) if the page came on screen, a command came or the
+// network address changed.
+static void backoff_wait(void) {
+    pthread_mutex_lock(&mu);
+    int32_t left = (int32_t)(retry_at - now_ms());
+    if (left > 0 && !sh.retry_now) {
+        wait_ms(LV_MIN(left, 5000));
+    }
+    bool now = sh.retry_now;
+    sh.retry_now = false;
+    pthread_mutex_unlock(&mu);
+    char ip[INET_ADDRSTRLEN] = "";
+    if (!local_ip(ip, sizeof(ip))) {
+        ip[0] = '\0';
+    }
+    if (now || strcmp(ip, fail_ip) != 0) {
+        backoff_ms = 0;
+    }
 }
 
 // A Web API call with the access token, refreshed when it runs out or is
@@ -432,7 +535,7 @@ static long api(const char *method, const char *path, const char *body, cJSON **
         *json = NULL;
     }
     for (int attempt = 0; attempt < 2; attempt++) {
-        if ((!access_token[0] || (int32_t)(now_ms() - token_until) > 0) && !refresh()) {
+        if (!token_valid() && !refresh()) {
             return 0;
         }
         struct buf b = {0};
@@ -689,13 +792,18 @@ static void login_step(void) {
         int one = 1;
         setsockopt(srv, SOL_SOCKET, SO_REUSEADDR, &one, sizeof(one));
         struct sockaddr_in a = {.sin_family = AF_INET, .sin_port = htons(PORT), .sin_addr.s_addr = INADDR_ANY};
+        static bool listen_failed; // log it once, not every 5 s
         if (bind(srv, (struct sockaddr *)&a, sizeof(a)) < 0 || listen(srv, 4) < 0) {
-            deck_log("spotify: can't listen on port %d: %s", PORT, strerror(errno));
+            if (!listen_failed) {
+                deck_log("spotify: can't listen on port %d: %s (trying every 5 s)", PORT, strerror(errno));
+            }
+            listen_failed = true;
             close(srv);
             srv = -1;
             sleep(5);
             return;
         }
+        listen_failed = false;
         deck_log("spotify: waiting for the phone at %s", url);
     }
     fd_set rd;
@@ -734,10 +842,30 @@ static void check_liked(const char *uri) {
     cJSON_Delete(j);
 }
 
+// The player's last failure as logged (0 = no answer), -1 while it answers.
+static long poll_failed = -1;
+
+static void poll_log(long status) {
+    if (status == 200 || status == 204) {
+        if (poll_failed != -1) {
+            deck_log("spotify: the player answers again");
+        }
+        poll_failed = -1;
+    } else if (status != poll_failed && (status || token_valid())) { // no token: token_call said why
+        if (status) {
+            deck_log("spotify: player %ld", status);
+        } else {
+            deck_log("spotify: no answer from the player (%s)", http_error);
+        }
+        poll_failed = status;
+    }
+}
+
 static void poll_player(void) {
     uint32_t seq = done_local;
     cJSON *j;
     long status = api("GET", "/me/player?additional_types=episode", NULL, &j);
+    poll_log(status);
     if (status == 0) {
         message("NO CONNECTION");
         cJSON_Delete(j);
@@ -756,7 +884,6 @@ static void poll_player(void) {
         return;
     }
     if (status != 200) {
-        deck_log("spotify: player %ld", status);
         cJSON_Delete(j);
         return;
     }
@@ -822,6 +949,51 @@ static void poll_player(void) {
     }
 }
 
+static bool is_liked_songs(const char *uri) {
+    size_t n = strlen(uri);
+    return n > 11 && !strcmp(uri + n - 11, ":collection");
+}
+
+static long play_body(cJSON *o, cJSON **reply) {
+    char *s = cJSON_PrintUnformatted(o);
+    long status = api("PUT", "/me/player/play", s, reply);
+    free(s);
+    cJSON_Delete(o);
+    return status;
+}
+
+// Play `ctx` from `track` ("" = the top). offset.uri is how Spotify documents
+// starting an album or a playlist at a song. Liked Songs
+// (spotify:user:<id>:collection) plays as a context too, which keeps next,
+// previous and shuffle on all of it and "Liked Songs" in the Spotify app, but
+// isn't a documented context: if Spotify won't start it (at that song), the
+// songs loaded on the screen are played as a list instead ("uris", where the
+// offset is documented), so next and previous still follow them.
+static long play_context(const char *ctx, const char *track) {
+    cJSON *o = cJSON_CreateObject(), *reply;
+    cJSON_AddStringToObject(o, "context_uri", ctx);
+    if (track[0]) {
+        cJSON_AddStringToObject(cJSON_AddObjectToObject(o, "offset"), "uri", track);
+    }
+    long status = play_body(o, &reply);
+    const char *reason = jstr(cJSON_GetObjectItem(reply, "error"), "reason");
+    bool refused = status == 400 || status >= 500 || (status == 404 && strcmp(reason, "NO_ACTIVE_DEVICE") != 0);
+    cJSON_Delete(reply);
+    if (!refused || !is_liked_songs(ctx) || !liked_n) {
+        return status;
+    }
+    deck_log("spotify: Liked Songs as a context: %ld; playing the %d loaded songs as a list", status, liked_n);
+    o = cJSON_CreateObject();
+    cJSON *uris = cJSON_AddArrayToObject(o, "uris");
+    for (int i = 0; i < liked_n; i++) {
+        cJSON_AddItemToArray(uris, cJSON_CreateString(liked[i]));
+    }
+    if (track[0]) {
+        cJSON_AddStringToObject(cJSON_AddObjectToObject(o, "offset"), "uri", track);
+    }
+    return play_body(o, NULL);
+}
+
 static void run(const struct cmd *c) {
     char path[512], body[256], enc[200];
     long status = 0;
@@ -856,15 +1028,9 @@ static void run(const struct cmd *c) {
         snprintf(path, sizeof(path), "/me/library?uris=%s", enc);
         status = api(c->arg ? "PUT" : "DELETE", path, NULL, NULL);
         break;
-    case C_PLAY_URI: {
-        cJSON *o = cJSON_CreateObject();
-        cJSON_AddStringToObject(o, "context_uri", c->str);
-        char *s = cJSON_PrintUnformatted(o);
-        status = api("PUT", "/me/player/play", s, NULL);
-        free(s);
-        cJSON_Delete(o);
+    case C_PLAY_URI:
+        status = play_context(c->str, c->track);
         break;
-    }
     case C_TRANSFER:
         snprintf(body, sizeof(body), "{\"device_ids\":[\"%.100s\"],\"play\":true}", c->str);
         status = api("PUT", "/me/player", body, NULL);
@@ -888,11 +1054,86 @@ static void run(const struct cmd *c) {
 
 // ── Lists (worker) ───────────────────────────────────────────────────────────
 
-static int list_fill(enum sp_list kind, struct sp_item *it) {
+// A song (a track, or a podcast episode) as a row. An album's tracks come
+// without pictures: the screen uses the album's.
+static void track_item(const cJSON *t, struct sp_item *it) {
+    const cJSON *album = cJSON_GetObjectItem(t, "album");
+    copy(it->name, sizeof(it->name), jstr(t, "name"));
+    copy(it->uri, sizeof(it->uri), jstr(t, "uri"));
+    if (cJSON_GetObjectItem(t, "artists")) {
+        join_artists(cJSON_GetObjectItem(t, "artists"), it->sub, sizeof(it->sub));
+    } else {
+        copy(it->sub, sizeof(it->sub), jstr(cJSON_GetObjectItem(t, "show"), "name"));
+    }
+    copy(it->image, sizeof(it->image), pick_image(cJSON_GetObjectItem(album ? album : t, "images"), SP_THUMB_PX));
+}
+
+// The songs of a playlist, an album or Liked Songs, a page from `offset`.
+static void tracks_fill(const char *ctx, int offset, struct sp_item *it, struct sp_list_page *pg) {
+    char path[300], id[96];
+    bool playlist = !strncmp(ctx, "spotify:playlist:", 17), album = !strncmp(ctx, "spotify:album:", 14);
+    if (playlist || album) {
+        urlenc(id, sizeof(id), strrchr(ctx, ':') + 1);
+        snprintf(path, sizeof(path),
+                 playlist ? "/playlists/%s/items?limit=%d&offset=%d&additional_types=track,episode"
+                          : "/albums/%s/tracks?limit=%d&offset=%d",
+                 id, SP_MAX_ITEMS, offset);
+    } else if (is_liked_songs(ctx)) {
+        snprintf(path, sizeof(path), "/me/tracks?limit=%d&offset=%d", SP_MAX_ITEMS, offset);
+    } else {
+        pg->status = 400;
+        return;
+    }
     cJSON *j;
+    pg->status = (int)api("GET", path, NULL, &j);
+    const cJSON *items = cJSON_GetObjectItem(j, "items"), *e;
+    if (pg->status == 200 && !cJSON_IsArray(items)) {
+        pg->status = 403; // dev mode: a playlist that isn't yours may come without its songs
+    }
+    if (pg->status != 200) {
+        cJSON_Delete(j);
+        return;
+    }
+    if (is_liked_songs(ctx) && offset == 0) {
+        liked_n = 0;
+    }
+    int raw = 0;
+    cJSON_ArrayForEach(e, items) {
+        raw++;
+        // A playlist's song is in "item" (Feb 2026; "track" before), a liked
+        // one in "track"; an album's tracks are the items themselves. No uri:
+        // gone from Spotify.
+        const cJSON *t = cJSON_GetObjectItem(e, "item");
+        if (!cJSON_IsObject(t)) {
+            t = cJSON_GetObjectItem(e, "track");
+        }
+        if (!cJSON_IsObject(t)) {
+            t = e;
+        }
+        if (!*jstr(t, "uri") || pg->count >= SP_MAX_ITEMS) {
+            continue;
+        }
+        track_item(t, &it[pg->count]);
+        if (is_liked_songs(ctx) && liked_n < SP_MAX_TRACKS) {
+            copy(liked[liked_n++], sizeof(liked[0]), it[pg->count].uri);
+        }
+        pg->count++;
+    }
+    pg->total = (int)jnum(j, "total");
+    pg->next = raw && offset + raw < pg->total ? offset + raw : -1;
+    cJSON_Delete(j);
+}
+
+static void list_fill(enum sp_list kind, const char *ctx, int offset, struct sp_item *it,
+                      struct sp_list_page *pg) {
+    cJSON *j = NULL;
     const cJSON *e;
     int n = 0;
+    pg->next = -1;
     switch (kind) {
+    case SP_LIST_TRACKS:
+        tracks_fill(ctx, offset, it, pg);
+        return;
     case SP_LIST_PLAYLISTS:
         if (user_id[0]) {
             copy(it[n].name, sizeof(it[n].name), "Liked Songs");
@@ -900,29 +1141,32 @@ static int list_fill(enum sp_list kind, struct sp_item *it) {
             snprintf(it[n].uri, sizeof(it[n].uri), "spotify:user:%s:collection", user_id);
             n++;
         }
-        if (api("GET", "/me/playlists?limit=49", NULL, &j) != 200) {
+        if ((pg->status = (int)api("GET", "/me/playlists?limit=49", NULL, &j)) != 200) {
             break;
         }
         cJSON_ArrayForEach(e, cJSON_GetObjectItem(j, "items")) {
             if (n >= SP_MAX_ITEMS) {
                 break;
             }
-            // "items" (Feb 2026), "tracks" before.
+            // "items" (Feb 2026), "tracks" before; maybe neither for one that isn't yours.
             const cJSON *count = cJSON_GetObjectItem(e, "items");
             if (!count) {
                 count = cJSON_GetObjectItem(e, "tracks");
             }
+            const char *owner = jstr(cJSON_GetObjectItem(e, "owner"), "display_name");
             copy(it[n].name, sizeof(it[n].name), jstr(e, "name"));
-            snprintf(it[n].sub, sizeof(it[n].sub), "%s · %d", jstr(cJSON_GetObjectItem(e, "owner"), "display_name"),
-                     (int)jnum(count, "total"));
+            if (cJSON_IsNumber(cJSON_GetObjectItem(count, "total"))) {
+                snprintf(it[n].sub, sizeof(it[n].sub), "%s · %d", owner, (int)jnum(count, "total"));
+            } else {
+                copy(it[n].sub, sizeof(it[n].sub), owner);
+            }
             copy(it[n].uri, sizeof(it[n].uri), jstr(e, "uri"));
             copy(it[n].image, sizeof(it[n].image), pick_image(cJSON_GetObjectItem(e, "images"), SP_THUMB_PX));
             n++;
         }
-        cJSON_Delete(j);
-        return n;
+        break;
     case SP_LIST_ALBUMS:
-        if (api("GET", "/me/albums?limit=50", NULL, &j) != 200) {
+        if ((pg->status = (int)api("GET", "/me/albums?limit=50", NULL, &j)) != 200) {
             break;
         }
         cJSON_ArrayForEach(e, cJSON_GetObjectItem(j, "items")) {
@@ -936,32 +1180,20 @@ static int list_fill(enum sp_list kind, struct sp_item *it) {
             copy(it[n].image, sizeof(it[n].image), pick_image(cJSON_GetObjectItem(a, "images"), SP_THUMB_PX));
             n++;
         }
-        cJSON_Delete(j);
-        return n;
+        break;
     case SP_LIST_QUEUE:
-        if (api("GET", "/me/player/queue", NULL, &j) != 200) {
+        if ((pg->status = (int)api("GET", "/me/player/queue", NULL, &j)) != 200) {
             break;
         }
         cJSON_ArrayForEach(e, cJSON_GetObjectItem(j, "queue")) {
             if (n >= 30) {
                 break;
             }
-            copy(it[n].name, sizeof(it[n].name), jstr(e, "name"));
-            const cJSON *album = cJSON_GetObjectItem(e, "album");
-            if (album) {
-                join_artists(cJSON_GetObjectItem(e, "artists"), it[n].sub, sizeof(it[n].sub));
-                copy(it[n].image, sizeof(it[n].image), pick_image(cJSON_GetObjectItem(album, "images"), SP_THUMB_PX));
-            } else {
-                copy(it[n].sub, sizeof(it[n].sub), jstr(cJSON_GetObjectItem(e, "show"), "name"));
-                copy(it[n].image, sizeof(it[n].image), pick_image(cJSON_GetObjectItem(e, "images"), SP_THUMB_PX));
-            }
-            copy(it[n].uri, sizeof(it[n].uri), jstr(e, "uri"));
-            n++;
+            track_item(e, &it[n++]);
         }
-        cJSON_Delete(j);
-        return n;
+        break;
     case SP_LIST_DEVICES:
-        if (api("GET", "/me/player/devices", NULL, &j) != 200) {
+        if ((pg->status = (int)api("GET", "/me/player/devices", NULL, &j)) != 200) {
             break;
         }
         cJSON_ArrayForEach(e, cJSON_GetObjectItem(j, "devices")) {
@@ -974,11 +1206,151 @@ static int list_fill(enum sp_list kind, struct sp_item *it) {
             it[n].active = jbool(e, "is_active");
             n++;
         }
-        cJSON_Delete(j);
-        return n;
+        break;
     }
     cJSON_Delete(j);
-    return -1;
+    pg->count = pg->status == 200 ? n : 0;
+    pg->total = pg->count;
+}
+
+// A failed list is logged once, not again for the same list and status until
+// one works.
+static void list_log(enum sp_list kind, int status) {
+    static int last_kind = -1, last_status;
+    if (status == 200) {
+        last_kind = -1;
+    } else if ((int)kind != last_kind || status != last_status) {
+        last_kind = (int)kind;
+        last_status = status;
+        if (status) {
+            deck_log("spotify: list %d failed (%d)", kind, status);
+        } else {
+            deck_log("spotify: list %d failed (no answer: %s)", kind, http_error);
+        }
+    }
+}
+
+// ── API shape probe: BUILD PHASE ONLY, remove with the SSH pieces (pi/TODO.md)
+// `touch /run/deck/spotify-probe` (root, over SSH) makes the worker run a few
+// GETs with its own token and log what Spotify's Feb 2026 dev-mode rules
+// answer for playlists, albums and Liked Songs: HTTP status, JSON keys and
+// counts only. Never a token, an id, a name or a title.
+
+#ifndef PROBE_FILE
+#define PROBE_FILE "/run/deck/spotify-probe"
+#endif
+
+// "a, b{}, c[3], d=null": an object's keys and what they hold.
+static void keys_of(const cJSON *o, char *out, size_t size) {
+    const cJSON *c;
+    out[0] = '\0';
+    cJSON_ArrayForEach(c, o) {
+        size_t n = strlen(out);
+        if (cJSON_IsArray(c)) {
+            snprintf(out + n, size - n, "%s%s[%d]", n ? ", " : "", c->string, cJSON_GetArraySize(c));
+        } else {
+            snprintf(out + n, size - n, "%s%s%s", n ? ", " : "", c->string,
+                     cJSON_IsObject(c) ? "{}" : cJSON_IsNull(c) ? "=null" : "");
+        }
+    }
+}
+
+// GET `path` (logged as `label`, without ids) and log its shape: the status,
+// the top-level keys, the total, Spotify's error text, and the first item's
+// keys one level down. Returns the body (or NULL) for the caller to delete.
+static cJSON *probe_get(const char *label, const char *path) {
+    cJSON *j;
+    char keys[440];
+    long status = api("GET", path, NULL, &j);
+    keys_of(j, keys, sizeof(keys));
+    deck_log("spotify probe: %s -> %ld: %s", label, status, keys);
+    const cJSON *err = cJSON_GetObjectItem(j, "error");
+    if (cJSON_IsObject(err)) {
+        deck_log("spotify probe:   error %d: %.200s", (int)jnum(err, "status"), jstr(err, "message"));
+    }
+    if (cJSON_IsNumber(cJSON_GetObjectItem(j, "total"))) {
+        deck_log("spotify probe:   total %d, next page %s", (int)jnum(j, "total"),
+                 cJSON_IsString(cJSON_GetObjectItem(j, "next")) ? "yes" : "no");
+    }
+    const cJSON *first = cJSON_GetArrayItem(cJSON_GetObjectItem(j, "items"), 0), *c;
+    if (first) {
+        keys_of(first, keys, sizeof(keys));
+        deck_log("spotify probe:   items[0]: %s", keys);
+        cJSON_ArrayForEach(c, first) {
+            if (cJSON_IsObject(c)) {
+                keys_of(c, keys, sizeof(keys));
+                deck_log("spotify probe:   items[0].%s: %s", c->string, keys);
+            }
+        }
+    }
+    return j;
+}
+
+static void probe(void) {
+    char path[200];
+    deck_log("spotify probe: start (BUILD PHASE ONLY)");
+
+    // The player's context: with Liked Songs playing, what its uri looks like
+    // (ids shown as <me> and <id>).
+    cJSON *j = probe_get("/me/player", "/me/player");
+    const cJSON *ctx = cJSON_GetObjectItem(j, "context");
+    if (cJSON_IsObject(ctx)) {
+        char shape[160] = "", uri[128];
+        copy(uri, sizeof(uri), jstr(ctx, "uri"));
+        for (char *save, *part = strtok_r(uri, ":", &save); part; part = strtok_r(NULL, ":", &save)) {
+            size_t n = strlen(shape);
+            snprintf(shape + n, sizeof(shape) - n, "%s%s", n ? ":" : "",
+                     !strcmp(part, user_id) ? "<me>" : strlen(part) >= 16 ? "<id>" : part);
+        }
+        deck_log("spotify probe:   context type %s, uri %s", jstr(ctx, "type"), shape);
+    }
+    cJSON_Delete(j);
+
+    // The first five playlists: whose, and which count they carry.
+    char mine[64] = "", followed[64] = "";
+    j = probe_get("/me/playlists?limit=5", "/me/playlists?limit=5");
+    int i = 0;
+    const cJSON *e;
+    cJSON_ArrayForEach(e, cJSON_GetObjectItem(j, "items")) {
+        bool own = !strcmp(jstr(cJSON_GetObjectItem(e, "owner"), "id"), user_id);
+        const cJSON *items = cJSON_GetObjectItem(e, "items"), *tracks = cJSON_GetObjectItem(e, "tracks");
+        char ni[16] = "-", nt[16] = "-";
+        if (cJSON_IsNumber(cJSON_GetObjectItem(items, "total"))) {
+            snprintf(ni, sizeof(ni), "%d", (int)jnum(items, "total"));
+        }
+        if (cJSON_IsNumber(cJSON_GetObjectItem(tracks, "total"))) {
+            snprintf(nt, sizeof(nt), "%d", (int)jnum(tracks, "total"));
+        }
+        deck_log("spotify probe:   playlist %d: mine %s, collaborative %s, items.total %s, tracks.total %s", i++,
+                 own ? "yes" : "no", jbool(e, "collaborative") ? "yes" : "no", ni, nt);
+        char *first = own ? mine : followed;
+        if (!first[0]) {
+            copy(first, sizeof(mine), jstr(e, "id"));
+        }
+    }
+    cJSON_Delete(j);
+    if (mine[0]) {
+        snprintf(path, sizeof(path), "/playlists/%s/items?limit=2", mine);
+        cJSON_Delete(probe_get("/playlists/<mine>/items?limit=2", path));
+        snprintf(path, sizeof(path), "/playlists/%s/items?limit=2&offset=0&additional_types=track,episode", mine);
+        cJSON_Delete(probe_get("/playlists/<mine>/items as the app asks", path));
+    }
+    if (followed[0]) {
+        snprintf(path, sizeof(path), "/playlists/%s/items?limit=2", followed);
+        cJSON_Delete(probe_get("/playlists/<followed>/items?limit=2", path));
+    }
+
+    char album[64];
+    j = probe_get("/me/albums?limit=1", "/me/albums?limit=1");
+    const cJSON *saved = cJSON_GetArrayItem(cJSON_GetObjectItem(j, "items"), 0);
+    copy(album, sizeof(album), jstr(cJSON_GetObjectItem(saved, "album"), "id"));
+    cJSON_Delete(j);
+    if (album[0]) {
+        snprintf(path, sizeof(path), "/albums/%s/tracks?limit=2", album);
+        cJSON_Delete(probe_get("/albums/<id>/tracks?limit=2", path));
+    }
+    cJSON_Delete(probe_get("/me/tracks?limit=2", "/me/tracks?limit=2"));
+    deck_log("spotify probe: done");
 }
 
 // ── Worker loop ──────────────────────────────────────────────────────────────
@@ -1000,10 +1372,10 @@ static void *worker(void *arg) {
             close(srv);
             srv = -1;
         }
-        if (!access_token[0] && !refresh()) {
+        if (!token_valid() && !refresh()) {
             if (refresh_token[0]) {
                 message("NO CONNECTION");
-                sleep(5);
+                backoff_wait();
             }
             continue;
         }
@@ -1013,6 +1385,9 @@ static void *worker(void *arg) {
                 copy(user_id, sizeof(user_id), jstr(me, "id"));
             }
             cJSON_Delete(me);
+        }
+        if (user_id[0] && unlink(PROBE_FILE) == 0) { // BUILD PHASE ONLY (see probe)
+            probe();
         }
 
         // Commands, in order.
@@ -1047,18 +1422,23 @@ static void *worker(void *arg) {
 
         // A list someone asked for.
         pthread_mutex_lock(&mu);
-        int want = sh.list_req;
+        int want = sh.list_req, offset = sh.list_offset;
+        char ctx[sizeof(sh.list_ctx)];
+        copy(ctx, sizeof(ctx), sh.list_ctx);
+        uint32_t seq = sh.list_seq;
         sh.list_req = -1;
         pthread_mutex_unlock(&mu);
         if (want >= 0) {
             static struct sp_item items[SP_MAX_ITEMS];
             memset(items, 0, sizeof(items));
-            int n = list_fill((enum sp_list)want, items);
+            struct sp_list_page pg = {0};
+            list_fill((enum sp_list)want, ctx, offset, items, &pg);
+            list_log((enum sp_list)want, pg.status);
             pthread_mutex_lock(&mu);
             memcpy(sh.list, items, sizeof(items));
-            sh.list_count = LV_MAX(n, 0);
-            sh.list_ok = n >= 0;
+            sh.list_page = pg;
             sh.list_kind = (enum sp_list)want;
+            sh.list_done_seq = seq;
             sh.list_done = true;
             pthread_mutex_unlock(&mu);
         }
@@ -1097,15 +1477,7 @@ static void *worker(void *arg) {
         if (!sh.cmd_len && sh.list_req < 0 && !sh.thumb_qn && !sh.kick) {
             int32_t wait = (int32_t)(next_poll - now_ms());
             if (wait > 0) {
-                struct timespec until;
-                clock_gettime(CLOCK_REALTIME, &until);
-                until.tv_sec += wait / 1000;
-                until.tv_nsec += (long)(wait % 1000) * 1000000;
-                if (until.tv_nsec >= 1000000000) {
-                    until.tv_sec++;
-                    until.tv_nsec -= 1000000000;
-                }
-                pthread_cond_timedwait(&cv, &mu, &until);
+                wait_ms(wait);
             }
         }
         pthread_mutex_unlock(&mu);
@@ -1135,7 +1507,7 @@ static struct waiter {
     char url[256];
     sp_thumb_cb cb;
     void *arg;
-} waiters[128];
+} waiters[THUMB_CACHE];
 
 static void image_dsc(lv_image_dsc_t *d, const uint16_t *px, int side) {
     memset(d, 0, sizeof(*d));
@@ -1180,8 +1552,7 @@ static void collect(lv_timer_t *t) {
     (void)t;
     bool list_ready = false;
     static struct sp_item items[SP_MAX_ITEMS];
-    int count = 0;
-    bool ok = false;
+    struct sp_list_page page = {0};
     enum sp_list kind = SP_LIST_PLAYLISTS;
     struct thumb_px done[16];
     int dn = 0;
@@ -1206,9 +1577,8 @@ static void collect(lv_timer_t *t) {
     }
     if (sh.list_done) {
         sh.list_done = false;
-        list_ready = true;
-        count = sh.list_count;
-        ok = sh.list_ok;
+        list_ready = sh.list_done_seq == sh.list_seq; // else an older request's: dropped
+        page = sh.list_page;
         kind = sh.list_kind;
         memcpy(items, sh.list, sizeof(items));
     }
@@ -1238,11 +1608,12 @@ static void collect(lv_timer_t *t) {
     if (list_ready && list_cb) {
         sp_list_cb cb = list_cb;
         list_cb = NULL;
-        cb(kind, items, count, ok);
+        page.items = items;
+        cb(kind, &page);
     }
 }
 
-static void enqueue(enum cmd_kind kind, int64_t arg, const char *str) {
+static void enqueue(enum cmd_kind kind, int64_t arg, const char *str, const char *track) {
     if (!started) {
         return;
     }
@@ -1252,8 +1623,10 @@ static void enqueue(enum cmd_kind kind, int64_t arg, const char *str) {
         c->kind = kind;
         c->arg = arg;
         copy(c->str, sizeof(c->str), str);
+        copy(c->track, sizeof(c->track), track);
         cmd_sent++;
     }
+    sh.retry_now = true; // someone's using it: no waiting out a backoff
     pthread_cond_signal(&cv);
     pthread_mutex_unlock(&mu);
     pub.version++;
@@ -1287,6 +1660,7 @@ const lv_image_dsc_t *spotify_cover(void) {
 void spotify_visible(bool visible) {
     pthread_mutex_lock(&mu);
     sh.kick |= visible && !sh.visible;
+    sh.retry_now |= visible && !sh.visible;
     sh.visible = visible;
     pthread_cond_signal(&cv);
     pthread_mutex_unlock(&mu);
@@ -1295,52 +1669,64 @@ void spotify_visible(bool visible) {
 void spotify_play_pause(void) {
     pub.playing = !pub.playing;
     pub.progress_tick = (uint32_t)lv_tick_get();
-    enqueue(pub.playing ? C_PLAY : C_PAUSE, 0, NULL);
+    enqueue(pub.playing ? C_PLAY : C_PAUSE, 0, NULL, NULL);
 }
 
-void spotify_next(void) { enqueue(C_NEXT, 0, NULL); }
-void spotify_previous(void) { enqueue(C_PREV, 0, NULL); }
+void spotify_next(void) { enqueue(C_NEXT, 0, NULL, NULL); }
+void spotify_previous(void) { enqueue(C_PREV, 0, NULL, NULL); }
 
 void spotify_seek(uint32_t ms) {
     pub.progress_ms = ms;
     pub.progress_tick = (uint32_t)lv_tick_get();
-    enqueue(C_SEEK, ms, NULL);
+    enqueue(C_SEEK, ms, NULL, NULL);
 }
 
 void spotify_set_shuffle(bool on) {
     pub.shuffle = on;
-    enqueue(C_SHUFFLE, on, NULL);
+    enqueue(C_SHUFFLE, on, NULL, NULL);
 }
 
 void spotify_set_repeat(enum sp_repeat r) {
     pub.repeat = r;
-    enqueue(C_REPEAT, r, NULL);
+    enqueue(C_REPEAT, r, NULL, NULL);
 }
 
 void spotify_set_liked(bool liked) {
     pub.liked = liked;
-    enqueue(C_LIKE, liked, pub.track.uri);
+    enqueue(C_LIKE, liked, pub.track.uri, NULL);
 }
 
-void spotify_play_uri(const char *uri) { enqueue(C_PLAY_URI, 0, uri); }
-void spotify_transfer(const char *device_id) { enqueue(C_TRANSFER, 0, device_id); }
+void spotify_play_uri(const char *context_uri, const char *track_uri) {
+    enqueue(C_PLAY_URI, 0, context_uri, track_uri);
+}
+void spotify_transfer(const char *device_id) { enqueue(C_TRANSFER, 0, device_id, NULL); }
 
 void spotify_logout(void) {
     pub.auth = SP_LOGGED_OUT;
     pub.has_player = false;
-    enqueue(C_LOGOUT, 0, NULL);
+    enqueue(C_LOGOUT, 0, NULL, NULL);
 }
 
-void spotify_fetch(enum sp_list kind, sp_list_cb cb) {
+static void fetch(enum sp_list kind, const char *ctx, int offset, sp_list_cb cb) {
     if (!started) {
-        cb(kind, NULL, 0, false);
+        struct sp_list_page none = {.next = -1};
+        cb(kind, &none);
         return;
     }
     list_cb = cb;
     pthread_mutex_lock(&mu);
     sh.list_req = kind;
+    copy(sh.list_ctx, sizeof(sh.list_ctx), ctx);
+    sh.list_offset = offset;
+    sh.list_seq++;
     pthread_cond_signal(&cv);
     pthread_mutex_unlock(&mu);
+}
+
+void spotify_fetch(enum sp_list kind, sp_list_cb cb) { fetch(kind, "", 0, cb); }
+
+void spotify_fetch_tracks(const char *context_uri, int offset, sp_list_cb cb) {
+    fetch(SP_LIST_TRACKS, context_uri, offset, cb);
 }
 
 void spotify_thumb(const char *url, sp_thumb_cb cb, void *arg) {

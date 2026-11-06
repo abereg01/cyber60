@@ -32,7 +32,16 @@ void *deck_slurp(const char *dir, const char *file, size_t *size);
 
 // ── Small helpers ────────────────────────────────────────────────────────────
 
-static inline lv_color_t hex(uint32_t c) { return lv_color_hex(c); }
+// Every UI colour, through the panel's tone curve (tone.c; off in the preview).
+extern bool deck_tone_on;
+extern uint8_t deck_tone_lut[256];
+static inline lv_color_t hex(uint32_t c) {
+    if (!deck_tone_on) {
+        return lv_color_hex(c);
+    }
+    return lv_color_make(deck_tone_lut[(c >> 16) & 0xFF], deck_tone_lut[(c >> 8) & 0xFF],
+                         deck_tone_lut[c & 0xFF]);
+}
 
 static inline lv_obj_t *box(lv_obj_t *parent, int32_t x, int32_t y, int32_t w, int32_t h,
                             int32_t r) {

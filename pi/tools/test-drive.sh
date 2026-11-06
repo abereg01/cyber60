@@ -5,6 +5,8 @@
 # real FAT drive image (mount/umount done with mtools, since a container has no
 # loop devices), a fake systemd and a fake screen that comes up, or doesn't.
 # "The computer" copies files onto the image, ejects it and pulls the cable.
+# The gadget is checked too: the keyboard and the media keys + mouse next to
+# the drive, drive=0, and the gadget an older deck-drive.sh left behind.
 # Also runs shellcheck on the scripts.
 #
 # Usage: pi/tools/test-drive.sh        (exit code 0 = all passed)
@@ -28,6 +30,7 @@ export MTOOLS_SKIP_CHECK=1
 export DECK_TEST=$T DECK_BOOT=$T/boot DECK_OPT=$T/opt/deck DECK_DATA=$T/data DECK_RUN=$T/run \
     DECK_GADGET=$T/gadget DECK_UDC=$T/udc DECK_UNITS=$T/units DECK_TICK=0.1 DECK_READY_WAIT=3 DECK_SETTLE=1
 LUN=$DECK_GADGET/functions/mass_storage.0/lun.0
+CONF=$DECK_GADGET/configs/c.1
 IMG=$DECK_DATA/drive.img
 STATE=$DECK_UDC/fe980000.usb/state
 DRIVE_LOG=$T/drive.log
@@ -46,6 +49,7 @@ mkdir -p "$DECK_BOOT" "$DECK_OPT/units" "$DECK_DATA" "$DECK_RUN" "$LUN" "$DECK_U
     "$(dirname "$STATE")" "$T/bin" "$T/sysd"
 cp "$F/deck.conf" "$DECK_BOOT/"
 sed -i 's/^shelly_key=.*/shelly_key=bootKEY123/' "$DECK_BOOT/deck.conf" # put there on the SD card itself
+sed -i 's|^calendar_url=.*|calendar_url=https://example.com/bootCAL456/calendar.ics|' "$DECK_BOOT/deck.conf"
 echo "the first start" >"$DECK_BOOT/deck-log.txt"
 : >"$LUN/file"
 : >"$LUN/forced_eject"
@@ -94,6 +98,7 @@ EOF
 printf '#!/bin/sh\necho "(the journal)"\n' >"$T/bin/journalctl"
 printf '#!/bin/sh\necho throttled=0x0\n' >"$T/bin/vcgencmd"
 printf '#!/bin/sh\necho no\n' >"$T/bin/timedatectl"
+printf '#!/bin/sh\nexit 0\n' >"$T/bin/modprobe"
 chmod +x "$T"/bin/*
 export PATH=$T/bin:$PATH
 
@@ -188,6 +193,26 @@ check "the screen's log is on it" sh -c "mtype -i '$IMG' ::deck-log.txt | grep -
 check "a Shelly key on the SD card moved onto the Pi" grep -qx bootKEY123 "$DECK_DATA/shelly-key"
 check "and blanked on the SD card and the drive" sh -c \
     "! grep -q bootKEY123 '$DECK_BOOT/deck.conf' && ! mtype -i '$IMG' ::deck.conf | grep -q bootKEY123"
+check "a calendar link on the SD card moved onto the Pi too" \
+    grep -qx 'https://example.com/bootCAL456/calendar.ics' "$DECK_DATA/calendar-url"
+check "and blanked" sh -c "! grep -q bootCAL456 '$DECK_BOOT/deck.conf' && ! mtype -i '$IMG' ::deck.conf | grep -q bootCAL456"
+hexof() { od -An -tx1 -v "$1" | tr -s ' \n' ' ' | sed 's/^ //;s/ $//'; }
+K=$DECK_GADGET/functions/hid.usb0
+E=$DECK_GADGET/functions/hid.usb1
+kbd_desc=$(hexof "$K/report_desc")
+extra_desc=$(hexof "$E/report_desc")
+cyber60=$(grep -v '^#' /pi/kbd/zmk-report-descriptor.txt | tr -s ' \n' ' ' | sed 's/^ //;s/ $//')
+gadget_has() { # functions linked into the configuration, sorted
+    [ "$(find "$CONF" -maxdepth 1 -type l -printf '%f\n' | sort | tr '\n' ' ')" = "$1" ]
+}
+check "a composite gadget: keyboard, media keys + mouse, the drive" gadget_has "hid.usb0 hid.usb1 mass_storage.0 "
+check "bound to the USB port" grep -qx fe980000.usb "$DECK_GADGET/UDC"
+check "hid.usb0 is a boot keyboard (subclass 1, protocol 1, 8 bytes)" sh -c \
+    "[ \"\$(cat '$K/subclass' '$K/protocol' '$K/report_length' | tr '\n' ' ')\" = '1 1 8 ' ]"
+check "its descriptor: 64 bytes, a keyboard with the LEDs back" sh -c \
+    "[ \"\$(stat -c %s '$K/report_desc')\" = 64 ] && echo '$kbd_desc' | grep -q '^05 01 09 06 .* 91 02 '"
+check "hid.usb1 is the Cyber60's own consumer + mouse (IDs 2, 3)" [ "$extra_desc" = "$(echo "$cyber60" | cut -d' ' -f51-)" ]
+check "device version 2.00 (the keyboard joined the drive)" grep -qx 0x0200 "$DECK_GADGET/bcdDevice"
 
 echo "==> v2 as deck-update.tar.gz, then eject"
 make_update v2 good
@@ -241,6 +266,20 @@ check "not on the SD card's deck.conf" sh -c "! grep -q dGVzdC1rZXk0NTY '$DECK_B
 check "not on the drive" sh -c "! mtype -i '$IMG' ::deck.conf | grep -q dGVzdC1rZXk0NTY"
 check "the rest of deck.conf survived" grep -q '^demo=1' "$DECK_BOOT/deck.conf"
 check "the screen showed 'Shelly key saved'" notice_was "Shelly key saved"
+
+echo "==> a published calendar link in deck.conf (CRLF), then eject"
+CAL='https://outlook.office365.com/owa/calendar/0a1b2c3d@example.com/4e5f6a7b8c9d1234/calendar.ics'
+host_cat deck.conf | tr -d '\r' | sed "s|^calendar_url=.*|calendar_url=$CAL|" | sed 's/$/\r/' >"$T/deck.conf"
+host_put "$T/deck.conf"
+n=$(umounts)
+eject
+done_wait "$n"
+check "the link is on the Pi" grep -qxF "$CAL" "$DECK_DATA/calendar-url"
+check "only root can read it (600)" sh -c "[ \"\$(stat -c %a '$DECK_DATA/calendar-url')\" = 600 ]"
+check "not on the SD card's deck.conf" sh -c "! grep -q 4e5f6a7b8c9d1234 '$DECK_BOOT/deck.conf'"
+check "not on the drive" sh -c "! mtype -i '$IMG' ::deck.conf | grep -q 4e5f6a7b8c9d1234"
+check "the Shelly key stayed" grep -qx 'dGVzdC1rZXk0NTY=' "$DECK_DATA/shelly-key"
+check "the screen showed 'Calendar link saved'" notice_was "Calendar link saved"
 
 echo "==> v4 that never comes up, then eject"
 make_update v4 crash
@@ -322,10 +361,24 @@ host_put "$T/deck.conf"
 eject
 for _ in $(seq 100); do kill -0 "$DRIVE_PID" 2>/dev/null || break; sleep 0.1; done
 check "deck-drive.sh stopped" sh -c "! kill -0 $DRIVE_PID"
-check "the USB port was let go" sh -c "[ -z \"\$(tr -d '\n' <'$DECK_GADGET/UDC')\" ]"
+check "the drive left the USB port, the keyboard stayed" gadget_has "hid.usb0 hid.usb1 "
+check "still bound to the port" grep -qx fe980000.usb "$DECK_GADGET/UDC"
 DRIVE_PID=
 "$DECK_OPT/deck-drive.sh" >>"$DRIVE_LOG" 2>&1 && rc=0 || rc=$?
-check "with drive=0 it doesn't start at all" [ "$rc" = 0 ]
+check "with drive=0 at power-on: the keyboard only, and it stops" sh -c \
+    "[ $rc = 0 ] && [ -z \"\$(find '$CONF' -name 'mass_storage*')\" ] && [ -L '$CONF/hid.usb0' ]"
+
+echo "==> drive=1 again, with the gadget an older deck-drive.sh made (the drive alone)"
+sed -i 's/^drive=0/drive=1/' "$DECK_BOOT/deck.conf"
+rm "$CONF/hid.usb0" "$CONF/hid.usb1"
+ln -s "$DECK_GADGET/functions/mass_storage.0" "$CONF/mass_storage.0"
+echo 0x0100 >"$DECK_GADGET/bcdDevice"
+start_drive
+check "the keyboard is added next to the drive" gadget_has "hid.usb0 hid.usb1 mass_storage.0 "
+check "as version 2.00, bound again" sh -c \
+    "grep -qx 0x0200 '$DECK_GADGET/bcdDevice' && grep -qx fe980000.usb '$DECK_GADGET/UDC'"
+kill "$DRIVE_PID"
+DRIVE_PID=
 
 # The SD card's bootfs: deck.service runs deck-update.sh before the screen.
 mkdir -p "$DECK_BOOT/overlays" && : >"$DECK_BOOT/overlays/vc4-kms-v3d.dtbo"

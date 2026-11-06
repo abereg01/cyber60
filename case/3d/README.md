@@ -9,9 +9,9 @@ the back, above the USB-C port.
 
 Size: 53 × 43 × 46 mm (W × D × H). The original remix is about 43 × 43 × 38.
 
-`renders/`: `hero`, `front`, `side`, `back`, `bottom`, `section` (cut through
-the middle, showing the screen module and XIAO stand-ins), `exploded` and
-`print-plate`.
+`renders/` (made by `./build.sh`, not in git): `hero`, `front`, `side`,
+`back`, `bottom`, `section` (cut through the middle, showing the screen module
+and XIAO stand-ins), `exploded` and `print-plate`.
 
 ## Files
 
@@ -115,6 +115,7 @@ It runs in Docker on the OMV box: `cadtools:local` (built from
 `tools/Dockerfile.cadtools`: Python, manifold3d, trimesh), and the
 `clipsnag:local` image's headless Chromium for the renders
 (`tools/render.js`, three.js). The screen in the renders is
-`CYBER60/draw/shoko/1-base-typing.png`, made by the screen preview tool.
+`draw/shoko/1-base-typing.png`, made by `tools/shoko/preview.sh` (not in git:
+run that first on a fresh clone).
 
 The wordmark font is Dela Gothic One (SIL Open Font License).

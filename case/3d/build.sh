@@ -14,7 +14,7 @@ HERE=$(cd "$(dirname "$0")" && pwd)
 CACHE=${SHOKO_CACHE:-/srv/mergerfs/pool/docker/appdata/zmk-west/.cache/shoko}
 WORK=$CACHE/case
 FONTS=$CACHE/ttf
-UI=${SHOKO_UI:-/srv/mergerfs/pool/VARIOUS/keyboard/CYBER60/draw/shoko}
+UI=${SHOKO_UI:-$HERE/../../draw/shoko} # 1-base-typing.png, from tools/shoko/preview.sh (not in git)
 export DOCKER_CONFIG=${DOCKER_CONFIG:-/srv/mergerfs/pool/docker/appdata/.docker-config}
 
 docker image inspect cadtools:local >/dev/null 2>&1 ||

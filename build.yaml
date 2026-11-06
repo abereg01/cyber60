@@ -2,18 +2,27 @@
 # secrets file is gitignored, so the keymap falls back to placeholders).
 # Firmware with passwords is built locally: tools/build.sh.
 #
-#   cyber60@rev_e                     → the keyboard (standalone: keymap, Studio,
-#                                       Bluetooth to the Pi desk screen, USB)
-#   xiao_ble + prospector_dongle(_screen) → the retired Prospector dongle, kept
-#                                       so CI proves its screen code compiles
-#   settings_reset                    → wipe Bluetooth bonds, flash once per
-#                                       device when (re)pairing, then reflash
+#   cyber60            the keyboard as the Prospector's split peripheral (in use)
+#   prospector-dongle  xiao_ble + prospector_dongle(_screen): keymap, screen,
+#                      Studio, talks to the computer
+#   cyber60-pi         the keyboard standalone (keymap + Studio on it, Bluetooth
+#                      to the Pi desk screen), for when the Pi comes back. The
+#                      -D options must match KEYBOARD_PI in tools/build.sh.
+#   reset-*            settings_reset: wipe Bluetooth bonds, flash once per
+#                      device when (re)pairing, then flash the normal file
 include:
   - board: cyber60@rev_e
+    artifact-name: cyber60
   - board: xiao_ble//zmk
     shield: prospector_dongle prospector_screen
     snippet: studio-rpc-usb-uart
+    artifact-name: prospector-dongle
+  - board: cyber60@rev_e
+    cmake-args: -DCONFIG_ZMK_SPLIT=n -DCONFIG_ZMK_STUDIO=y -DCONFIG_ZMK_STUDIO_LOCKING=y -DCONFIG_ZMK_POINTING=y
+    artifact-name: cyber60-pi
   - board: cyber60@rev_e
     shield: settings_reset
+    artifact-name: reset-cyber60
   - board: xiao_ble//zmk
     shield: settings_reset
+    artifact-name: reset-dongle

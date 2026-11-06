@@ -1,0 +1,28 @@
+# The Cyber60's HID report descriptor (ZMK main 4dd95d7, HKRO, consumer FULL,
+# ZMK_POINTING), read on the Pi from /sys/class/hidraw/<n>/device/report_descriptor
+# on 2026-11-05. Identical over Bluetooth (HOG) and USB. 176 bytes.
+#
+#   ID 1  keyboard  8 bytes: modifier bits, reserved, 6 key codes (0-255).
+#                   The boot keyboard layout. No LED output report.
+#   ID 2  consumer  12 bytes: 6 x 16-bit usages (0-0xFFF)
+#   ID 3  mouse     9 bytes: 5 buttons + 3 pad bits, X, Y, wheel, AC pan
+#                   (each 16-bit signed)
+#
+# Reports arrive on hidraw with the ID as their first byte.
+#
+# The Pi's USB gadget (image/files/deck-drive.sh) uses the ID 2 and ID 3 part
+# (bytes 51-176) as /dev/hidg1's descriptor as it is, so those reports pass
+# through unchanged (tools/test-drive.sh checks they match). ID 1 goes to
+# /dev/hidg0, a boot keyboard of its own (with the LED output report), without
+# its ID byte.
+05 01 09 06 a1 01 85 01 05 07 19 e0 29 e7 15 00 
+25 01 75 01 95 08 81 02 05 07 75 08 95 01 81 03 
+05 07 15 00 26 ff 00 19 00 29 ff 75 08 95 06 81 
+00 c0 05 0c 09 01 a1 01 85 02 05 0c 15 00 26 ff 
+0f 19 00 2a ff 0f 75 10 95 06 81 00 c0 05 01 09 
+02 a1 01 85 03 09 01 a1 00 05 09 19 01 29 05 15 
+00 25 01 75 01 95 05 81 02 75 03 95 01 81 03 05 
+01 09 30 09 31 16 00 80 26 ff 7f 75 10 95 02 81 
+06 a1 02 09 38 16 00 80 26 ff 7f 35 00 45 00 75 
+10 95 01 81 06 c0 a1 02 05 0c 0a 38 02 16 00 80 
+26 ff 7f 35 00 45 00 75 10 95 01 81 06 c0 c0 c0 

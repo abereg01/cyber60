@@ -1,7 +1,8 @@
 /*
  * The screen on the Pi: the Touch Display through DRM (or the framebuffer when
  * the picture has to be turned 180°), touch through evdev, wifi through
- * NetworkManager. Until the keyboard link exists, demo.c types by itself.
+ * NetworkManager, the keyboard through the keyboard link (kblink.c). demo.c
+ * types by itself instead (demo=1).
  *
  * Nobody logs in to this Pi, so everything you'd look at is on the SD card's
  * boot partition, which any computer can read (and the DECK drive shows
@@ -12,6 +13,7 @@
  * SPDX-License-Identifier: MIT
  */
 
+#include <dirent.h>
 #include <errno.h>
 #include <fcntl.h>
 #include <linux/input.h>
@@ -27,10 +29,13 @@
 #include <xf86drm.h>
 #include <xf86drmMode.h>
 
+#include "calendar.h"
 #include "deck.h"
 #include "demo.h"
+#include "kblink.h"
 #include "lights.h"
 #include "spotify.h"
+#include "weather.h"
 #include "wifi.h"
 
 #define BOOT "/boot/firmware"
@@ -47,7 +52,11 @@ static struct {
     char spotify_client_id[64];
     char shelly_server[128];
     int vault_minutes;
-} conf = {.vault_minutes = 10};
+    int brightness; // backlight, 0-100 %; -1 = leave it
+    float gamma;    // the TN panel's tone curve (tone.c); 1 = off
+    char pc_layout[8]; // the computer's keyboard layout, for text the Pi types: sv or us
+    char weather[64];  // lat,lon for SMHI's forecast; "" = no weather
+} conf = {.vault_minutes = 10, .brightness = -1, .gamma = 1.f, .pc_layout = "us"};
 
 // ── Log ──────────────────────────────────────────────────────────────────────
 // On the boot partition, so it can be read on any computer. Lines are rare
@@ -123,10 +132,52 @@ static void conf_load(const char *path) {
             conf.vault_minutes = atoi(val) > 0 ? atoi(val) : 10;
         } else if (!strcmp(key, "light")) {
             lights_add(val); // before deck_create: the Lights page has a column per lamp
+        } else if (!strcmp(key, "brightness")) {
+            conf.brightness = LV_CLAMP(0, atoi(val), 100);
+        } else if (!strcmp(key, "gamma")) {
+            conf.gamma = LV_CLAMP(0.5f, strtof(val, NULL), 3.f);
+        } else if (!strcmp(key, "weather")) {
+            snprintf(conf.weather, sizeof(conf.weather), "%s", val);
+        } else if (!strcmp(key, "pc_layout")) {
+            snprintf(conf.pc_layout, sizeof(conf.pc_layout), "%s", strcmp(val, "sv") ? "us" : "sv");
         }
     }
     fclose(f);
-    deck_log("settings: rotate=%d mac=%d demo=%d", conf.rotate, conf.mac, conf.demo);
+    deck_log("settings: rotate=%d mac=%d demo=%d brightness=%d gamma=%.2f pc_layout=%s", conf.rotate,
+             conf.mac, conf.demo, conf.brightness, conf.gamma, conf.pc_layout);
+}
+
+// The Touch Display's backlight (/sys/class/backlight/10-0045 on the Pi 4),
+// as a share of its maximum. Straight on, the TN panel washes out at full.
+static void backlight_set(int percent) {
+    if (percent < 0) {
+        return;
+    }
+    DIR *d = opendir("/sys/class/backlight");
+    struct dirent *e;
+    while (d && (e = readdir(d))) {
+        if (e->d_name[0] == '.') {
+            continue;
+        }
+        char path[300];
+        snprintf(path, sizeof(path), "/sys/class/backlight/%s/max_brightness", e->d_name);
+        FILE *f = fopen(path, "r");
+        int max = 0;
+        if (f) {
+            max = fscanf(f, "%d", &max) == 1 ? max : 0;
+            fclose(f);
+        }
+        snprintf(path, sizeof(path), "/sys/class/backlight/%s/brightness", e->d_name);
+        f = max > 0 ? fopen(path, "w") : NULL;
+        if (f) {
+            fprintf(f, "%d\n", (percent * max + 50) / 100);
+            fclose(f);
+            deck_log("backlight: %d%% of %d (%s)", percent, max, e->d_name);
+        }
+    }
+    if (d) {
+        closedir(d);
+    }
 }
 
 // ── Display ──────────────────────────────────────────────────────────────────
@@ -291,17 +342,60 @@ static void console_off(void) {
 }
 
 // ── Touch ────────────────────────────────────────────────────────────────────
-// LVGL's evdev discovery finds input devices as they appear; only the touch
-// panel stays (keyboards that show up later, like the Cyber60 over Bluetooth,
-// aren't LVGL's business).
+// Only the Touch Display's panel is touch: an input device with absolute X
+// and Y that says it is a touch screen (INPUT_PROP_DIRECT) and isn't on USB
+// or Bluetooth. So the Cyber60, its mouse keys or a plugged-in mouse can
+// never move the pointer (the keyboard link holds the keyboard's nodes
+// anyway). Looked for every second until found, and again if it goes away.
 
-static void input_found(lv_indev_t *indev, lv_evdev_type_t type, void *arg) {
-    (void)arg;
-    if (type != LV_EVDEV_TYPE_ABS) {
-        lv_indev_delete(indev);
-        return;
+static lv_indev_t *touch;
+
+#define HAS_BIT(bit, a) (((a)[(bit) / (8 * sizeof(long))] >> ((bit) % (8 * sizeof(long)))) & 1)
+
+static bool is_touch(int fd) {
+    struct input_id id;
+    unsigned long abs[ABS_CNT / (8 * sizeof(long)) + 1] = {0};
+    unsigned long prop[INPUT_PROP_CNT / (8 * sizeof(long)) + 1] = {0};
+    if (ioctl(fd, EVIOCGID, &id) < 0 || id.bustype == BUS_USB || id.bustype == BUS_BLUETOOTH ||
+        ioctl(fd, EVIOCGBIT(EV_ABS, sizeof(abs)), abs) < 0 || ioctl(fd, EVIOCGPROP(sizeof(prop)), prop) < 0) {
+        return false;
     }
-    deck_log("touch: found");
+    return HAS_BIT(ABS_X, abs) && HAS_BIT(ABS_Y, abs) && HAS_BIT(INPUT_PROP_DIRECT, prop);
+}
+
+static void touch_gone(lv_event_t *e) {
+    (void)e;
+    touch = NULL;
+    deck_log("touch: gone");
+}
+
+static void touch_find(lv_timer_t *t) {
+    (void)t;
+    DIR *d = touch ? NULL : opendir("/dev/input");
+    struct dirent *e;
+    while (d && !touch && (e = readdir(d))) {
+        char path[300];
+        snprintf(path, sizeof(path), "/dev/input/%s", e->d_name);
+        int fd = strncmp(e->d_name, "event", 5) ? -1 : open(path, O_RDONLY | O_NONBLOCK | O_CLOEXEC);
+        bool ok = fd >= 0 && is_touch(fd);
+        if (fd >= 0) {
+            close(fd);
+        }
+        if (ok && (touch = lv_evdev_create(LV_INDEV_TYPE_POINTER, path))) {
+            lv_indev_add_event_cb(touch, touch_gone, LV_EVENT_DELETE, NULL);
+            deck_log("touch: found (%s)", path);
+        }
+    }
+    if (d) {
+        closedir(d);
+    }
+}
+
+// ── The keyboard ─────────────────────────────────────────────────────────────
+
+static void keyboard_poll(lv_timer_t *t) {
+    (void)t;
+    kb_poll();
 }
 
 // ── The DECK drive ───────────────────────────────────────────────────────────
@@ -376,7 +470,10 @@ int main(void) {
     }
     lv_display_add_event_cb(disp, first_frame, LV_EVENT_FLUSH_FINISH, NULL);
     lv_timer_create(display_watch, 1000, NULL);
-    lv_evdev_discovery_start(input_found, NULL);
+    touch_find(NULL); // the panel is usually there already; if not, every second
+    lv_timer_create(touch_find, 1000, NULL);
+    backlight_set(conf.brightness); // the backlight comes with the display
+    deck_tone_set(conf.gamma);      // before deck_create: colours are set as objects are made
 
     static const enum deck_mod order[] = {DECK_MOD_GUI, DECK_MOD_ALT, DECK_MOD_CTRL, DECK_MOD_SHIFT};
     if (!deck_create(lv_screen_active(), SHARE, order, conf.mac)) {
@@ -387,6 +484,11 @@ int main(void) {
     wifi_start();
     spotify_start(conf.spotify_client_id, DATA);
     lights_start(conf.shelly_server, DATA "/shelly-key"); // deck-drive.sh puts the key there
+    weather_start(conf.weather);
+    calendar_start(DATA "/calendar-url"); // deck-drive.sh puts the link there
+    // The demo has the key screen to itself; the keyboard still types on the computer.
+    kb_start(conf.pc_layout, !conf.demo);
+    lv_timer_create(keyboard_poll, 10, NULL);
     if (conf.demo) {
         demo_start();
         deck_log("demo: typing by itself (demo=1 in deck.conf; 0 turns it off)");

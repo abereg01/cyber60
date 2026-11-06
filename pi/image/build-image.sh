@@ -64,12 +64,12 @@ printf ' quiet loglevel=3 logo.nologo vt.global_cursor_default=0 consoleblank=0 
 mcopy -o -i "$W/boot.vfat" "$W/config.txt" "$W/cmdline.txt" "$F/deck.conf" "$F/DECK-README.txt" ::/
 
 echo "==> root partition"
-# The DECK drive (deck-drive.sh) uses these from Pi OS Lite; stop here if a
-# newer base image ever drops one.
+# The DECK drive and the USB keyboard (deck-drive.sh) use these from Pi OS
+# Lite; stop here if a newer base image ever drops one.
 KMOD=$(debugfs -R 'ls /usr/lib/modules' "$W/root.ext4" 2>/dev/null | grep -oE '[^ ]+-rpi-v8' | head -n1)
 G=/usr/lib/modules/$KMOD/kernel/drivers/usb/gadget
 for f in /usr/sbin/mkfs.fat /usr/sbin/fsck.fat /usr/bin/unzip /usr/bin/vcgencmd \
-    "$G/libcomposite.ko.xz" "$G/function/usb_f_mass_storage.ko.xz"; do
+    "$G/libcomposite.ko.xz" "$G/function/usb_f_mass_storage.ko.xz" "$G/function/usb_f_hid.ko.xz"; do
     debugfs -R "stat $f" "$W/root.ext4" 2>/dev/null | grep -q '^Inode:' || {
         echo "the base image has no $f (the DECK drive needs it)" >&2
         exit 1
@@ -122,16 +122,31 @@ done
 printf 'symlink /etc/systemd/system/getty@tty1.service /dev/null\n' >>"$R"
 # Ctrl+Alt+Del would restart the Pi: the keyboard can sit on its USB port.
 printf 'symlink /etc/systemd/system/ctrl-alt-del.target /dev/null\n' >>"$R"
+# SysRq off: Alt+SysRq on the keyboard could restart the Pi in the moments
+# the screen doesn't hold its keys (kblink.c switches it off too).
+printf '%s\n' '# Desk screen: no SysRq from the keyboard' 'kernel.sysrq = 0' >"$W/99-deck.conf"
+put "$W/99-deck.conf" /etc/sysctl.d 0100644
+# Bluetooth on, for the keyboard: the radio can start blocked by rfkill
+# (kblink.c unblocks it too, for cards made before this).
+printf '%s\n' '# Desk screen: the keyboard needs Bluetooth' '[Service]' \
+    'ExecStartPre=-+/usr/sbin/rfkill unblock bluetooth' >"$W/bluetooth-deck.conf"
+printf 'mkdir /etc/systemd/system/bluetooth.service.d\n' >>"$R"
+own /etc/systemd/system/bluetooth.service.d 040755
+printf 'cd /etc/systemd/system/bluetooth.service.d\nwrite %s deck.conf\n' "$W/bluetooth-deck.conf" >>"$R"
+own /etc/systemd/system/bluetooth.service.d/deck.conf 0100644
 : >"$W/cloud-init.disabled"
 put "$W/cloud-init.disabled" /etc/cloud 0100644
 
-# Hostname: what a wifi router lists the Pi as.
+# Hostname: what a wifi router lists the Pi as. Time zone: Sweden, for the
+# screen's clock (deck.service sets TZ too, for cards made before this).
 echo deck >"$W/hostname"
 sed 's/raspberrypi/deck/' <(debugfs -R 'cat /etc/hosts' "$W/root.ext4" 2>/dev/null) >"$W/hosts"
-for f in hostname hosts; do
+echo Europe/Stockholm >"$W/timezone"
+for f in hostname hosts timezone; do
     printf 'cd /etc\nrm %s\nwrite %s %s\n' "$f" "$W/$f" "$f" >>"$R"
     own "/etc/$f" 0100644
 done
+printf 'rm /etc/localtime\nsymlink /etc/localtime /usr/share/zoneinfo/Europe/Stockholm\n' >>"$R"
 
 # Wifi on: Pi OS ships NetworkManager with it switched off until Imager or
 # raspi-config sets it up (the screen's wifi.c switches it on too, for cards

@@ -7,7 +7,8 @@
  *     (none)              log in if needed, then print what's playing for 20 s
  *     playpause | next | prev | shuffle | repeat | like
  *     list playlists | albums | queue | devices
- *     play <context uri>   transfer <device id>   cover <out.ppm>
+ *     songs <context uri> [offset]   a page of a playlist's, an album's or Liked Songs' songs
+ *     play <context uri> [track uri]   transfer <device id>   cover <out.ppm>
  */
 #include <stdarg.h>
 #include <stdio.h>
@@ -36,10 +37,11 @@ void deck_log(const char *fmt, ...) {
 
 static bool listed_done;
 
-static void listed(enum sp_list kind, const struct sp_item *it, int n, bool ok) {
-    printf("list %d: %s, %d items\n", kind, ok ? "ok" : "FAILED", n);
-    for (int i = 0; i < n; i++) {
-        printf("  %-40.40s  %-30.30s  %s%s\n", it[i].name, it[i].sub, it[i].uri, it[i].active ? "  (active)" : "");
+static void listed(enum sp_list kind, const struct sp_list_page *pg) {
+    printf("list %d: HTTP %d, %d items of %d, next page %d\n", kind, pg->status, pg->count, pg->total, pg->next);
+    for (int i = 0; i < pg->count; i++) {
+        const struct sp_item *it = &pg->items[i];
+        printf("  %-40.40s  %-30.30s  %s%s\n", it->name, it->sub, it->uri, it->active ? "  (active)" : "");
     }
     listed_done = true;
 }
@@ -65,7 +67,7 @@ int main(int argc, char **argv) {
         fprintf(stderr, "usage: %s <client id> <data dir> [command [arg]]\n", argv[0]);
         return 2;
     }
-    const char *cmd = argc > 3 ? argv[3] : "", *arg = argc > 4 ? argv[4] : "";
+    const char *cmd = argc > 3 ? argv[3] : "", *arg = argc > 4 ? argv[4] : "", *arg2 = argc > 5 ? argv[5] : "";
     lv_init();
     lv_tick_set_cb(tick);
     spotify_start(argv[1], argv[2]);
@@ -93,7 +95,8 @@ int main(int argc, char **argv) {
             else if (!strcmp(cmd, "shuffle")) spotify_set_shuffle(!s->shuffle);
             else if (!strcmp(cmd, "repeat")) spotify_set_repeat((enum sp_repeat)((s->repeat + 1) % 3));
             else if (!strcmp(cmd, "like")) spotify_set_liked(!s->liked);
-            else if (!strcmp(cmd, "play")) spotify_play_uri(arg);
+            else if (!strcmp(cmd, "play")) spotify_play_uri(arg, arg2[0] ? arg2 : NULL);
+            else if (!strcmp(cmd, "songs")) spotify_fetch_tracks(arg, atoi(arg2), listed);
             else if (!strcmp(cmd, "transfer")) spotify_transfer(arg);
             else if (!strcmp(cmd, "list")) {
                 enum sp_list k = !strcmp(arg, "albums") ? SP_LIST_ALBUMS : !strcmp(arg, "queue") ? SP_LIST_QUEUE
@@ -116,9 +119,10 @@ int main(int argc, char **argv) {
                     printf("no cover yet\n");
                 }
             }
-            until = tick() + (!strcmp(cmd, "list") ? 15000 : 6000);
+            bool list = !strcmp(cmd, "list") || !strcmp(cmd, "songs");
+            until = tick() + (list ? 15000 : 6000);
         }
-        if ((int32_t)(tick() - until) > 0 || (listed_done && !strcmp(cmd, "list"))) {
+        if ((int32_t)(tick() - until) > 0 || listed_done) {
             break;
         }
         usleep(20000);

@@ -53,3 +53,10 @@ void deck_notice(const char *text, uint32_t ms);
 
 // Provided by the platform: one line for the log (no newline needed).
 void deck_log(const char *fmt, ...) __attribute__((format(printf, 1, 2)));
+
+// The panel's tone curve for every UI colour (tone.c): call before
+// deck_create. 1.0 = the colours as designed (the preview never calls it).
+void deck_tone_set(float gamma);
+
+// Slide to a page as a swipe would: 0 the lights, 1 the keyboard, 2 Spotify.
+void deck_show_page(int col);

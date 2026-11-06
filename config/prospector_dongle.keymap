@@ -1,7 +1,9 @@
 /*
- * The Prospector dongle is retired (2026-11-04: the Pi desk screen took its
- * place and the keymap moved onto the keyboard). It builds with the
- * keyboard's keymap so CI keeps proving that the screen code compiles.
+ * The Prospector dongle's keymap. The dongle is the split central again
+ * (2026-11-05): the keyboard only reports key positions, the dongle turns
+ * them into keycodes. The keymap itself lives in cyber60.keymap, so the Pi
+ * desk screen's standalone keyboard build (tools/build.sh keyboard-pi) uses
+ * exactly the same one. Edit it there.
  */
 
 #include "cyber60.keymap"

@@ -1,8 +1,8 @@
 /*
  * The preview's Spotify (instead of src/spotify.c): logged out at first (the
  * QR code), "logged in" three seconds after the page first shows, then a
- * made-up track with a generated cover, and made-up playlists, albums, queue
- * and devices. Controls change the state the way the real API would.
+ * made-up track with a generated cover, and made-up playlists, albums, songs,
+ * queue and devices. Controls change the state the way the real API would.
  */
 #include <stdio.h>
 #include <stdlib.h>
@@ -96,7 +96,10 @@ void spotify_seek(uint32_t ms) {
 void spotify_set_shuffle(bool on) { st.shuffle = on, st.version++; }
 void spotify_set_repeat(enum sp_repeat r) { st.repeat = r, st.version++; }
 void spotify_set_liked(bool liked) { st.liked = liked, st.version++; }
-void spotify_play_uri(const char *uri) { deck_log("play %s", uri), set_track(1); }
+void spotify_play_uri(const char *context_uri, const char *track_uri) {
+    deck_log("play %s from %s", context_uri, track_uri ? track_uri : "the top");
+    set_track(1);
+}
 void spotify_transfer(const char *id) {
     snprintf(st.device, sizeof(st.device), "%s", id);
     st.version++;
@@ -105,10 +108,44 @@ void spotify_logout(void) { st.auth = SP_LOGGED_OUT, st.version++; }
 
 static sp_list_cb pending_cb;
 static enum sp_list pending_kind;
+static char pending_ctx[96];
+static int pending_offset;
+static uintptr_t pending_seq; // only the newest request is answered, as in spotify.c
+
+// A song list in pages of 6 (the real one: 50), so the preview shows the MORE
+// row after a short scroll. "City pop night" isn't yours: Spotify refuses its songs.
+static int songs_page(struct sp_item *it, struct sp_list_page *pg) {
+    static const char *const songs[][2] = {
+        {"Tokyo Flash", "Vaundy"},          {"Plastic Love", "Mariya Takeuchi"},  {"Stay With Me", "Miki Matsubara"},
+        {"Ride on Time", "Tatsuro Yamashita"}, {"Telephone Number", "Junko Ohashi"}, {"Sparkle", "Tatsuro Yamashita"},
+        {"Midnight Pretenders", "Tomoko Aran"}, {"4:00 A.M.", "Taeko Ohnuki"},    {"Fly-Day Chinatown", "Yasuha"},
+        {"Dress Down", "Kaoru Akimoto"},    {"Last Summer Whisper", "Anri"},      {"September", "Mariya Takeuchi"},
+        {"Kaze wo Atsumete", "Happy End"},  {"Mayonaka no Door", "Miki Matsubara"}};
+    bool album = !strncmp(pending_ctx, "spotify:album:", 14);
+    if (!strcmp(pending_ctx, "spotify:playlist:2")) {
+        pg->status = 403;
+        return 0;
+    }
+    int total = album ? 9 : 14, n = 0;
+    for (int i = pending_offset; i < total && n < 6; i++, n++) {
+        snprintf(it[n].name, sizeof(it[n].name), "%s", songs[i][0]);
+        snprintf(it[n].sub, sizeof(it[n].sub), "%s", songs[i][1]);
+        snprintf(it[n].uri, sizeof(it[n].uri), "spotify:track:%d", i);
+        if (!album) { // an album's tracks come without pictures
+            snprintf(it[n].image, sizeof(it[n].image), "fake:t%d", i);
+        }
+    }
+    pg->total = total;
+    pg->next = pending_offset + n < total ? pending_offset + n : -1;
+    return n;
+}
 
 static void deliver(lv_timer_t *t) {
-    (void)t;
+    if ((uintptr_t)lv_timer_get_user_data(t) != pending_seq) {
+        return;
+    }
     static struct sp_item it[12];
+    struct sp_list_page pg = {.items = it, .next = -1, .status = 200};
     int n = 0;
     memset(it, 0, sizeof(it));
     switch (pending_kind) {
@@ -117,10 +154,12 @@ static void deliver(lv_timer_t *t) {
                                             "Anime openings", "Rainy Tokyo"};
         for (n = 0; n < 6; n++) {
             snprintf(it[n].name, sizeof(it[n].name), "%s", names[n]);
-            snprintf(it[n].sub, sizeof(it[n].sub), n ? "abe · %d" : "YOUR LIBRARY", 20 + n * 7);
-            snprintf(it[n].uri, sizeof(it[n].uri), "spotify:playlist:%d", n);
+            snprintf(it[n].sub, sizeof(it[n].sub), n == 2 ? "Spotify" : n ? "abe · %d" : "YOUR LIBRARY", 20 + n * 7);
             if (n) {
+                snprintf(it[n].uri, sizeof(it[n].uri), "spotify:playlist:%d", n);
                 snprintf(it[n].image, sizeof(it[n].image), "fake:%d", n);
+            } else {
+                snprintf(it[n].uri, sizeof(it[n].uri), "spotify:user:abe:collection");
             }
         }
         break;
@@ -131,6 +170,7 @@ static void deliver(lv_timer_t *t) {
         for (n = 0; n < 3; n++) {
             snprintf(it[n].name, sizeof(it[n].name), "%s", names[n][0]);
             snprintf(it[n].sub, sizeof(it[n].sub), "%s", names[n][1]);
+            snprintf(it[n].uri, sizeof(it[n].uri), "spotify:album:%d", n);
             snprintf(it[n].image, sizeof(it[n].image), "fake:a%d", n);
         }
         break;
@@ -153,24 +193,38 @@ static void deliver(lv_timer_t *t) {
         }
         break;
     }
+    case SP_LIST_TRACKS:
+        n = songs_page(it, &pg);
+        break;
     }
-    pending_cb(pending_kind, it, n, true);
+    pg.count = n;
+    if (pending_kind != SP_LIST_TRACKS) {
+        pg.total = n;
+    }
+    pending_cb(pending_kind, &pg);
 }
 
-void spotify_fetch(enum sp_list kind, sp_list_cb cb) {
+static void fetch(enum sp_list kind, const char *ctx, int offset, sp_list_cb cb) {
     pending_cb = cb;
     pending_kind = kind;
-    lv_timer_set_repeat_count(lv_timer_create(deliver, 300, NULL), 1);
+    snprintf(pending_ctx, sizeof(pending_ctx), "%s", ctx);
+    pending_offset = offset;
+    lv_timer_set_repeat_count(lv_timer_create(deliver, 300, (void *)++pending_seq), 1);
+}
+
+void spotify_fetch(enum sp_list kind, sp_list_cb cb) { fetch(kind, "", 0, cb); }
+void spotify_fetch_tracks(const char *context_uri, int offset, sp_list_cb cb) {
+    fetch(SP_LIST_TRACKS, context_uri, offset, cb);
 }
 
 static struct {
     char url[64];
     uint16_t px[SP_THUMB_PX * SP_THUMB_PX];
     lv_image_dsc_t dsc;
-} thumbs[24];
+} thumbs[48];
 
 void spotify_thumb(const char *url, sp_thumb_cb cb, void *arg) {
-    for (int i = 0; i < 24; i++) {
+    for (int i = 0; i < 48; i++) {
         if (!thumbs[i].url[0] || !strcmp(thumbs[i].url, url)) {
             if (!thumbs[i].url[0]) {
                 snprintf(thumbs[i].url, sizeof(thumbs[i].url), "%s", url);
@@ -190,3 +244,12 @@ void spotify_thumb(const char *url, sp_thumb_cb cb, void *arg) {
 }
 
 void spotify_thumb_cancel(void *arg) { (void)arg; }
+
+// The Spotify page's "NO WIFI" (no address for the QR code) and back.
+void spotify_fake_wifi(bool on) {
+    snprintf(st.login_url, sizeof(st.login_url), "%s", on ? "http://192.168.1.42:8899/" : "");
+    st.version++;
+}
+
+// For the keyboard screen's now-playing tile: no player = "nothing playing".
+void spotify_fake_player(bool on) { st.has_player = on, st.version++; }

@@ -1,9 +1,9 @@
 /*
- * Cyber60 keymap. Lives on the keyboard itself (a standalone ZMK keyboard
- * since 2026-11-04): it talks Bluetooth to the Pi desk screen, which passes
- * the keys on to the computer as a USB keyboard, or USB straight to a
- * computer. Edit the keymap here only (the retired Prospector dongle build
- * includes this file too).
+ * Cyber60 keymap, the one and only. Today it runs on the Prospector dongle
+ * (prospector_dongle.keymap includes this file): the keyboard is the split
+ * peripheral and only reports key positions. The Pi desk screen variant
+ * (tools/build.sh keyboard-pi, parked since 2026-11-05) builds this same file
+ * into a standalone keyboard instead. Edit the keymap here only.
  *
  * Base layer copied from the Rama M60-A (work keyboard) so muscle memory
  * carries over, plus auto shift, a GAMING layer and the encoder.
@@ -145,8 +145,10 @@
     └─────┴─────┴─────┴───────────────────────────────┴─────┴─────┴─────┴──────┘
     Reset restarts the keyboard, Flash puts it in bootloader mode (a USB drive
     appears; drop the keyboard .uf2 on it, or tools/flash.sh does it through
-    the Pi). BT clr forgets the Bluetooth host on the current profile (the Pi
-    is profile 1), so it can be paired again.
+    the Pi). Both act on the keyboard itself, also with the dongle. BT clr
+    forgets the Bluetooth host on the current profile: with the dongle, the
+    dongle's own host (when it runs on Bluetooth instead of USB); standalone,
+    the Pi (profile 1).
     Studio = unlock ZMK Studio for editing.  Desk←/→ = Ctrl+Win+←/→.
     PW1/PW2 = password macros &pw1 (Swedish layout) / &pw2 (English layout),
     on the same keys as the M60-A's layer 3 (<>|, B, N = PW1; M = PW2).        */

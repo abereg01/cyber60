@@ -32,10 +32,10 @@ Suggested order, foundation first:
    needs this anyway. Then 1, 2, 3, 22, 31.
 2. **The calendar**: 8, then 7.
 3. **Weather**: 45.
-4. **The S20 over Bluetooth**: 11, 12, 14, then 17. Test first that the Pi 4's
-   built-in Bluetooth handles hands-free calls (older Pis needed a USB dongle),
-   and that the call audio stays on the phone or headset. The keyboard link
-   shares the same Bluetooth, so check boot time too.
+4. **The S20 over Bluetooth**: 11, 12, 14, then 17. Designed 2026-11-05 in
+   `pi/PHONE-DESIGN.md`: our own small hands-free client in the app (no new
+   packages), the Pi never takes the call audio, and a one-hour test with the
+   S20 comes first.
 5. **35** once the desk is chosen. Check that it speaks Bluetooth (Linak/Idåsen
    types do).
 

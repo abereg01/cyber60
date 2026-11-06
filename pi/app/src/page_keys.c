@@ -6,28 +6,34 @@
  *
  *   0                                                                   800
  *   0 ┌───────────────────────────────────────────────────────────────────┐
- *     │ [⊞] [⌥] [⌃] [⇧]  modifier keycaps                     87% ▭▭▭▭▯   │  y 20-88
- *  96 │ hero: depends on the scene                                        │
- *     │   BASE    big WPM + meter     FN/SYS  big title + caption         │
- *     │   SCROLL  scroll wheel + page GAMING  WASD input display          │
- * 264 │ mini keyboard (BASE, FN, SYSTEM): mirrors key       ┌──────────┐  │
+ *     │ [⊞] [⌥] [⌃] [⇧]  modifier keycaps              14:02  87% ▭▭▭▭▯   │  y 20-88
+ *  96 │ hero: depends on the scene                          ┌─────┐┌───┐  │
+ *     │   BASE    big WPM + meter                           │cover││ ⏯ │  │  now playing
+ *     │   FN/SYS  big title + caption                       └─────┘└───┘  │  y 104-280
+ *     │   SCROLL  scroll wheel + page                        title        │
+ *     │   GAMING  WASD input display                                      │
+ *     │                            KATE・スクービー (BASE)                │
+ * 270 │ mini keyboard (BASE, FN, SYSTEM): mirrors key       ┌──────────┐  │
  *     │ presses and lights the keys the current layer uses  │   dog    │  │
  * 480 └─────────────────────────────────────────────────────┴──────────┴──┘
  *
  * A huge pale katakana word sits behind each scene. Every scene keeps the
- * bottom-right square free for the dog.
+ * bottom-right square free for the dog, with what Spotify plays above it.
  *
  * SPDX-License-Identifier: MIT
  */
 
 #include <stdio.h>
 #include <string.h>
+#include <time.h>
+#include <unistd.h>
 
 #include "deck_assets.h"
 #include "deck_ui.h"
 #include "pet.h"
 #include "shoko_keys.h"
 #include "shoko_theme.h"
+#include "spotify.h"
 
 #define WPM_MAX 90 // full meter
 #define WPM_BARS 14
@@ -42,6 +48,12 @@
 #define MAP_H (5 * MAP_UNIT - MAP_GAP)
 #define MAP_X MARGIN
 #define MAP_Y (SCREEN_H - MARGIN - MAP_H)
+#define WORD_Y (MAP_Y - 62) // the wordmark's letters stand ~10 px over the top key row
+
+#define TILE_X PET_X // now playing, above the dog
+#define TILE_Y 104
+#define TILE_KEY_H 104 // its keycaps, skirt included
+#define ART 96         // the cover's side
 
 #define HEAT_STEP 22 // per 30 ms tick: a tapped key fades in ~350 ms
 
@@ -76,6 +88,8 @@ static bool caps_word_on;
 static lv_obj_t *batt_label, *batt_body, *batt_fill, *batt_nub;
 static int8_t batt_level = -1;
 static bool batt_connected;
+static lv_obj_t *clock_label;
+static int clock_shown = -1; // minute of the day on screen, -1 = none yet
 
 // Heroes
 static lv_obj_t *wpm_group, *wpm_label, *wpm_caption, *bars[WPM_BARS];
@@ -109,6 +123,15 @@ static uint8_t heat[SHOKO_KEY_SLOTS];
 static bool held[SHOKO_KEY_SLOTS];
 static lv_timer_t *heat_timer;
 
+// Now playing
+static struct cap_colors tile_col; // the scene's keycaps
+static struct button tile_art, tile_play, tile_spotify;
+static lv_obj_t *tile_cover, *tile_title, *tile_note;
+static uint16_t art_px[ART * ART];
+static lv_image_dsc_t art_dsc;
+static char art_for[256]; // the cover URL art_px was made from
+static uint32_t tile_version = (uint32_t)-1;
+
 // Wipe
 static lv_obj_t *bands[BANDS], *stripes[BANDS];
 enum wipe_state { WIPE_IDLE, WIPE_IN, WIPE_OUT };
@@ -133,7 +156,7 @@ static struct cap_colors scene_caps(const struct shoko_scene *s) {
                                s->cap_on, s->cap_on_skirt, s->cap_on_legend};
 }
 
-// ── Top row: modifiers + battery ─────────────────────────────────────────────
+// ── Top row: modifiers, clock, battery ───────────────────────────────────────
 
 static void mods_paint(void) {
     struct cap_colors col = scene_caps(scene);
@@ -163,6 +186,35 @@ static void battery_paint(void) {
     fill(batt_fill, c);
     lv_obj_set_width(batt_fill, batt_level >= 0 ? LV_MAX(4, 40 * batt_level / 100) : 40);
     show(batt_fill, batt_connected);
+
+    // The clock keeps 24 px left of the percentage, whatever its width.
+    ink(clock_label, scene->ink);
+    lv_obj_align_to(clock_label, batt_label, LV_ALIGN_OUT_LEFT_MID, -24, 0);
+}
+
+// 24-hour HH:MM, repainted when the minute changes (TZ comes from deck.service).
+static void clock_tick(lv_timer_t *t) {
+    (void)t;
+#ifdef DECK_PREVIEW
+    int m = 14 * 60 + 2; // the preview's clock isn't real time
+#else
+    // The Pi has no RTC: until the network time is in, the time is wrong.
+    if (clock_shown < 0 && access("/run/systemd/timesync/synchronized", F_OK) != 0) {
+        return;
+    }
+    time_t now = time(NULL);
+    struct tm tm;
+    localtime_r(&now, &tm);
+    int m = tm.tm_hour * 60 + tm.tm_min;
+#endif
+    if (m != clock_shown) {
+        clock_shown = m;
+        lv_label_set_text_fmt(clock_label, "%02d:%02d", m / 60, m % 60);
+        show(clock_label, true);
+        if (scene) {
+            battery_paint();
+        }
+    }
 }
 
 // ── Hero: WPM ────────────────────────────────────────────────────────────────
@@ -291,6 +343,76 @@ static void heat_tick(lv_timer_t *t) {
     }
 }
 
+// ── Now playing ──────────────────────────────────────────────────────────────
+// Above the dog: the cover, a play/pause key and the title while Spotify has
+// a player, else one SPOTIFY key. The cover, the title and that key open the
+// Spotify page. While that page is hidden, spotify.c polls every 10 s.
+
+static void open_spotify(void *arg) { deck_show_page(2); }
+static void title_tapped(lv_event_t *e) { open_spotify(NULL); }
+
+// The cover at ART px, box-filtered from spotify_cover() once per track:
+// sharper than letting LVGL scale it on every redraw.
+static void art_make(const lv_image_dsc_t *src) {
+    const uint16_t *s = (const uint16_t *)src->data;
+    int n = (int)src->header.w, stride = (int)src->header.stride / 2;
+    for (int y = 0; y < ART; y++) {
+        int y0 = y * n / ART, y1 = (y + 1) * n / ART;
+        for (int x = 0; x < ART; x++) {
+            int x0 = x * n / ART, x1 = (x + 1) * n / ART;
+            uint32_t r = 0, g = 0, b = 0, c = (uint32_t)((y1 - y0) * (x1 - x0));
+            for (int sy = y0; sy < y1; sy++) {
+                for (int sx = x0; sx < x1; sx++) {
+                    uint16_t p = s[sy * stride + sx];
+                    r += p >> 11, g += (p >> 5) & 0x3F, b += p & 0x1F;
+                }
+            }
+            r = (r + c / 2) / c, g = (g + c / 2) / c, b = (b + c / 2) / c;
+            art_px[y * ART + x] = (uint16_t)(r << 11 | g << 5 | b);
+        }
+    }
+    lv_image_cache_drop(&art_dsc);
+    lv_obj_invalidate(tile_cover);
+}
+
+static void tile_paint(void) {
+    const struct sp_state *s = spotify_state();
+    bool player = s->auth == SP_LOGGED_IN && s->has_player;
+    show(tile_art.cap.obj, player);
+    show(tile_play.cap.obj, player);
+    show(tile_title, player);
+    show(tile_spotify.cap.obj, !player);
+    show(tile_note, !player);
+    if (!player) {
+        lv_label_set_text(tile_note, s->auth == SP_LOGGED_IN    ? "NOTHING\nPLAYING"
+                                     : s->auth == SP_LOGGING_IN ? "LOGGING\nIN"
+                                                                : "TAP TO\nSET UP");
+        return;
+    }
+    if (strcmp(lv_label_get_text(tile_title), s->track.title) != 0) {
+        lv_label_set_text(tile_title, s->track.title); // only on a change: it restarts the marquee
+    }
+    button_set_icon(&tile_play, s->playing ? &deck_icon_pause : &deck_icon_play);
+    const lv_image_dsc_t *c = spotify_cover(); // NULL until the new track's cover is in
+    if (c && strcmp(art_for, s->track.cover_url) != 0) {
+        snprintf(art_for, sizeof(art_for), "%s", s->track.cover_url);
+        art_make(c);
+    }
+    show(tile_cover, c != NULL);
+}
+
+static void tile_tick(lv_timer_t *t) {
+    if (spotify_state()->version != tile_version) {
+        tile_version = spotify_state()->version;
+        tile_paint();
+    }
+}
+
+static void tile_play_pause(void *arg) {
+    spotify_play_pause();
+    tile_tick(NULL); // the icon flips at once
+}
+
 // ── Scenes ───────────────────────────────────────────────────────────────────
 
 static const struct shoko_scene *scene_for(const char *name) {
@@ -316,6 +438,12 @@ static void scene_apply(const struct shoko_scene *s) {
     mods_paint();
     battery_paint();
     pet_paint(&(struct pet_colors){s->key_idle, s->ink_soft});
+    tile_col = scene_caps(s);
+    button_set_colors(&tile_art, &tile_col);
+    button_set_colors(&tile_play, &tile_col);
+    button_set_colors(&tile_spotify, &tile_col);
+    ink(tile_title, s->ink);
+    ink(tile_note, s->ink_soft);
 
     show(wpm_group, s->hero == SHOKO_HERO_WPM);
     show(title_group, s->hero == SHOKO_HERO_TITLE);
@@ -574,6 +702,9 @@ void keys_page_create(lv_obj_t *p, const enum deck_mod order[DECK_MOD_COUNT], bo
 
     batt_label = text(page, deck_font.ui_30, "--");
     lv_obj_align(batt_label, LV_ALIGN_TOP_RIGHT, -106, 30);
+    clock_label = text(page, deck_font.ui_30, "");
+    lv_obj_add_flag(clock_label, LV_OBJ_FLAG_HIDDEN);
+    lv_timer_create(clock_tick, 1000, NULL);
     batt_body = box(page, 702, 34, 60, 36, 10);
     lv_obj_set_style_bg_opa(batt_body, LV_OPA_TRANSP, 0);
     lv_obj_set_style_border_width(batt_body, 4, 0);
@@ -590,7 +721,8 @@ void keys_page_create(lv_obj_t *p, const enum deck_mod order[DECK_MOD_COUNT], bo
         int h = 20 + i * 5;
         bars[i] = box(wpm_group, 300 + i * 18, 186 - h, 12, h, 4);
     }
-    // KATE・スクービー, in the three colours the old screen used.
+    // KATE・スクービー, in the three colours the old screen used, on top of
+    // the mini keyboard, flush with its right edge.
     static const char *const words[3] = {"KATE", "・", "スクービー"};
     int32_t x = 0;
     for (int i = 0; i < 3; i++) {
@@ -598,9 +730,9 @@ void keys_page_create(lv_obj_t *p, const enum deck_mod order[DECK_MOD_COUNT], bo
         lv_obj_update_layout(wordmark[i]);
         x += lv_obj_get_width(wordmark[i]);
     }
-    x = SCREEN_W - MARGIN - x;
+    x = MAP_X + MAP_W - x;
     for (int i = 0; i < 3; i++) {
-        lv_obj_set_pos(wordmark[i], x, 186);
+        lv_obj_set_pos(wordmark[i], x, WORD_Y);
         x += lv_obj_get_width(wordmark[i]);
     }
 
@@ -665,6 +797,38 @@ void keys_page_create(lv_obj_t *p, const enum deck_mod order[DECK_MOD_COUNT], bo
     lv_timer_pause(heat_timer);
 
     pet_create(page, PET_X, PET_Y, PET_SIZE, share);
+
+    // ── Now playing: [cover][⏯] over the title, or [SPOTIFY] over a note ──
+    button_create(&tile_art, page, TILE_X, TILE_Y, ART, TILE_KEY_H, "", deck_font.ui_22, &tile_col, open_spotify,
+                  NULL);
+    art_dsc.header.magic = LV_IMAGE_HEADER_MAGIC;
+    art_dsc.header.cf = LV_COLOR_FORMAT_RGB565;
+    art_dsc.header.w = art_dsc.header.h = ART;
+    art_dsc.header.stride = ART * 2;
+    art_dsc.data = (const uint8_t *)art_px;
+    art_dsc.data_size = sizeof(art_px);
+    tile_cover = lv_image_create(tile_art.cap.face);
+    lv_image_set_src(tile_cover, &art_dsc);
+    lv_obj_set_style_radius(tile_cover, 16, 0); // the keycap's
+    lv_obj_set_style_clip_corner(tile_cover, true, 0);
+    button_create_icon(&tile_play, page, TILE_X + ART + 8, TILE_Y, PET_SIZE - ART - 8, TILE_KEY_H, &deck_icon_play,
+                       &tile_col, tile_play_pause, NULL);
+    tile_title = text(page, deck_font.ui_22, "");
+    lv_obj_set_pos(tile_title, TILE_X, TILE_Y + TILE_KEY_H + 10);
+    lv_obj_set_width(tile_title, PET_SIZE);
+    lv_label_set_long_mode(tile_title, LV_LABEL_LONG_SCROLL_CIRCULAR);
+    lv_obj_set_style_anim_duration(tile_title, lv_anim_speed(24), 0); // a calm marquee, 24 px/s
+    lv_obj_add_flag(tile_title, LV_OBJ_FLAG_CLICKABLE);
+    lv_obj_add_event_cb(tile_title, title_tapped, LV_EVENT_CLICKED, NULL);
+
+    button_create(&tile_spotify, page, TILE_X, TILE_Y, PET_SIZE, TILE_KEY_H, "SPOTIFY", deck_font.ui_30, &tile_col,
+                  open_spotify, NULL);
+    tile_note = caption(page, "");
+    lv_obj_set_pos(tile_note, TILE_X, TILE_Y + TILE_KEY_H + 10);
+    lv_obj_set_width(tile_note, PET_SIZE);
+    lv_obj_set_style_text_align(tile_note, LV_TEXT_ALIGN_CENTER, 0);
+    tile_tick(NULL);
+    lv_timer_create(tile_tick, 200, NULL);
 
     // ── Wipe bands, on top of everything, parked off the right edge ──
     for (int i = 0; i < BANDS; i++) {

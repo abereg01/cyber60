@@ -9,6 +9,9 @@ Conflicts=shutdown.target
 StartLimitIntervalSec=0
 
 [Service]
+# The screen's clock. Cards made before build-image.sh set Sweden run on
+# Europe/London.
+Environment=TZ=Europe/Stockholm
 ExecStartPre=/opt/deck/deck-update.sh
 ExecStart=/opt/deck/deck
 Restart=always

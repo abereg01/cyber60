@@ -599,7 +599,7 @@ static lv_obj_t *label(lv_obj_t *parent, const lv_font_t *font, uint32_t color, 
 
 // The padlock: a slate keycap with a lock drawn on it.
 static void padlock_build(void) {
-    button_create(&padlock, lv_layer_top(), 560, 22, 64, 64, "", deck_font.ui_22, &cap_mod, act_menu, NULL);
+    button_create(&padlock, lv_layer_top(), 412, 22, 64, 64, "", deck_font.ui_22, &cap_mod, act_menu, NULL);
     lv_obj_t *face = padlock.cap.face;
     // The shackle: a rounded outline whose lower half hides behind the body,
     // lifted a little, as an open lock's is.

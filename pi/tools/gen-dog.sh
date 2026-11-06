@@ -2,9 +2,9 @@
 # Render the corgi puppy in Blender and pack it for the screen:
 #   pi/app/assets/dog.png          sprite sheet: sprites, scenes, effects; loaded at runtime (pet.c)
 #   pi/app/src/assets/dog_sheet.h  its layout
-#   pi/draw/dog.png                the whole sheet on white and on night, to look at
+#   pi/build/dog-sheet.png         the whole sheet on white and on night, to look at (not in git)
 #
-# Both outputs are committed, so this only needs to run when the puppy changes
+# The first two are committed, so this only needs to run when the puppy changes
 # (pi/tools/puppy/puppy.py). Blender 4.5 LTS is downloaded once into the
 # cache and run headless in Docker (Cycles on the CPU, ~10 min for the ~95
 # frames on 4 cores); Pillow packs the frames.
@@ -20,7 +20,7 @@ PI=$(cd "$(dirname "$0")/.." && pwd)
 CACHE=${DECK_CACHE:-/srv/mergerfs/pool/docker/appdata/zmk-west/.cache/deck}
 BLENDER=blender-4.5.15-linux-x64
 FRAMES=$CACHE/puppy-frames
-mkdir -p "$CACHE/blender" "$CACHE/pylib" "$PI/draw" "$PI/app/assets"
+mkdir -p "$CACHE/blender" "$CACHE/pylib" "$PI/build" "$PI/app/assets"
 [ -w "${HOME:-/}" ] || export DOCKER_CONFIG=${DOCKER_CONFIG:-/srv/mergerfs/pool/docker/appdata/.docker-config}
 
 if [ ! -x "$CACHE/blender/$BLENDER/blender" ]; then
@@ -43,5 +43,5 @@ dock -v "$CACHE/blender":/blender:ro -v "$PI/tools/puppy":/src:ro -v "$FRAMES":/
 echo "==> packing"
 [ -d "$CACHE/pylib/PIL" ] || dock -v "$CACHE":/c python:3.12-slim pip install -q --target /c/pylib pillow==11.1.0
 dock -e PYTHONPATH=/c/pylib -v "$CACHE":/c -v "$PI":/pi -v "$FRAMES":/f python:3.12-slim \
-    python3 /pi/tools/puppy/sheet.py /f /pi/app/assets/dog.png /pi/app/src/assets/dog_sheet.h /pi/draw/dog.png
+    python3 /pi/tools/puppy/sheet.py /f /pi/app/assets/dog.png /pi/app/src/assets/dog_sheet.h /pi/build/dog-sheet.png
 echo "done: $PI/app/assets/dog.png"

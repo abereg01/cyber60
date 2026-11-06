@@ -1,7 +1,18 @@
 .DS_Store
+._*
 firmware/
 build/
 # Password macros: never committed, never built in CI.
 config/secrets/*
 !config/secrets/passwords.example.dtsi
 __pycache__/
+# Personal to-do notes (this repo is public).
+/todo
+# Generated previews and renders: rebuild them with the scripts, never commit.
+# pi/draw/: the old output folder; preview.sh, gen-dog.sh, gen-icons.sh and
+# spotify-test.sh write to pi/build/ now.
+pi/draw/
+# tools/shoko/preview.sh
+draw/shoko/
+# case/*/build.sh renders (the STL/3MF print files stay tracked)
+case/*/renders/

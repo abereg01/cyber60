@@ -222,7 +222,7 @@ static lv_obj_t *tile(lv_obj_t *tv, uint8_t col, lv_dir_t dir) {
     return t;
 }
 
-static lv_obj_t *spotify_tile, *lights_tile, *keys_tile;
+static lv_obj_t *tileview, *spotify_tile, *lights_tile, *keys_tile;
 
 static void page_turned(lv_event_t *e) {
     lv_obj_t *active = lv_tileview_get_tile_active(lv_event_get_target(e));
@@ -239,7 +239,7 @@ bool deck_create(lv_obj_t *screen, const char *share, const enum deck_mod order[
     lv_obj_remove_flag(screen, LV_OBJ_FLAG_SCROLLABLE);
     lv_obj_set_scrollbar_mode(screen, LV_SCROLLBAR_MODE_OFF);
 
-    lv_obj_t *tv = lv_tileview_create(screen);
+    lv_obj_t *tv = tileview = lv_tileview_create(screen);
     lv_obj_set_size(tv, SCREEN_W, SCREEN_H);
     lv_obj_set_scrollbar_mode(tv, LV_SCROLLBAR_MODE_OFF);
 
@@ -254,3 +254,6 @@ bool deck_create(lv_obj_t *screen, const char *share, const enum deck_mod order[
     lv_obj_add_event_cb(tv, page_turned, LV_EVENT_VALUE_CHANGED, NULL);
     return true;
 }
+
+// The tileview tells page_turned when the slide ends, as after a swipe.
+void deck_show_page(int col) { lv_tileview_set_tile_by_index(tileview, (uint32_t)col, 0, LV_ANIM_ON); }

@@ -163,6 +163,9 @@ static void hid_password(void) { // "Hunter2!"
 // preview/lights_fake.c's switches for the page's other states.
 void lights_fake_offline(int i, bool offline);
 void lights_fake_auth(enum lights_auth auth);
+// preview/spotify_fake.c's switch for the now-playing tile's "nothing playing".
+void spotify_fake_player(bool on);
+void spotify_fake_wifi(bool on); // the Spotify page's NO WIFI
 
 // A layer change as the keyboard would report it, with the keys that layer binds.
 static void layer(const char *name) {
@@ -384,10 +387,15 @@ int main(int argc, char **argv) {
     run(900);
     still("9-generic-capsword-lowbatt");
 
-    // The Spotify page: the QR login, then (the fake logs in after 3 s) the player.
+    // The Spotify page: no wifi yet, the QR login, then (the fake logs in 3 s
+    // after the page first shows) the player.
+    spotify_fake_wifi(false);
     swipe(680, 160, 300, 220);
     run(700);
-    still("10-spotify-login");
+    still("10-spotify-no-wifi");
+    spotify_fake_wifi(true);
+    run(300);
+    still("10a-spotify-login");
     run(3200);
     still("11-spotify-player");
     touch(740, 50, 80); // like
@@ -397,6 +405,9 @@ int main(int argc, char **argv) {
     touch(742, 288, 80); // repeat
     run(400);
     still("12-spotify-controls");
+    swipe(420, 700, 183, 300); // drag along the bar: seeks, doesn't turn the page
+    run(300);
+    still("12a-spotify-seek-drag");
     touch(637, 183, 80); // seek to ~70%
     run(300);
     touch(544, 288, 80); // pause
@@ -405,10 +416,31 @@ int main(int argc, char **argv) {
     touch(126, 416, 80); // LIBRARY
     run(800);
     still("14-library");
+    touch(400, 312, 80); // Shoko focus: its songs
+    run(800);
+    still("14a-playlist-songs");
+    drag(400, 420, 150, 250); // down to the MORE row
+    run(600);
+    drag(400, 420, 150, 250);
+    run(900);
+    still("14b-playlist-more");
+    touch(400, 416, 80); // MORE
+    run(800);
+    still("14c-playlist-page-2");
+    touch(706, 56, 80); // BACK: the library
+    run(800);
+    touch(400, 406, 80); // City pop night isn't yours: Spotify won't list its songs
+    run(800);
+    still("14d-playlist-refused");
+    touch(706, 56, 80); // BACK
+    run(800);
     touch(704, 128, 80); // ALBUMS
     run(800);
     still("15-library-albums");
-    touch(400, 218, 80); // play the first album
+    touch(400, 218, 80); // the first album's songs
+    run(800);
+    still("15a-album-songs");
+    touch(400, 312, 80); // play its second song
     run(600);
     touch(324, 416, 80); // QUEUE
     run(800);
@@ -528,11 +560,42 @@ int main(int argc, char **argv) {
     run(600);
     still("40-vault-opened-typed");
     run(1500);
-    touch(592, 54, 120); // the padlock
+    touch(444, 54, 120); // the padlock
     run(500);
     still("41-vault-menu");
     touch(126, 416, 120); // LOCK
     run(1500);
+
+    // The now-playing tile above the dog (the logged-out "set up" tile is in
+    // every still before the Spotify page). Its key plays, then the tile on
+    // every scene; the cover opens the Spotify page; nothing playing.
+    layer("BASE");
+    run(900);
+    still("42-tile-paused");
+    touch(748, 150, 80); // play
+    run(400);
+    still("43-tile-playing");
+    static const char *const tile_layers[][2] = {{"FN", "44-tile-fn"},         {"SYSTEM", "45-tile-system"},
+                                                 {"SCROLL", "46-tile-scroll"}, {"GAMING", "47-tile-gaming"},
+                                                 {"MOUSE", "48-tile-generic"}, {"BASE", NULL}};
+    for (unsigned i = 0; i < sizeof(tile_layers) / sizeof(tile_layers[0]); i++) {
+        layer(tile_layers[i][0]);
+        run(900);
+        if (tile_layers[i][1]) {
+            still(tile_layers[i][1]);
+        }
+    }
+    touch(664, 150, 80); // the cover
+    run(700);
+    still("49-tile-opens-spotify");
+    swipe(160, 680, 300, 220);
+    run(900);
+    spotify_fake_player(false);
+    run(400);
+    still("50-tile-nothing-playing");
+    spotify_logout();
+    run(400);
+    still("51-tile-set-up");
 
     fprintf(stderr, "%d frames\n", frames);
     return 0;

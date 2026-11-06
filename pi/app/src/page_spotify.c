@@ -4,6 +4,8 @@
  *   login    a QR code: the phone logs in to Spotify (see spotify.c)
  *   message  no client ID, no wifi, logging in, nothing playing
  *   player   what's playing, with the controls
+ * The message view: the title at MSG_Y, the text under it (one or two lines),
+ * SET UP WIFI under that.
  * LIBRARY, QUEUE and DEVICES open lists over everything (spotify_lists.c);
  * the gear opens the settings (wifi, log out).
  *
@@ -34,6 +36,7 @@
 #define COL_W (SCREEN_W - MARGIN - COL_X)
 #define BAR_Y 176
 #define ROW_Y 376 // the bottom row of buttons
+#define MSG_Y 132 // the message's title: two lines of text and the wifi key fit under it
 
 static lv_obj_t *page;
 static lv_obj_t *v_login, *v_msg, *v_player, *bottom;
@@ -160,6 +163,8 @@ static void message_view(const char *t, const char *line, bool wifi_button, bool
     show_view(v_msg);
     lv_label_set_text(msg_title, t);
     lv_label_set_text(msg_text, line);
+    // Under the text, however many lines it took (two fit above the bottom row).
+    lv_obj_align_to(msg_wifi.cap.obj, msg_text, LV_ALIGN_OUT_BOTTOM_LEFT, -4, 24);
     show(msg_wifi.cap.obj, wifi_button);
     show(bottom, list_buttons);
 }
@@ -246,10 +251,11 @@ static void refresh(lv_timer_t *t) {
 
 static void build_message(void) {
     v_msg = view(true);
-    msg_title = label(v_msg, deck_font.dela_44, SHOKO_INK, MARGIN, 190, SCREEN_W - 2 * MARGIN,
+    msg_title = label(v_msg, deck_font.dela_44, SHOKO_INK, MARGIN, MSG_Y, SCREEN_W - 2 * MARGIN,
                       LV_LABEL_LONG_DOT);
-    msg_text = caption_at(v_msg, 28, 258, SCREEN_W - 2 * MARGIN);
-    button_create(&msg_wifi, v_msg, MARGIN, 300, 300, 88, "SET UP WIFI", deck_font.ui_30, &cap_enter,
+    msg_text = caption_at(v_msg, 28, MSG_Y + 68, SCREEN_W - 2 * MARGIN);
+    lv_label_set_long_mode(msg_text, LV_LABEL_LONG_WRAP); // wraps; the button goes under it
+    button_create(&msg_wifi, v_msg, MARGIN, 0, 300, 88, "SET UP WIFI", deck_font.ui_30, &cap_enter,
                   act_wifi, NULL);
 }
 
@@ -318,6 +324,10 @@ static void build_player(void) {
     lv_obj_t *hit = box(v_player, COL_X - 14, BAR_Y - 26, COL_W + 28, 66, 0); // easy to hit
     lv_obj_set_style_bg_opa(hit, LV_OPA_TRANSP, 0);
     lv_obj_add_flag(hit, LV_OBJ_FLAG_CLICKABLE);
+    // A drag along the bar seeks: it mustn't chain to the tileview and turn
+    // the page. (hit isn't scrollable itself, so LVGL's scroll search stops
+    // here; the tileview only turns by scrolling, not by gestures.)
+    lv_obj_remove_flag(hit, LV_OBJ_FLAG_SCROLL_CHAIN);
     lv_obj_add_event_cb(hit, bar_event, LV_EVENT_ALL, NULL);
     elapsed = caption_at(v_player, COL_X + 2, BAR_Y + 26, 0);
     total = caption_at(v_player, COL_X, BAR_Y + 26, COL_W);

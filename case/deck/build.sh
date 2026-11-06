@@ -15,7 +15,7 @@ set -euo pipefail
 HERE=$(cd "$(dirname "$0")" && pwd)
 TOOLS=$HERE/../3d/tools
 WORK=${DECK_CACHE:-/srv/mergerfs/pool/docker/appdata/zmk-west/.cache/deck}/case
-UI=${DECK_UI:-$HERE/../../pi/draw}
+UI=${DECK_UI:-$HERE/../../img} # the screen picture on the glass: img/0-base-idle.png
 export DOCKER_CONFIG=${DOCKER_CONFIG:-/srv/mergerfs/pool/docker/appdata/.docker-config}
 
 docker image inspect cadtools:local >/dev/null 2>&1 ||

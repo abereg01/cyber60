@@ -5,7 +5,12 @@
 # see deck-update.sh) or an edited deck.conf onto it and
 # eject it: the Pi installs it, restarts the screen (no reboot) and puts the
 # drive back with DECK-STATUS.txt and the screen's log on it. Pulling the cable
-# instead of ejecting works too. drive=0 in deck.conf turns all this off.
+# instead of ejecting works too. drive=0 in deck.conf turns the drive off.
+#
+# The same port is the Pi's keyboard to the computer (the keyboard link, the
+# screen's kblink.c): one composite gadget with a boot keyboard (/dev/hidg0)
+# and the media keys and mouse (/dev/hidg1) next to the drive. drive=0
+# takes only the drive away.
 #
 # The computer and the Pi can't both use the drive at once, so the Pi only
 # opens it while the computer has let go: after an eject (the backing file of
@@ -29,6 +34,7 @@ SETTLE=${DECK_SETTLE:-3}      # and then to stay up
 IMG=$DATA/drive.img
 MNT=$RUN/drive
 LUN=$GADGET/functions/mass_storage.0/lun.0
+CONF=$GADGET/configs/c.1
 LAST=$DATA/drive-last.txt # what happened last, for DECK-STATUS.txt
 
 say() { echo "deck-drive: $*"; }
@@ -37,16 +43,26 @@ version() { head -n1 "$OPT/VERSION" 2>/dev/null || echo unknown; }
 
 drive_on() { ! grep -Eq '^[[:space:]]*drive[[:space:]]*=[[:space:]]*0' "$BOOT/deck.conf" 2>/dev/null; }
 
-# The Shelly cloud key controls every device on its Shelly account, so it
-# doesn't stay in deck.conf, where any computer the Pi is plugged into can read
-# it: a shelly_key=... line is moved into $DATA/shelly-key (root-only, where
-# the screen reads it) and blanked. True if there was a key.
-take_key() { # deck.conf
-    k=$(sed -n 's/^[[:space:]]*shelly_key[[:space:]]*=[[:space:]]*\([^[:space:]#]\{1,\}\).*/\1/p' "$1" 2>/dev/null |
+# Two settings don't stay in deck.conf, where any computer the Pi is plugged
+# into can read it: the Shelly cloud key (it controls every device on its
+# Shelly account) and the published calendar's link (anyone with it can read
+# the calendar). A shelly_key=... line is moved into $DATA/shelly-key
+# (root-only, where the screen reads it) and blanked; calendar_url=... the
+# same into $DATA/calendar-url. True if there was one.
+take_secret() { # deck.conf setting file
+    k=$(sed -n "s/^[[:space:]]*$2[[:space:]]*=[[:space:]]*\([^[:space:]#]\{1,\}\).*/\1/p" "$1" 2>/dev/null |
         tail -n1)
     [ -n "$k" ] || return 1
-    (umask 077 && printf '%s\n' "$k" >"$DATA/shelly-key.new") && mv "$DATA/shelly-key.new" "$DATA/shelly-key" &&
-        sed -i 's/^[[:space:]]*shelly_key[[:space:]]*=.*/shelly_key=  # saved on the Pi/' "$1" && sync
+    (umask 077 && printf '%s\n' "$k" >"$DATA/$3.new") && mv "$DATA/$3.new" "$DATA/$3" &&
+        sed -i "s/^[[:space:]]*$2[[:space:]]*=.*/$2=  # saved on the Pi/" "$1" && sync
+}
+
+# Both of them. $saved says what was saved, for the notice and the log.
+take_key() { # deck.conf
+    saved=
+    take_secret "$1" shelly_key shelly-key && saved="Shelly key"
+    take_secret "$1" calendar_url calendar-url && saved="${saved:+$saved + }Calendar link"
+    [ -n "$saved" ]
 }
 
 # ── The drive image ──────────────────────────────────────────────────────────
@@ -116,26 +132,78 @@ fill() {
 
 # ── USB ──────────────────────────────────────────────────────────────────────
 
+# One composite gadget: the keyboard, the media keys and mouse, the drive.
+# Windows, macOS and Linux need no driver for any of them. The keyboard
+# comes first, so its interface number stays the same with drive=0.
+
+# The boot keyboard (HID 1.11, appendix B): modifiers, a reserved byte, six
+# keys 0-255 (F13-F24 too), and the five LEDs back from the computer. In the
+# boot layout, so a PC's firmware (UEFI setup, the BitLocker PIN) reads it.
+KBD_DESC='05 01 09 06 a1 01 05 07 19 e0 29 e7 15 00 25 01 75 01 95 08 81 02 95 01 75 08 81 03 95 05 75 01
+05 08 19 01 29 05 91 02 95 01 75 03 91 03 95 06 75 08 15 00 26 ff 00 05 07 19 00 29 ff 81 00 c0'
+# Consumer (report ID 2: six 16-bit usages) and mouse (ID 3: 5 buttons, X, Y,
+# wheel, pan, 16 bits each): the Cyber60's own (pi/kbd/), so its reports
+# pass through byte for byte.
+EXTRA_DESC='05 0c 09 01 a1 01 85 02 05 0c 15 00 26 ff 0f 19 00 2a ff 0f 75 10 95 06 81 00 c0
+05 01 09 02 a1 01 85 03 09 01 a1 00 05 09 19 01 29 05 15 00 25 01 75 01 95 05 81 02 75 03 95 01 81 03
+05 01 09 30 09 31 16 00 80 26 ff 7f 75 10 95 02 81 06 a1 02 09 38 16 00 80 26 ff 7f 35 00 45 00 75 10
+95 01 81 06 c0 a1 02 05 0c 0a 38 02 16 00 80 26 ff 7f 35 00 45 00 75 10 95 01 81 06 c0 c0 c0'
+
+bytes() { # hex -> binary (dash's printf has no \x)
+    for b in $1; do
+        # shellcheck disable=SC2059 # the octal escape is the format
+        printf "\\$(printf %03o "0x$b")"
+    done
+}
+
+hid_fn() { # function, subclass, protocol, longest report, descriptor
+    f=$GADGET/functions/$1
+    mkdir -p "$f" && echo "$2" >"$f/subclass" && echo "$3" >"$f/protocol" && echo "$4" >"$f/report_length" &&
+        bytes "$5" >"$f/report_desc"
+}
+
+# The functions the computer gets, in this order; and those it has now.
+wanted() { echo "hid.usb0 hid.usb1$(drive_on && echo ' mass_storage.0')"; }
+linked() {
+    for l in "$CONF"/hid.* "$CONF"/mass_storage.*; do
+        [ -L "$l" ] && echo "${l##*/}"
+    done | sort | tr '\n' ' '
+}
+
 gadget_up() {
-    if [ ! -d "$GADGET" ]; then
-        modprobe libcomposite && mkdir "$GADGET" && cd "$GADGET" || return 1
+    if [ "$(cat "$GADGET/idVendor" 2>/dev/null)" != 0x1d6b ]; then
+        modprobe libcomposite && mkdir -p "$GADGET" && cd "$GADGET" || return 1
         echo 0x1d6b >idVendor  # Linux Foundation
         echo 0x0104 >idProduct # Multifunction Composite Gadget
-        echo 0x0100 >bcdDevice
         echo 0x0200 >bcdUSB
-        mkdir -p strings/0x409 configs/c.1/strings/0x409 functions/mass_storage.0
+        mkdir -p strings/0x409 "$CONF/strings/0x409" functions/mass_storage.0
         echo Cyber60 >strings/0x409/manufacturer
         echo "Desk screen" >strings/0x409/product
-        tr -d '\000' </proc/device-tree/serial-number >strings/0x409/serialnumber 2>/dev/null
-        echo DECK >configs/c.1/strings/0x409/configuration
-        echo 500 >configs/c.1/MaxPower
+        echo DECK >"$CONF/strings/0x409/configuration"
+        echo 500 >"$CONF/MaxPower"
         echo 1 >"$LUN/removable"
         echo 0 >"$LUN/ro"
         echo "Cyber60 DECK" >"$LUN/inquiry_string"
-        ln -s functions/mass_storage.0 configs/c.1/
         cd / || return 1
     fi
-    [ -n "$(cat "$GADGET/UDC")" ] && return 0 # bound before deck-drive.sh (re)started
+    if [ "$(wanted | tr ' ' '\n' | sort | tr '\n' ' ')" != "$(linked)" ]; then
+        # Functions come and go only while no computer sees the gadget: the
+        # port lets go for a moment (the drive comes back as a new disk).
+        echo >"$GADGET/UDC" 2>/dev/null
+        for l in "$CONF"/hid.* "$CONF"/mass_storage.*; do
+            [ ! -L "$l" ] || rm "$l"
+        done
+        # Version 2 (2026-11): the keyboard joined the drive. A serial number
+        # of its own, so a computer that knew the drive alone sets the device
+        # up afresh (Windows ties a device's drivers to VID, PID and serial).
+        echo 0x0200 >"$GADGET/bcdDevice"
+        echo "$(tr -d '\000' 2>/dev/null </proc/device-tree/serial-number)-2" >"$GADGET/strings/0x409/serialnumber"
+        hid_fn hid.usb0 1 1 8 "$KBD_DESC" && hid_fn hid.usb1 0 0 16 "$EXTRA_DESC" || return 1
+        for f in $(wanted); do
+            ln -s "$GADGET/functions/$f" "$CONF/$f" || return 1
+        done
+    fi
+    [ -n "$(cat "$GADGET/UDC" 2>/dev/null)" ] && return 0 # bound before deck-drive.sh (re)started
     for u in "$UDC"/*; do # the Pi 4 has one: its USB-C port
         [ -e "$u" ] && echo "${u##*/}" >"$GADGET/UDC" && return 0
     done
@@ -190,7 +258,7 @@ process() {
         "$OPT/deck-update.sh" --clear "$MNT"
     fi
     key=
-    [ -f "$MNT/deck.conf" ] && take_key "$MNT/deck.conf" && key=1
+    [ -f "$MNT/deck.conf" ] && take_key "$MNT/deck.conf" && key=$saved
     if [ -f "$MNT/deck.conf" ] && ! cmp -s "$MNT/deck.conf" "$BOOT/deck.conf"; then
         cp "$MNT/deck.conf" "$BOOT/deck.conf.new" && mv "$BOOT/deck.conf.new" "$BOOT/deck.conf" && sync
         restart=settings
@@ -225,12 +293,12 @@ process() {
         ;;
     settings)
         if [ -n "$key" ]; then
-            echo "Shelly key saved" >"$RUN/notice"
+            echo "$key saved" >"$RUN/notice"
         else
             echo "Settings applied" >"$RUN/notice"
         fi
         screen_restart || say "the screen didn't come up after the settings change"
-        last "settings changed (deck.conf${key:+, Shelly key saved on the Pi})"
+        last "settings changed (deck.conf${key:+, $key saved on the Pi})"
         ;;
     esac
 }
@@ -241,8 +309,8 @@ work() {
     process
     fill
     if ! drive_on; then
-        say "drive=0: switching the drive off"
-        echo >"$GADGET/UDC"
+        say "drive=0: switching the drive off (the keyboard stays)"
+        gadget_up
         exit 0
     fi
     attach
@@ -259,14 +327,19 @@ work() {
 mkdir -p "$DATA" "$RUN" || exit 1
 # A key put in deck.conf on the SD card itself (not through DECK).
 if take_key "$BOOT/deck.conf"; then
-    say "Shelly key moved out of deck.conf"
+    say "$saved moved out of deck.conf"
     systemctl try-restart deck.service
 fi
-drive_on || exit 0
-[ -s "$IMG" ] || image_make || exit 1
+if drive_on; then
+    [ -s "$IMG" ] || image_make || exit 1
+fi
 gadget_up || {
     say "no USB gadget (is dtoverlay=dwc2 in config.txt?)"
     exit 1
+}
+drive_on || {
+    say "drive=0: the keyboard only, no DECK drive"
+    exit 0
 }
 SELF=$(cksum <"$OPT/deck-drive.sh")
 if ! attached; then
