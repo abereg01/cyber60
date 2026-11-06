@@ -3,7 +3,8 @@
 // spec: { out: dir, size: [w,h], parts: [{file, color, offset:[x,y,z], opacity}],
 //         views: [{name, dir:[x,y,z], up:[0,0,1], zoom, section: {axis, at}}],
 //         optional: bg, fov, near, far, exposure, shadow (half-size of the shadow box, default 80),
-//         shadowBias, normalBias }
+//         shadowBias, normalBias, cameraOut (dir for <view>.camera.json);
+//         decals: [{image, center, u, v, w, h, offset, alphaTest}] }
 const fs = require('fs');
 const path = require('path');
 const { chromium } = require('/app/node_modules/playwright');
@@ -46,7 +47,7 @@ for (const p of spec.parts) {
 for (const d of (spec.decals || [])) {
   const tex = await new THREE.TextureLoader().loadAsync('/files/' + encodeURIComponent(d.image));
   tex.colorSpace = THREE.SRGBColorSpace; tex.anisotropy = 8;
-  const plane = new THREE.Mesh(new THREE.PlaneGeometry(d.w, d.h), new THREE.MeshBasicMaterial({map: tex, toneMapped: false}));
+  const plane = new THREE.Mesh(new THREE.PlaneGeometry(d.w, d.h), new THREE.MeshBasicMaterial({map: tex, toneMapped: false, alphaTest: d.alphaTest || 0}));
   const u = new THREE.Vector3(...d.u), v = new THREE.Vector3(...d.v), n = new THREE.Vector3().crossVectors(u, v);
   plane.quaternion.setFromRotationMatrix(new THREE.Matrix4().makeBasis(u, v, n));
   plane.position.set(...d.center);
@@ -73,6 +74,7 @@ window.renderView = (v) => {
     }
   }
   r.render(scene, cam);
+  window.LASTCAM = {proj: Array.from(cam.projectionMatrix.elements), view: Array.from(cam.matrixWorldInverse.elements)};
   return r.domElement.toDataURL('image/png');
 };
 window.READY = true;
@@ -98,6 +100,10 @@ window.READY = true;
   for (const v of spec.views) {
     const data = await page.evaluate((v) => window.renderView(v), v);
     fs.writeFileSync(path.join(spec.out, v.name + '.png'), Buffer.from(data.split(',')[1], 'base64'));
+    if (spec.cameraOut) {  // optional: the camera matrices, for labelling the PNG afterwards
+      const c = await page.evaluate(() => window.LASTCAM);
+      fs.writeFileSync(path.join(spec.cameraOut, v.name + '.camera.json'), JSON.stringify(c));
+    }
     console.log('wrote', v.name);
   }
   await browser.close();
