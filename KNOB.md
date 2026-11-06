@@ -24,6 +24,28 @@ These are copies in `img/knob/`. `case/knob/build.sh` writes every render
 to `case/knob/renders/` (not in git), including `front`, `top`, `cutaway`,
 `dock-back` and `screen-ui` (the mock screen), and refreshes these copies.
 
+## To do
+
+- [ ] **You: measure your magnets**: diameter × thickness, and how many you
+  have. Their size sets the pockets in the dock and the knob.
+- [ ] **Magnets on both sides, so the knob snaps into the dock.** Today the
+  dock has 2 magnets that pull on 2 steel discs in the knob's bottom. With
+  magnets in the knob too (opposite poles facing), it snaps in harder and
+  centres itself. The catch: the knob's floor is only 2 mm, with the battery
+  right above it, so magnets thicker than about 2 mm need a small bump inside
+  the base or the battery moved back. The model changes once your sizes are in.
+- [ ] **You: find a magnetic charging connector** of the kind where one part
+  stays in the device for good. Send its measurements: the size and depth of
+  the part that stays in the knob, how many contacts it has, and whether it
+  carries data.
+- [ ] **Then place it:** the part that stays goes flush in the knob's bottom
+  near the front edge. There it's hidden when the knob lies on the desk and
+  meets the dock when docked. The other part goes in the dock's back face,
+  with a USB-C socket in the back of the dock. If it's a magnetic USB-C tip
+  that carries data, it could replace the USB-C extension in the back of the
+  base: one port for charging off the dock, docking and flashing.
+- [ ] The "Before ordering" checks further down.
+
 ## What it has to do
 
 - **Battery, never a cable.** It must be free to move around: by the
@@ -54,8 +76,8 @@ to `case/knob/renders/` (not in git), including `front`, `top`, `cutaway`,
 | **Clicks** | A DRV2605L haptic driver with an LRA (the Taptic Engine kind of motor) taps once per step: fine ticks for volume, one per line for terminal history, none for free scrolling, a bump at 0 and 100 %. *Option:* real clicks with no power at all, from a small magnet on a slider in the base pulling on the ring's magnets. Slide it away and the ring spins smooth. |
 | **Press** (optional) | The ring, screen and press plate float about 0.6 mm on 3 mouse switches wired in parallel, so pressing anywhere clicks. The firmware ignores clicks while the ring is turning. If the board's power-button pin can be reached, the same press could also be on/off (long press). |
 | **Battery** | A flat LiPo on the floor of the base. Charging goes through a USB-C extension to the back of the base, or through the dock (below). |
-| **45° dock** (printed, 60 × 60 × 42 mm) | A small block with a V-shaped slot. It is narrower than the knob, so it hides behind it, and the knob's feet hang past its sides. The knob's front edge drops into the slot and its bottom rests on the slot's back face. Two magnets under that face pull on two steel discs flush in the knob's bottom, so it snaps in and a tap on the ring can't tip it backwards. The screen centre ends up 71 mm above the desk. |
-| **Charging in the dock** (optional) | A magnetic 2-pin pogo connector: spring pins in the dock's back face, pads flush in the knob's bottom near the front edge (hidden when it lies on the desk), and a USB-C socket in the back of the dock. Docking it charges it, like a headphone stand. A diode on each charge input keeps the dock and the USB-C cable apart if both are plugged in. |
+| **45° dock** (printed, 60 × 60 × 42 mm) | A small block with a V-shaped slot. It is narrower than the knob, so it hides behind it, and the knob's feet hang past its sides. The knob's front edge drops into the slot and its bottom rests on the slot's back face. Two magnets under that face pull on two steel discs flush in the knob's bottom (magnets on both sides is on the to-do list), so it snaps in and a tap on the ring can't tip it backwards. The screen centre ends up 71 mm above the desk. |
+| **Charging in the dock** | A magnetic charging connector, with one part that stays in the knob for good (a magnetic USB-C tip or a magnetic pogo pair; you're picking one). That part sits flush in the knob's bottom near the front edge, hidden when it lies on the desk. The other part goes in the dock's back face, and a USB-C socket in the back of the dock. The model shows a 12 × 5 mm stand-in. Docking it charges it, like a headphone stand. A diode on each charge input keeps the dock and the USB-C cable apart if both are plugged in. |
 
 **Battery estimate (a guess until measured):** with a 3000 mAh pack and
 about an hour of use a day, roughly 2–4 weeks per charge. The drain is
@@ -88,17 +110,17 @@ the labels on the exploded render.
 | 10 | Silicone bumper feet | 8 | 4 × Ø12 mm for the knob, 4 × Ø10 mm for the dock. Clas Ohlson/Biltema | 20–40 |
 | 11 | Steel weight: 4.5 mm steel BBs (air-gun "stålkulor"), about 120 g, or M6 nuts | 1 pack | Glued into the ring's underside channel | 30–60 |
 | 12 | Wire (28–30 AWG silicone), M3 screws + heat-set inserts, filament | | You have these | 0 |
-| 13 | Dock magnets Ø10 × 3 mm N52, plus steel discs Ø10 × 1 mm (or 2 more magnets) | 2 + 2 | Hold the knob in the dock | 30–50 |
-| | *Optional:* magnetic pogo-pin connector, 2-pin, male + female pair | 1 | Charging in the dock. Its real size sets the pocket (the model assumes a 12 × 5 mm face) | 20–40 |
-| | *Optional:* USB-C breakout board (5 V in) | 1 | For the back of the dock | 10–20 |
+| 13 | Magnets for the dock: 2 in the dock + 2 in the knob | 4 | **You may have these**; measure them first. The model has Ø10 × 3 mm in the dock and steel discs in the knob | 0–50 |
+| 14 | Magnetic charging connector, one part stays in the knob | 1 | You're picking one; its measurements set the pockets | 20–60 |
+| 15 | USB-C breakout board (5 V in) | 1 | For the back of the dock | 10–20 |
 
-**Total: about 830–1300 kr** (+30–60 kr for charging in the dock).
+**Total: about 830–1330 kr.**
 
 ### Buy it in two phases
 
 1. **Phase 1, prove the idea** (#1–4 plus a printed test ring, about 550–750 kr):
    the spin, the magnet sensing, the touch UI and Bluetooth scrolling.
-2. **Phase 2, make it a device** (#5–11, #13): clicks, battery, base, dock.
+2. **Phase 2, make it a device** (#5–11, #13–15): clicks, battery, base, dock.
 
 ### Before ordering
 
@@ -117,8 +139,6 @@ the labels on the exploded render.
   phase-2 prototype. If it doesn't, the LRA moves into the ring itself, which
   then needs a slip contact.
 - Magnetic detents yes or no (see "Clicks").
-- Charging in the dock yes or no. Without it the dock is just the slot and
-  the magnets, and charging is by USB-C cable.
 - Tipping: the knob's centre of mass is an estimate (`COM_H`). With it, the
   knob rests about 10 mm inside the dock's tipping edge before the magnets
   even help. Worth checking with the real weight.
