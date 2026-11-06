@@ -395,7 +395,7 @@ def drv2605():
 
 
 def lra():
-    return cyl(10.0, Z_PLATE0 - 3.6, Z_PLATE0 - 0.02, -10.0, -28.0, seg=48)
+    return cyl(10.0, Z_PLATE0 - 4.0, Z_PLATE0 - 0.02, -10.0, -28.0, seg=48)  # VG1040003D: 10 x 4 mm
 
 
 def tmag():

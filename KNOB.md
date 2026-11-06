@@ -93,32 +93,34 @@ after a few seconds and wakes on touch, on turning or on pick-up.
 
 ## Shopping list
 
-Prices are rough, in kronor, including VAT and shipping. The numbers match
-the labels on the exploded render.
+Prices are rough, in kronor, including VAT and shipping. **Qty** is how
+many to buy. The numbered circles on the exploded image are the **#** of
+the row here, not how many (so it's 1 sensor, 1 LRA and 1 haptic driver).
+**Search for** is what to type in the shop's search box.
 
-| # | Part | Qty | Notes | ~kr |
-|---|------|-----|-------|-----|
-| 1 | **Waveshare ESP32-S3-Touch-AMOLED-1.75**, standard version without case (SKU 31261) | 1 | Waveshare store, AliExpress (Waveshare's own shop) or The Pi Hut. Check the schematic first, see "Before ordering" | 350–450 |
-| 2 | **TMAG5273 breakout**: Adafruit 6490 (the A2, ±133 mT range) | 1 | Use the A2: strong magnets 1–2 mm away can max out the A1. Add a JST-SH (STEMMA QT/Qwiic) to male-header cable | 100–140 |
-| 3 | **Neodymium disc magnets 5 × 2 mm, N52** | 30+ | 24 in the ring plus spares. AliExpress 50-packs | 40–80 |
-| 4 | **Bearing 6810-ZZ** (50 × 65 × 7 mm) | 1 | **ZZ** (metal shields), not 2RS (rubber seals drag). Wash out the grease and add a drop of light oil for a free spin | 50–100 |
-| 5 | **DRV2605L haptic driver board** | 1 | Adafruit 2305 (about 85 kr at RS Sweden) or an AliExpress clone (about 40 kr) | 40–85 |
-| 6 | **LRA, 10 mm coin** (~170–235 Hz) | 1–2 | Must be an LRA, not an ERM "vibration motor disc"; LRAs give the crisp tap | 30–60 |
-| 7 | **Flat LiPo, ~3000 mAh**, with a protection circuit, **no bigger than 8.5 × 60 × 86 mm** | 1 | Size codes read thickness-width-length: e.g. 805080 = 8 × 50 × 80 mm. The board takes a **2-pin MX1.25** plug. **Check the polarity with a multimeter before plugging in**: sellers wire it both ways | 100–150 |
-| 8 | Mouse micro switches | 3 | **You have these.** Modelled as Omron D2F size (12.8 × 5.8 × 6.5); tell me yours | 0 |
-| 9 | **USB-C panel-mount extension**, male to female with screw ears, 15–20 cm, angled male end if possible | 1 | Brings charging/flashing to the back of the base | 40–80 |
-| 10 | Silicone bumper feet | 8 | 4 × Ø12 mm for the knob, 4 × Ø10 mm for the dock. Clas Ohlson/Biltema | 20–40 |
-| 11 | Steel weight: 4.5 mm steel BBs (air-gun "stålkulor"), about 120 g, or M6 nuts | 1 pack | Glued into the ring's underside channel | 30–60 |
-| 12 | Wire (28–30 AWG silicone), M3 screws + heat-set inserts, filament | | You have these | 0 |
-| 13 | Magnets for the dock: 2 in the dock + 2 in the knob | 4 | **You may have these**; measure them first. The model has Ø10 × 3 mm in the dock and steel discs in the knob | 0–50 |
-| 14 | Magnetic charging connector, one part stays in the knob | 1 | You're picking one; its measurements set the pockets | 20–60 |
-| 15 | USB-C breakout board (5 V in) | 1 | For the back of the dock | 10–20 |
+| # | Part | Qty | Search for | Notes | ~kr |
+|---|------|-----|------------|-------|-----|
+| 1 | **Waveshare ESP32-S3-Touch-AMOLED-1.75**, standard version without case | 1 | `ESP32-S3-Touch-AMOLED-1.75` (Waveshare SKU 31261) | Waveshare store, AliExpress (Waveshare's own shop) or The Pi Hut. Check the schematic first, see "Before ordering" | 350–450 |
+| 2 | **TMAG5273 3D Hall sensor board**, A2 version | 1 | `Adafruit 6490` | The A2 (±133/266 mT), not the A1: strong magnets 1–2 mm away max out the A1. Add a JST-SH (STEMMA QT/Qwiic) to male-header cable | 100–140 |
+| 3 | **The 24 ring magnets: neodymium discs Ø5 × 2 mm, N52, axially magnetised** | 30 (24 + 6 spare) | `S-05-02-N52N` on supermagnete.se, or on AliExpress `neodymium magnet 5x2mm N52` (50-pack) | **Buy these new, all in one batch**, so all 24 are equally strong. Your own (stronger) magnets go in the dock (#13), not the ring: 24 magnets have to fit round the ring about 10 mm apart, so Ø5 is about the limit, and bigger ones would also max out the sensor. supermagnete is about 3–4 kr each, AliExpress less | 40–120 |
+| 4 | **Bearing 6810-ZZ** (50 × 65 × 7 mm) | 1 | `6810ZZ bearing` | **ZZ** (metal shields), not 2RS (rubber seals drag). Wash out the grease and add a drop of light oil for a free spin | 50–100 |
+| 5 | **DRV2605L haptic driver board** | 1 | `Adafruit 2305`, or on AliExpress `DRV2605L module` | Adafruit's is about 85 kr at RS Sweden; AliExpress clones about 40 kr | 40–85 |
+| 6 | **LRA click motor: Vybronics VG1040003D**, 10 mm coin (10 × 4 mm, 170 Hz, 2.5 Vrms) | 1 | `VG1040003D` (DigiKey, Mouser) | About 65 kr at DigiKey. It has contact pads, not wires: solder on two thin wires. **Same size with wires already on:** Precision Microdrives `C10-100` (10 × 3.7 mm, 175 Hz). **Cheap AliExpress option:** `0832 LRA linear vibration motor` (8 × 3.2 mm, 235 Hz, with wires; fits the same spot). It must say **LRA** or "linear": a plain "coin vibration motor" is an ERM and only buzzes. The firmware runs the DRV2605L at the LRA's own frequency (Vybronics advises open-loop at 170 Hz for this one) | 30–70 |
+| 7 | **Flat LiPo, ~3000 mAh**, with a protection circuit, **no bigger than 8.5 × 60 × 86 mm** | 1 | `805080 lipo 3000mAh` | The size code reads thickness-width-length: 805080 = 8 × 50 × 80 mm. The board takes a **2-pin MX1.25** plug. **Check the polarity with a multimeter before plugging in**: sellers wire it both ways | 100–150 |
+| 8 | Mouse micro switches | 3 | — | **You have these.** Modelled as Omron D2F size (12.8 × 5.8 × 6.5); tell me yours | 0 |
+| 9 | **USB-C panel-mount extension**, male to female with screw ears, 15–20 cm, angled male end if possible | 1 | `USB C panel mount extension cable` | Brings charging/flashing to the back of the base | 40–80 |
+| 10 | Silicone bumper feet | 8 | `silikonfötter` / `gummifötter` (Clas Ohlson, Biltema) | 4 × Ø12 mm for the knob, 4 × Ø10 mm for the dock | 20–40 |
+| 11 | Steel weight: 4.5 mm steel BBs, about 120 g, or M6 nuts | 1 pack | `stålkulor 4,5 mm` | Glued into the ring's underside channel; makes the ring coast when flicked | 30–60 |
+| 12 | Wire (28–30 AWG silicone), M3 screws + heat-set inserts, filament | | — | You have these | 0 |
+| 13 | Magnets for the dock: 2 in the dock + 2 in the knob | 4 | — | **Your own strong magnets**; measure them first. The model has Ø10 × 3 mm in the dock and steel discs in the knob | 0 |
+| 14 | Magnetic charging connector, one part stays in the knob | 1 | `magnetic pogo connector 2 pin` or `magnetic USB C adapter` | You're picking one; its measurements set the pockets | 20–60 |
+| 15 | USB-C breakout board (5 V in) | 1 | `USB-C breakout board 5V` | For the back of the dock | 10–20 |
 
-**Total: about 830–1330 kr.**
+**Total: about 830–1380 kr.** One of each electronic part; only the magnets, feet and steel come in quantities.
 
 ### Buy it in two phases
 
-1. **Phase 1, prove the idea** (#1–4 plus a printed test ring, about 550–750 kr):
+1. **Phase 1, prove the idea** (#1–4 plus a printed test ring, about 550–800 kr):
    the spin, the magnet sensing, the touch UI and Bluetooth scrolling.
 2. **Phase 2, make it a device** (#5–11, #13–15): clicks, battery, base, dock.
 
