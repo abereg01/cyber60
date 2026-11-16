@@ -116,32 +116,25 @@ the row here, not how many (so it's 1 sensor, 1 LRA and 1 haptic driver).
 | 14 | Magnetic charging connector, one part stays in the knob | 1 | `magnetic pogo connector 2 pin` or `magnetic USB C adapter` | You're picking one; its measurements set the pockets | 20–60 |
 | 15 | USB-C breakout board (5 V in) | 1 | `USB-C breakout board 5V` | For the back of the dock | 10–20 |
 
-### Where to buy (Sweden/EU, checked 2026-11-16, AliExpress dropped: ~750 kr shipping)
+### Where to buy
 
-Prices are from search results, not checked at checkout. Shipping not checked anywhere.
+**Electrokit**
+- [Waveshare ESP32-S3-Touch-AMOLED-1.75](https://www.electrokit.com/esp32-s3-utvecklingskort-med-1.75amoled-touch) (41036508)
+- [TMAG5273 A2 Qwiic](https://www.electrokit.com/en/search?q=41036412) (41036412)
+- [Qwiic to 4× male pins, 150 mm, ×2](https://www.electrokit.com/qwiic-till-4x-stift) (41015942)
+- [LiPo 2000 mAh, JST-PH](https://www.electrokit.com/batteri-lipo-3.7v-2000mah) (41017312)
+- [Magnetic pogo 2-pin, male](https://www.electrokit.com/2-pol-hane-magnetisk-pogo-pin-kontakt-fjadrande) (41035991) + [female](https://www.electrokit.com/2-pol-hona-magnetisk-pogo-pin-kontakt) (41035992)
+- [USB-C breakout, 6-pin](https://www.electrokit.com/en/breakout-board-usb-c-6-pins-3A) (41036209)
+- [Rubber feet 10×4.5 mm](https://www.electrokit.com/sjalvhaftande-fot-10x4.5mm-svart-gummi)
 
-**Electrokit (one order):**
+**Mouser**
+- [DRV2605L, Adafruit 2305](https://www.mouser.se/c/?q=485-2305) (485-2305)
+- [LRA VG1040003D](https://www.mouser.se/c/?q=VG1040003D) (not confirmed there; [DigiKey](https://www.digikey.se/en/products/detail/vybronics-inc/VG1040003D/10285886) has it)
 
-| # | Part | Art. | ~kr |
-|---|------|------|-----|
-| 1 | Waveshare ESP32-S3-Touch-AMOLED-1.75 | 41036508 | 499 |
-| 2 | TMAG5273 A2 Qwiic | 41036412 | 92 |
-| 2/5 | Qwiic to 4× pin cable, 150 mm male end, ×2 | see row 2 | 29 each |
-| 7 | LiPo 2000 mAh, 50×40×8, JST-PH (replaces the 3000 mAh: Electrokit's 3000 is 65×36×10 and out of stock, too thick; 2100 mAh 41033100 is 81.5×33×6.1 with a BEC plug) | 41017312 | 169 |
-| 14 | Magnetic pogo 2-pin, male (41035991, 28 kr) + female (41035992, 18.50 kr), 2.54 mm pitch, 2 A | 41035991/2 | 47 |
-| 15 | USB-C breakout, 6-pin with CC (the 4-pin 41036064 has no CC resistors) | 41036209 | 19 |
-| 9 | USB-C panel cable exists (41017778, 249 kr), too dear: skip it and flash through the Waveshare's own USB-C before closing | | |
-
-**Elsewhere:**
-
-| # | Part | Source |
-|---|------|--------|
-| 3 | Magnets Ø5×2 N52 | supermagnete.se `S-05-02-N52N` |
-| 5 | DRV2605L | Adafruit 2305 (Qwiic): Mouser `485-2305` ($7.95; Mouser Nordic, free shipping over about 430 kr ex moms, unconfirmed), RS Sweden 124-5480, Exp-Tech.de, OpenCircuit.shop (NL, ~€11 ex VAT), Pi Hut UK (£7.60, UK import rules). Cheaper no-Qwiic: Pimoroni PIM452 at Kiwi Electronics (NL, €14.49 ex VAT) |
-| 6 | LRA | Mouser/DigiKey `VG1040003D` (about $6; DigiKey 170 kr shipping under 615 kr). Precision Microdrives `C10-100` (wires on). Bundle with #5 in one Mouser order to pass the free-shipping limit. RS Sweden sells Vibro Motor 4 Click (a VG1040003D on a board) for 273 kr ex moms, too dear |
-| 4 | Bearing 6810-ZZ = 61810-2Z | No Swedish source found (RS 681 kr ex moms, Remlagret 1181 kr for an LLB). Tymoty (CODEX 6810 ZZ, €3.46), simplybearings.co.uk, or ask a local lager shop |
-| 10 | Feet | Electrokit self-adhesive rubber 10×4.5 mm (about 1.25 kr each), not silicone and not 12 mm; or Clas Ohlson/Biltema |
-| 11 | Steel BBs 4.5 mm | Jula 1500 pcs, 99.90 kr, in-store only; Rödastjärnan (Umarex 4.5 mm steel BBs); M6 nuts from any hardware shop |
+**Others**
+- [Magnets Ø5×2 N52](https://www.supermagnete.se/eng/disc-magnets-neodymium/disc-magnet-5mm-2mm_S-05-02-N52N), supermagnete.se
+- [Bearing 6810-ZZ](https://www.tymoty.com/codex-6810-zz--61810-2z--deep-groove-ball-bearing), Tymoty
+- [Steel BBs 4.5 mm](https://www.jula.se/catalog/fritid/fritidsaktiviteter/luftvapen-och-pilbagar/luftvapen/stalkulor-031425/), Jula (in store)
 
 **Total: about 830–1380 kr.** One of each electronic part; only the magnets, feet and steel come in quantities.
 
