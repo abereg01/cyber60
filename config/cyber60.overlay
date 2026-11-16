@@ -1,0 +1,10 @@
+/*
+ * Cyber60 keyboard devicetree additions (every cyber60@rev_e build).
+ *
+ * The buzzer (BZ401 on P0.07) is "disabled" in 4pplet's board files; switch it
+ * on for src/buzzer.c.
+ */
+
+&buzzer {
+    status = "okay";
+};

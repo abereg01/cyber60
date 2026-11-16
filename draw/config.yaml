@@ -82,7 +82,7 @@ draw_config:
   footer_text: "Hold any letter, digit or symbol = shifted · pale = as BASE · grey = nothing yet"
 
   # Nord, like the KLOR drawing and the Prospector screen. Layer-key colours
-  # match the screen/underglow (display_colors.h).
+  # match the screen (display_colors.h).
   svg_extra_style: |
     svg.keymap { background-color: #eceff4; font-family: "DejaVu Sans", sans-serif; }
     rect.key { fill: #2e3440; stroke: none; }

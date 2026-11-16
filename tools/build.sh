@@ -22,7 +22,7 @@ IMAGE=zmkfirmware/zmk-build-arm:stable
 
 # The standalone keyboard for the Pi = config/cyber60.conf with these on top
 # (command-line Kconfig wins over .conf files). Same list as build.yaml's
-# cyber60-pi entry. Layer glow turns itself on once the board isn't split.
+# cyber60-pi entry.
 KEYBOARD_PI=(-DCONFIG_ZMK_SPLIT=n -DCONFIG_ZMK_STUDIO=y -DCONFIG_ZMK_STUDIO_LOCKING=y
     -DCONFIG_ZMK_POINTING=y)
 

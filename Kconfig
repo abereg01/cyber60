@@ -80,26 +80,42 @@ config PROSPECTOR_LAYER_NAME_UPPERCASE
     help
       When enabled, layer names will be converted to uppercase for display.
 
-config CYBER60_LAYER_GLOW
-    bool "Light the Cyber60 underglow in the active layer's colour"
+# ── Cyber60 keyboard ─────────────────────────────────────────────────────────
+# Set these in config/cyber60.conf.
+
+config CYBER60_BUZZER
+    bool "Cyber60 buzzer: sounds for the dongle link and a low battery"
     default y
-    depends on SHIELD_PROSPECTOR_SCREEN || (ZMK_RGB_UNDERGLOW && !ZMK_SPLIT)
+    depends on BOARD_CYBER60 && $(dt_nodelabel_enabled,buzzer)
     help
-      On every layer change the underglow takes the layer's screen colour;
-      BASE turns it off. On the standalone Cyber60 this runs on the keyboard
-      itself; with the (retired) dongle, the dongle sends the colour over.
+      src/buzzer.c. The buzzer node is switched on in config/cyber60.overlay.
 
-config CYBER60_LAYER_GLOW_SATURATION
-    int "Underglow saturation for layer colours (0-100)"
+config CYBER60_BUZZER_LINK
+    bool "Sound when the link to the dongle comes up or is lost"
+    default y
+    depends on CYBER60_BUZZER && ZMK_SPLIT && !ZMK_SPLIT_ROLE_CENTRAL
+    help
+      Rising "da-ding" when the link comes up (first connection after
+      power-on or waking, or back after a loss), falling when it has been
+      down for 3 seconds.
+
+config CYBER60_BUZZER_BATTERY_LOW
+    int "Battery percentage for the low-battery warning (two beeps)"
+    default 20
+    range 1 100
+    depends on CYBER60_BUZZER && ZMK_BATTERY_REPORTING
+
+config CYBER60_BUZZER_BATTERY_CRITICAL
+    int "Battery percentage for the critical warning (four beeps)"
+    default 10
+    range 1 100
+    depends on CYBER60_BUZZER && ZMK_BATTERY_REPORTING
+
+config CYBER60_BUZZER_VOLUME
+    int "Buzzer volume (1-100)"
     default 100
-    range 0 100
-    depends on CYBER60_LAYER_GLOW
+    range 1 100
+    depends on CYBER60_BUZZER
     help
-      The screen palette (Nord) is pastel; on LEDs that reads as white, so the
-      hue is taken from the palette and the saturation is set here.
-
-config CYBER60_LAYER_GLOW_BRIGHTNESS
-    int "Underglow brightness for layer colours (0-100)"
-    default 50
-    range 0 100
-    depends on CYBER60_LAYER_GLOW
+      100 = the loudest the PCB allows (its 680 ohm series resistor sets
+      that). Lower values shorten the pulses, which makes it quieter.

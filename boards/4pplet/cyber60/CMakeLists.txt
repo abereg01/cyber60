@@ -1,7 +1,5 @@
-# Local change vs 4pplet/zmk-config-4pplet: cyber60_led.c reacts to Bluetooth
-# profile changes, which only exist when the board is the central. As the
-# dongle's peripheral it has no profiles (and the event doesn't link), so skip it.
-if(NOT CONFIG_ZMK_SPLIT OR CONFIG_ZMK_SPLIT_ROLE_CENTRAL)
-    target_sources(app PRIVATE cyber60_led.c)
-endif()
-target_sources(app PRIVATE cyber60_buzzer.c)
+# Local change vs 4pplet/zmk-config-4pplet (2026-11-08): this Cyber60 has no
+# LEDs fitted (no caps-lock RGB LED, no underglow), so cyber60_led.c isn't
+# built. cyber60_buzzer.c isn't either: src/buzzer.c at the repo root replaces
+# it (4pplet's beeps on Bluetooth profile changes, which happen on the dongle,
+# and doesn't link on a split peripheral).

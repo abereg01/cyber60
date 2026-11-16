@@ -7,25 +7,15 @@
 #     over from the KLOR repo's klor_dongle_screen)
 #   - the ST7789V display driver amendment, event types and caps-word override
 #     the screen needs
-#   - the layer-glow behavior (underglow follows the active layer)
+#   - the Cyber60 buzzer sounds (src/buzzer.c)
 
 zephyr_include_directories(include)
 zephyr_include_directories(${APPLICATION_SOURCE_DIR}/include)
 zephyr_library()
 
-# Layer glow behavior: drives the underglow. On the standalone Cyber60 the
-# listener below invokes it locally; with the dongle, ZMK forwarded the call
-# (global locality) to the Cyber60, which owns the LEDs.
-if(CONFIG_DT_HAS_ZMK_BEHAVIOR_LAYER_GLOW_ENABLED)
-        target_sources(app PRIVATE src/behaviors/behavior_layer_glow.c)
-endif()
-
-# Layer glow listener on the standalone Cyber60 (the dongle build compiles the
-# same file from the prospector_screen shield).
-if(CONFIG_CYBER60_LAYER_GLOW AND NOT CONFIG_SHIELD_PROSPECTOR_SCREEN)
-        target_sources(app PRIVATE boards/shields/prospector_screen/src/layer_glow.c)
-        # display_colors.h (the layer colours) includes modifier_order.h.
-        target_include_directories(app PRIVATE boards/shields/prospector_screen/include)
+# Buzzer sounds on the keyboard (dongle link, low battery).
+if(CONFIG_CYBER60_BUZZER)
+        target_sources(app PRIVATE src/buzzer.c)
 endif()
 
 if(CONFIG_SHIELD_PROSPECTOR_SCREEN)
@@ -45,8 +35,8 @@ if(CONFIG_SHIELD_PROSPECTOR_SCREEN)
                 target_sources(app PRIVATE src/behaviors/behavior_caps_word.c)
         endif()
 
-        # Split-central status change event + observer (the screen and the
-        # layer glow both need to know when the Cyber60 connects).
+        # Split-central status change event + observer (the screen needs to
+        # know when the Cyber60 connects).
         zephyr_library_sources(src/events/split_central_status_changed.c)
         zephyr_library_sources(src/split/bluetooth/central_status_changed_observer.c)
 

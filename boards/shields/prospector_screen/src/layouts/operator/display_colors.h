@@ -87,15 +87,15 @@ static inline uint32_t display_color_for_mod(enum modifier_type type) {
 }
 
 // ── Per-layer accent ─────────────────────────────────────────────────────────
-// Each layer gets its own color, used for the layer-name label text and (via
-// src/layer_glow.c) the hue of the Cyber60 underglow. Indices match the layer
-// order in config/cyber60.keymap:
+// Each layer gets its own color, used for the layer-name label text (and the
+// Shoko scenes, via shoko_theme.h). Indices match the layer order in
+// config/cyber60.keymap:
 //   0 BASE / 1 SCROLL / 2 GAMING / 3 FN / 4 SYSTEM
 // SCROLL is purple rather than KLOR's teal: teal and SYSTEM's frost blue look
-// the same on LEDs.
+// too alike.
 static inline uint32_t display_color_for_layer(uint8_t idx) {
     switch (idx) {
-        case 0: return 0xD8DEE9; // BASE    — Nord4 snow (underglow off)
+        case 0: return 0xD8DEE9; // BASE    — Nord4 snow
         case 1: return 0xB48EAD; // SCROLL  — Nord15 purple
         case 2: return 0xBF616A; // GAMING  — Nord11 red (loud / "watch out" indicator)
         case 3: return 0xA3BE8C; // FN      — Nord14 green

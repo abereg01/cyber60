@@ -18,10 +18,6 @@ if(CONFIG_SHIELD_PROSPECTOR_SCREEN)
     zephyr_library_sources(src/modifier_order.c)
   endif()
 
-  if(CONFIG_CYBER60_LAYER_GLOW)
-    zephyr_library_sources(src/layer_glow.c)
-  endif()
-
   if(CONFIG_PROSPECTOR_STATUS_SCREEN_OPERATOR)
     file(GLOB layout_sources src/layouts/operator/*.c)
     list(FILTER layout_sources EXCLUDE REGEX "status_screen\\.c$")

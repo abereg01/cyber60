@@ -17,7 +17,7 @@
  *     other layers to whichever of those is on top. With no encoder fitted
  *     they (and SCROLL) are idle, but kept: the layer numbers stay put, and
  *     putting the encoder back needs no firmware change.
- * The screen/underglow colours are indexed by this order
+ * The screen colours are indexed by this order
  * (boards/shields/prospector_screen/src/layouts/operator/display_colors.h).
  *
  * Unknown/undecided keys are &none with a TODO.
@@ -27,7 +27,6 @@
 #include <dt-bindings/zmk/bt.h>
 #include <dt-bindings/zmk/keys.h>
 #include <dt-bindings/zmk/pointing.h>
-#include <layer_glow.dtsi>
 
 #define BASE    0
 #define SCROLL  1

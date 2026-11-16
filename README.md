@@ -25,7 +25,7 @@ Today:
 
 ```
 Computer ←USB── Prospector dongle (keymap, screen, Studio)
-                    └──BLE── Cyber60 (keys, battery, underglow)
+                    └──BLE── Cyber60 (keys, battery, buzzer)
 ```
 
 Later, with the desk screen (parked; the firmware for it is `tools/build.sh
@@ -43,9 +43,9 @@ software, nothing installed. The Pi's wifi only ever reaches the internet
 
 ## The keyboard
 
-| # | Layer | How | Underglow |
-|---|-------|-----|-----------|
-| 0 | BASE | default. Letters, digits and symbols **auto-shift** (hold 175 ms) | off |
+| # | Layer | How | Screen colour |
+|---|-------|-----|---------------|
+| 0 | BASE | default. Letters, digits and symbols **auto-shift** (hold 175 ms) | white |
 | 1 | SCROLL | press the encoder (toggle): it scrolls instead of changing volume. Idle while a Del switch sits in the encoder's spot (since 2026-11-06) | purple |
 | 2 | GAMING | double-tap the bottom-right corner key (toggle): plain keys, no combos | red |
 | 3 | FN | hold Space: F-keys, arrows on HJKL, ^Z/^X/^C/^V, Home/End | green |
@@ -54,6 +54,11 @@ software, nothing installed. The Pi's wifi only ever reaches the internet
 **Combos** (BASE and SCROLL): A+S = Ctrl+A, S+D = Ctrl+S, X+C = copy,
 C+V = paste, X+V = cut, both Shifts = Caps Word. On SYSTEM: D+F = put the
 **dongle** in bootloader mode, to flash it in place.
+
+**Sounds** (the PCB has a buzzer but no LEDs): a rising "da-ding" when the
+keyboard reaches the dongle (after power-on, waking from sleep, or a lost
+link), falling when the link has been gone for 3 s, two beeps at 20 % battery
+and four at 10 %. `src/buzzer.c`; volume and thresholds in `config/cyber60.conf`.
 
 The keymap is `config/cyber60.keymap` (the layer order matters: see the
 comment at its top). The dongle's `prospector_dongle.keymap` just includes
@@ -65,8 +70,8 @@ with [keymap-drawer](https://github.com/caksoylar/keymap-drawer) in Docker.
 ## The screens
 
 **Shoko**: the three Pantones on GMK Shoko's kit sheet (656 C pale, 5425 C
-slate, 2975 C aqua). BASE is white; every other layer's scene takes its
-underglow colour (FN green, SYSTEM blue, GAMING red), with a huge pale
+slate, 2975 C aqua). BASE is white; every other layer's scene has its own
+colour (FN green, SYSTEM blue, GAMING red), with a huge pale
 katakana word behind it, and a keycap-row wipe runs between layers. A mini
 keyboard echoes your presses, and modifiers show as keycaps. On the
 Prospector: `boards/shields/prospector_screen/src/layouts/shoko/`, previewed
@@ -149,7 +154,7 @@ anyone with a GitHub account can download. So no secret goes into git or CI:
 config/                 keymap, combos, behaviors, .conf files; secrets/ (gitignored)
 boards/4pplet/cyber60/  the Cyber60 board definition (from 4pplet, two marked local changes)
 boards/shields/         prospector_dongle (central) + prospector_screen (Shoko and Operator layouts)
-src/, drivers/, include/, dts/   ZMK modules: layer glow, caps word, screen events
+src/, drivers/, include/, dts/   ZMK modules: buzzer, caps word, screen events
 tools/                  build.sh, draw.sh, make-passwords.py, shoko/ (screen assets + preview)
 draw/                   the keymap drawing's sources (keymap-drawer); screen previews are generated, not in git
 img/                    the pictures in this README
@@ -180,10 +185,10 @@ Items 1 to 4 wait until the desk screen comes back.
 
 - `boards/4pplet/cyber60/`, `dts/bindings/buzzer/`: the Cyber60 board from
   [4pplet/zmk-config-4pplet](https://github.com/4pplet/zmk-config-4pplet) (MIT),
-  with two marked local changes so it can run as a split peripheral:
-  `CMakeLists.txt` skips the Bluetooth-profile LED code, and
-  `Kconfig.defconfig` only defaults USB HID on when the board is the central.
-  Re-apply both if you update from 4pplet.
+  with two marked local changes: `CMakeLists.txt` builds neither the LED code
+  (no LEDs on this PCB) nor 4pplet's buzzer code (`src/buzzer.c` replaces it),
+  and `Kconfig.defconfig` only defaults USB HID on when the board is the
+  central. Re-apply both if you update from 4pplet.
 - `boards/shields/prospector_screen/`, `drivers/`, `include/`, `src/events`,
   `src/split`, `src/behaviors/behavior_caps_word.c`: the screen code from the
   KLOR repo, itself based on

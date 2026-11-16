@@ -21,9 +21,9 @@
 #define SHOKO_AQUA_D  0x66BCD8 // keycap skirt under a 2975 C face
 #define SHOKO_CORAL   0xEE8C7F // the one warm colour: low battery only
 
-// The layer colours: the same as the keyboard's underglow
-// (layouts/operator/display_colors.h → layer_glow.c) and the keymap drawing,
-// so the screen and the keyboard always agree. Nord palette.
+// The layer colours: the same as the Operator layout
+// (layouts/operator/display_colors.h) and the keymap drawing, so the screens
+// and the drawing always agree. Nord palette.
 #define LAYER_FN      0xA3BE8C // green
 #define LAYER_SYSTEM  0x88C0D0 // frost blue
 #define LAYER_GAMING  0xBF616A // red
@@ -81,7 +81,7 @@ static const struct shoko_scene shoko_scenes[] = {
         .meter = 0x2C8DB4,
     },
     {
-        // Green, like FN's underglow; white keycaps.
+        // Green, FN's colour; white keycaps.
         .match = "FN", .title = "FN", .caption = "F-KEYS  ARROWS  EDIT", .kana = "エフエヌ",
         .hero = SHOKO_HERO_TITLE,
         .bg = LAYER_FN, .ink = SHOKO_INK, .ink_soft = 0x4A6838, .watermark = 0x97B47F,
@@ -91,7 +91,7 @@ static const struct shoko_scene shoko_scenes[] = {
         .meter = SHOKO_WHITE,
     },
     {
-        // Frost blue, like SYSTEM's underglow; white keycaps.
+        // Frost blue, SYSTEM's colour; white keycaps.
         .match = "SYSTEM", .title = "SYS", .caption = "MEDIA  DESKTOPS  STUDIO", .kana = "システム",
         .hero = SHOKO_HERO_TITLE,
         .bg = LAYER_SYSTEM, .ink = SHOKO_INK, .ink_soft = 0x386A7B, .watermark = 0x7CB5C6,
@@ -101,7 +101,7 @@ static const struct shoko_scene shoko_scenes[] = {
         .meter = SHOKO_WHITE,
     },
     {
-        // Purple, like SCROLL's underglow. Only reachable with the encoder fitted.
+        // Purple, SCROLL's colour. Only reachable with the encoder fitted.
         .match = "SCROLL", .title = "SCROLL", .caption = "KNOB = WHEEL", .kana = "スクロール",
         .hero = SHOKO_HERO_SCROLL,
         .bg = LAYER_SCROLL, .ink = SHOKO_INK, .ink_soft = 0x684A63, .watermark = 0xA883A1,
@@ -111,7 +111,7 @@ static const struct shoko_scene shoko_scenes[] = {
         .meter = SHOKO_WHITE,
     },
     {
-        // Red, like GAMING's underglow: loud on purpose. White keycaps light up.
+        // Red, GAMING's colour: loud on purpose. White keycaps light up.
         .match = "GAMING", .title = "GAME ON", .caption = "APM", .kana = "ゲーム",
         .hero = SHOKO_HERO_GAME,
         .bg = LAYER_GAMING, .ink = SHOKO_WHITE, .ink_soft = 0xF4D2D5, .watermark = 0xB2545D,
