@@ -111,7 +111,7 @@ the row here, not how many (so it's 1 sensor, 1 LRA and 1 haptic driver).
 | 9 | **USB-C panel-mount extension**, male to female with screw ears, 15–20 cm, angled male end if possible | 1 | `USB C panel mount extension cable` | Brings charging/flashing to the back of the base | 40–80 |
 | 10 | Silicone bumper feet | 8 | `silikonfötter` / `gummifötter` (Clas Ohlson, Biltema) | 4 × Ø12 mm for the knob, 4 × Ø10 mm for the dock | 20–40 |
 | 11 | Steel weight: 4.5 mm steel BBs, about 120 g, or M6 nuts | 1 pack | `stålkulor 4,5 mm` | Glued into the ring's underside channel; makes the ring coast when flicked | 30–60 |
-| 12 | Wire (28–30 AWG silicone), M3 screws + heat-set inserts, filament | | — | You have these | 0 |
+| 12 | Wire (28–30 AWG silicone), M3 screws + heat-set inserts, filament | | — | You have these. Includes the **INT wire**: sensor INT pad → Waveshare header pin 8 (GPIO16); any thin leftover wire, soldered at the sensor end, male pin or solder into the socket at the board end | 0 |
 | 13 | Magnets for the dock: 2 in the dock + 2 in the knob | 4 | — | **Your own strong magnets**; measure them first. The model has Ø10 × 3 mm in the dock and steel discs in the knob | 0 |
 | 14 | Magnetic charging connector, one part stays in the knob | 1 | `magnetic pogo connector 2 pin` or `magnetic USB C adapter` | You're picking one; its measurements set the pockets | 20–60 |
 | 15 | USB-C breakout board (5 V in) | 1 | `USB-C breakout board 5V` | For the back of the dock | 10–20 |
