@@ -8,16 +8,16 @@ cable notches and the walls are the original's own triangles, only moved up.
    keyboard's front edge. The wrist rest is level with it. (The trackpad keeps its own
    wedge: its back edge is at 25.4.)
 2. **A wrist rest, 80 mm deep, tapered.** Level at 19.9 for its first 40 mm (next to the
-   trackpad), then it falls away smoothly to a soft 7 mm nose over the last 40 mm. The
+   trackpad), then it falls away smoothly to a soft 13.5 mm nose over the last 40 mm. The
    curve is a smoothstep: it eases out of the flat part and eases into the nose, with
-   no edge, no step and no flat band anywhere. The steepest part is 28° at the middle of
+   no edge, no step and no flat band anywhere. The steepest part is 15° at the middle of
    the slope. The front corners are rounded (R20), the top side edges R3, the nose R4.
    Level side to side: **no lean**.
 3. **The floor under the trackpad is gone.** The trackpad rests on four pads under its
    feet, in the same places as the old tray's foot dimples (the dimples are kept, Ø9.4 × 1),
    and the rim. Push it up through the open bottom to take it out.
 
-Size 164.6 × 196.7 × 24.0 mm, about 250 cm³ solid (the slicer's infill makes it far less).
+Size 164.6 × 196.7 × 24.0 mm, about 270 cm³ solid (the slicer's infill makes it far less).
 
 ## Printing
 

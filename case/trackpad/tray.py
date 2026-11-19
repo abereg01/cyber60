@@ -33,7 +33,7 @@ CUT_Z = 5.3  # the original is split here: above = reused as is, below = rebuilt
 TOP = 19.9  # wrist rest height (= keyboard front edge)
 WRIST = 80.0  # wrist rest depth in front of the pocket
 LEVEL = 40.0  # it stays level this far in front of the pocket, then tapers
-ZEND = 7.0  # height at the nose
+ZEND = 13.45  # height at the nose (half the drop of rev 2, so half the slope)
 NOSE_R = 4.0  # radius of the rounded front edge
 PLAN_R = 20.0  # front corner radius in plan
 EDGE_R = 3.0  # radius of the top side edges of the wrist rest
