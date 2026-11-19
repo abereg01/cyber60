@@ -116,9 +116,43 @@ the row here, not how many (so it's 1 sensor, 1 LRA and 1 haptic driver).
 | 14 | Magnetic charging connector, one part stays in the knob | 1 | `magnetic pogo connector 2 pin` or `magnetic USB C adapter` | You're picking one; its measurements set the pockets | 20–60 |
 | 15 | USB-C breakout board (5 V in) | 1 | `USB-C breakout board 5V` | For the back of the dock | 10–20 |
 
+### Light bar (700 mm, steered by the knob), order together with the above
+
+Added 2026-11-19. Parts for the monitor light bar (`case/lightbar/`): an ESP32-C3
+in the pod at the bar's end, 5 PWM channels (R, G, B, warm, cool white), 5 V
+from a USB-C socket in the end cap, Bluetooth link to the knob. **The LED
+strip is not on this list: you have it at home.** The list assumes a 5 V RGB+CCT
+strip (5 channels). With fewer channels (CCT only = 2, RGB only = 3) use fewer
+MOSFETs and nothing else changes. The strip must be **5 V**; for a 12/24 V strip
+the whole power side changes, so say so before ordering.
+
+| # | Part | Qty | Search for | Notes | ~kr |
+|---|------|-----|------------|-------|-----|
+| L1 | **Waveshare ESP32-C3-Zero-M** (ESP32-C3, USB-C, castellated pads) | 1 | Electrokit `41032831` | In stock at 92 kr. Waveshare lists it as 23.5 × 18 mm, which is the size the pod's bore is checked against. The Electrokit "ESP32-C3 mini" `41022524` shows as sold out, and a Lolin C3 Mini (34 × 25 mm) is too big for the 23 mm bore. If you buy another C3 board it must be ≤ 24 × 18 mm | 92 |
+| L2 | **USB-C breakout, 6-pin, 3 A** (same as #15) | 1 more (so 2 in total with #15) | Electrokit `41036209` | Power only, into the end cap. **Check that it has the 5.1 kΩ CC resistors on board**; if not, solder 2 × 5.1 kΩ (CC1/CC2 to GND) or a plain charger will only give 500 mA. The cap's hole is 9.4 × 3.6 mm for the jack | 15–20 |
+| L3 | **MOSFET, N-channel, logic level, SOT-23: AO3400A** | 10 (5 + spares) | `AO3400A SOT-23` | The ESP32 drives the gate at 3.3 V, so it must be logic level (plain IRF parts do not switch fully). 5 A each is plenty: a 700 mm strip pulls about 2.5 A in total. SOT-23 is small enough to fit the bore; **TO-220 ones (IRLZ44N) do not fit** | 15–30 |
+| L4 | SOT-23 to DIP adapter boards | 10 | `SOT-23 to DIP adapter` | Makes hand-soldering the AO3400A easy; or solder them straight onto the perfboard | 15–30 |
+| L5 | Perfboard, 2.54 mm, small | 1 | `prototype board 2.54 mm` | Cut to about 18 × 30 mm for the MOSFET board | 10–20 |
+| L6 | Resistors 22 Ω (gate) and 100 kΩ (gate pull-down) | 5 + 5 | — | **You probably have these.** Same values as in the original build | 0–10 |
+| L7 | Polyfuse 3 A (hold) / 6 V, radial | 1 | `PTC resettable fuse 3A` | In the 5 V feed after the USB-C board, so a short can't cook the jack | 5–10 |
+| L8 | Capacitors: 1000 µF 10 V radial, Ø8 mm or smaller, plus 100 nF ceramic | 1 + 1 | — | Across the 5 V rail where the strip joins. Keep to Ø8 so it fits | 5–10 |
+| L9 | Wire: 22 AWG silicone, red and black, for the strip feed; 28 AWG for signals | | — | You have the thin wire. 22 AWG carries the 2–3 A | 0 |
+| L10 | Double-sided tape (foam, 3M VHB style), M3 × 16 screw + nut | | — | As in the original build: tape holds the bar to the back of the monitor, an M3 screw and nut hinge the arm. **You have these** | 0 |
+
+**Light bar total: about 160–280 kr** for new parts (the strip, filament and
+fasteners are yours). Where to buy: Electrokit for L1, L2, L7 and the capacitors;
+AliExpress for L3–L4 (or Electrokit's SOT-23 adapters).
+
+**Phase 3** is the light bar. It doesn't need to wait for the knob's phases: the
+bar works from its own USB-C socket as soon as the pod is wired, and the knob
+only adds the Bluetooth link.
+
+The bar's own files, fit check and printing notes are in `case/lightbar/README.md`.
+
 ### Where to buy
 
 **Electrokit**
+- Light bar: [Waveshare ESP32-C3-Zero-M](https://www.electrokit.com/en/search?q=41032831) (41032831), and a second [USB-C breakout](https://www.electrokit.com/en/breakout-board-usb-c-6-pins-3A) (41036209)
 - [Waveshare ESP32-S3-Touch-AMOLED-1.75](https://www.electrokit.com/esp32-s3-utvecklingskort-med-1.75amoled-touch) (41036508)
 - [TMAG5273 A2 Qwiic](https://www.electrokit.com/en/search?q=41036412) (41036412)
 - [Qwiic to 4× male pins, 150 mm, ×2](https://www.electrokit.com/qwiic-till-4x-stift) (41015942)
@@ -136,7 +170,7 @@ the row here, not how many (so it's 1 sensor, 1 LRA and 1 haptic driver).
 - [Bearing 6810-ZZ](https://www.tymoty.com/codex-6810-zz--61810-2z--deep-groove-ball-bearing), Tymoty
 - [Steel BBs 4.5 mm](https://www.jula.se/catalog/fritid/fritidsaktiviteter/luftvapen-och-pilbagar/luftvapen/stalkulor-031425/), Jula (in store)
 
-**Total: about 830–1380 kr.** One of each electronic part; only the magnets, feet and steel come in quantities.
+**Total (knob only): about 830–1380 kr;** the light bar adds about 160–280 kr (above). One of each electronic part; only the magnets, feet and steel come in quantities.
 
 ### Buy it in two phases
 

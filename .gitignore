@@ -16,3 +16,13 @@ pi/draw/
 draw/shoko/
 # case/*/build.sh renders (the STL/3MF print files stay tracked)
 case/*/renders/
+# Light bar: Made by Jade's model files and anything cut from her meshes (her licence, public repo)
+/Monitor_Light_Bar.3mf
+/Monitor+Light+Bar+-+Diffuser.stl
+case/lightbar/original/
+case/lightbar/Monitor_Light_Bar-700.3mf
+case/lightbar/Monitor+Light+Bar+-+Diffuser-700.stl
+case/lightbar/lightbar-tube-175.stl
+case/lightbar/lightbar-diffuser-233.stl
+case/lightbar/lightbar-pod.stl
+case/lightbar/lightbar-cap.stl

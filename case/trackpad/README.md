@@ -25,7 +25,7 @@ Bottom down, as exported. No supports (the only overhangs are the roofs of the f
 optional Ø12.2 × 1.2 bumper recesses on the underside, plus a 0.3 mm step inside the
 original's walls). Bambu Studio, PLA, **0.6 mm nozzle**: 0.2 mm layers for the wrist
 rest's top if you can afford the time, 4 walls, 15% gyroid, **ironing on the top surface**
-(only top layers, "all top surfaces" is fine). The taper is 0.2 mm steps about 0.4–0.7 mm
+(only top layers, "all top surfaces" is fine). The taper is 0.2 mm steps about 0.75 mm
 apart at its steepest, which ironing hides.
 
 | File | |
