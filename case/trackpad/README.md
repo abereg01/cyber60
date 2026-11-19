@@ -1,64 +1,56 @@
 # Magic Trackpad tray with a wrist rest
 
-For using the trackpad on the desk to the right of the keyboard. Built on the
-pocket of the old tray (`../../trackpad.stl`), in the family look of the Shoko
-stand, the knob and `../stand`: slate blue-grey, soft edges, big corners.
+The **original tray** (`../../trackpad.stl`, the one people report as a perfect fit)
+with three changes, nothing else touched. The rim, the pocket (160 × 114.4), the two
+cable notches and the walls are the original's own triangles, only moved up.
 
-- **One flat top surface**: an 80 mm wrist rest runs straight into the trackpad,
-  whose glass sits 0.3 mm below it. The surface is level front to back (you wanted
-  the trackpad flat), so the pocket's floor is tilted to hold the trackpad's wedge
-  (4.9 at the thin edge, 10.4 at the thick one).
-- **19.9 mm high at the left edge**, the same as the keyboard's front edge, leaning
-  **2° down to the right** (14.0 mm at the right edge), for the wrist. It does not
-  rise towards the back like the keyboard.
-- Thin edge towards you; the thick edge with the Lightning port at the back, with
-  **both notches of the old tray** in the back wall (the port in the middle, the power
-  switch near the right corner), the **four foot dimples** (Ø10 × 1), and a thumb scoop
-  in the right wall to lift the trackpad out.
+1. **Raised** so the trackpad's front edge sits at **19.9 mm**, the same as the
+   keyboard's front edge. The wrist rest is level with it. (The trackpad keeps its own
+   wedge: its back edge is at 25.4.)
+2. **A wrist rest, 80 mm deep, tapered.** Level at 19.9 for its first 40 mm (next to the
+   trackpad), then it falls away smoothly to a soft 7 mm nose over the last 40 mm. The
+   curve is a smoothstep: it eases out of the flat part and eases into the nose, with
+   no edge, no step and no flat band anywhere. The steepest part is 28° at the middle of
+   the slope. The front corners are rounded (R20), the top side edges R3, the nose R4.
+   Level side to side: **no lean**.
+3. **The floor under the trackpad is gone.** The trackpad rests on four pads under its
+   feet, in the same places as the old tray's foot dimples (the dimples are kept, Ø9.4 × 1),
+   and the rim. Push it up through the open bottom to take it out.
 
-Size: 179 × 205 × 20 mm. Pocket 160.8 × 115.7.
-
-## Why 2°
-
-The trackpad is 10.4 thick at its back edge and the tray's top gets lower to the
-right. 2° is as far as it goes before the floor under the thick edge at the right gets
-thin: it is **3.5 mm** there now (`report.json` → `floor_under_trackpad`). A steeper
-lean needs a taller tray, i.e. a higher left edge than 19.9. Change `LEAN` and look
-at that number.
+Size 164.6 × 196.7 × 24.0 mm, about 250 cm³ solid (the slicer's infill makes it far less).
 
 ## Printing
 
-Bottom down, as exported, no supports (the only overhangs are the roofs of the optional
-bumper recesses on the underside, four Ø12.2 × 1.2). Bambu Studio, PLA, **0.6 mm
-nozzle**: 0.30 mm layers, 4 walls, 15% gyroid. About 456 cm³ solid, roughly 200 g.
-
-The top leans 2° to the right, so it prints as very flat steps (0.3 mm every 8.6 mm):
-you will see faint bands, not feel them. If they bother you, turn on ironing for the top
-layer.
-
-**Print `trackpad-fit-test.stl` first** (just the pocket's rim, flat, about 15 minutes) and
-drop the trackpad in. The old tray's pocket was **160.0 × 114.4**, tighter than Apple's
-spec (160 × 114.9), so I used 160.8 × 115.7 (0.4 mm a side). If yours drops in with
-play, reduce `FIT`; if it binds, raise it.
+Bottom down, as exported. No supports (the only overhangs are the roofs of the four
+optional Ø12.2 × 1.2 bumper recesses on the underside, plus a 0.3 mm step inside the
+original's walls). Bambu Studio, PLA, **0.6 mm nozzle**: 0.2 mm layers for the wrist
+rest's top if you can afford the time, 4 walls, 15% gyroid, **ironing on the top surface**
+(only top layers, "all top surfaces" is fine). The taper is 0.2 mm steps about 0.4–0.7 mm
+apart at its steepest, which ironing hides.
 
 | File | |
 |---|---|
 | `trackpad-tray.stl` | the tray |
-| `trackpad-fit-test.stl` | the pocket's rim, **print first** |
-| `trackpad-tray.3mf` | both, laid out |
+| `trackpad-tray.3mf` | the same, for Bambu Studio |
 
 ## What I assumed (please check)
 
-- **"My wrist rest is 80 mm"** = 80 mm **deep**, in front of the trackpad, full width.
-  If it is something else (width?), tell me.
-- The keyboard goes to the **left** of the tray (that is why the left edge matches it),
-  the trackpad is for the right hand.
-- The two notches and the feet are taken from the old tray's model as they were: the port
-  notch is centred, the switch notch is to the right, seen from the front.
+- **"Raise to the wrist rest height"** = trackpad front edge and wrist rest both 19.9,
+  so the floor goes from 5 mm to 15 mm. If you meant the trackpad's *back* edge, or the
+  glass's middle, say so; it is one number (`RAISE` in `tray.py`).
+- **80 mm** = depth of the wrist rest in front of the trackpad, full width.
+- The original's front wall is 3.6 mm above its floor and the trackpad (114.9) is longer
+  than its pocket (114.4), so it overhangs that wall by 0.5 mm. The new wrist rest wall
+  is set back 1 mm above that wall, so the trackpad still drops in the same way.
+- The pads are 24 mm squares under the feet. If your trackpad's feet are elsewhere,
+  move `feet` in `tray.py`.
+- The rim is the original's 2.3 mm wall, now 24 mm tall at the back with the pads tying
+  the corners. If it feels flexible, tell me; a base lip is easy to add.
 
 ## Changing it
 
-Everything is in `tray.py`: `TOP_LEFT`, `LEAN`, `WRIST`, `FIT`, `RECESS`, wall thicknesses,
-the notches and feet. Rebuild with `./build.sh` (`./build.sh stl` for the print files only).
-`report.json` has the sizes, the floor thickness and a check that the trackpad does not
-touch the tray. Same tools as the other cases (`../3d/tools/`); `renders/` is not in git.
+Everything is in `tray.py`: `RAISE`, `TOP`, `WRIST`, `LEVEL` (where the taper starts),
+`ZEND` (nose height), `NOSE_R`, `PLAN_R`, `EDGE_R`, pad size. `./build.sh` rebuilds
+(`./build.sh stl` for the print files only); `report.json` lists the sizes, the heights
+along the wrist rest and that the trackpad does not touch the tray. Same tools as the
+other cases (`../3d/tools/`); `renders/` is not in git.

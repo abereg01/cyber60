@@ -19,9 +19,9 @@ docker image inspect cadtools:local >/dev/null 2>&1 ||
 
 echo "==> model"
 rm -rf "$WORK" && mkdir -p "$WORK"
-docker run --rm --user "$(id -u):$(id -g)" -v "$HERE":/src:ro -v "$WORK":/out cadtools:local \
-    python3 /src/tray.py /out >"$HERE/report.json"
-cp "$WORK"/trackpad-tray.stl "$WORK"/trackpad-fit-test.stl "$WORK"/trackpad-tray.3mf "$HERE/"
+docker run --rm --user "$(id -u):$(id -g)" -v "$HERE":/src:ro -v "$HERE/../..":/repo:ro -v "$WORK":/out cadtools:local \
+    python3 /src/tray.py /out /repo >"$HERE/report.json"
+cp "$WORK"/trackpad-tray.stl "$WORK"/trackpad-tray.3mf "$HERE/"
 cat "$HERE/report.json"
 
 [ "${1:-all}" = stl ] && exit 0

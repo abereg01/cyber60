@@ -1,32 +1,51 @@
 {
  "size_mm": [
-  179.2,
-  204.7,
-  19.9
+  164.6,
+  196.7,
+  24.0
  ],
- "pocket_mm": [
-  160.8,
-  115.7
+ "pocket_mm_unchanged_from_original": [
+  160.0,
+  114.4
  ],
- "pocket_depth_mm": {
-  "thin edge": 5.2,
-  "thick edge": 10.7
+ "wrist_rest": {
+  "depth": 80.0,
+  "level_height": 19.9,
+  "level_for_mm_from_pocket": 40.0,
+  "height_mm_by_distance_from_front_edge": {
+   "0": 3.0,
+   "4": 7.0,
+   "10": 8.0,
+   "20": 12.4,
+   "30": 17.5,
+   "40": 19.9,
+   "80": 19.9
+  },
+  "max_slope_deg": 28.3
  },
- "top_surface_height_mm": {
-  "left edge (highest)": 19.9,
-  "right edge (lowest)": 14.0
- },
- "lean_deg": 2.0,
- "wrist_rest_deep_mm": 80.0,
- "floor_under_trackpad": {
-  "left back": 9.1,
-  "right back": 3.5,
-  "left front": 14.6,
-  "right front": 9.0
- },
+ "trackpad_front_edge_top_mm": 19.9,
+ "trackpad_back_edge_top_mm": 25.4,
+ "pads_at": [
+  [
+   9.3,
+   87.2
+  ],
+  [
+   155.3,
+   87.2
+  ],
+  [
+   9.3,
+   187.2
+  ],
+  [
+   155.3,
+   187.2
+  ]
+ ],
  "checks": {
-  "trackpad vs tray": 0.0
+  "trackpad vs tray above its floor fillet (mm3)": 0.898
  },
- "overhang_mm2_over_45deg": 466.8,
- "volume_cm3": 462.4
+ "overhang_mm2_over_45deg": 617.5,
+ "volume_cm3": 252.4
 }
