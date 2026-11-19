@@ -1,0 +1,77 @@
+{
+ "checks": {
+  "module vs housing": 0.0,
+  "screws vs housing": -0.0,
+  "wires vs housing": 0.0,
+  "wires vs xiao": 0.0,
+  "xiao vs housing": 0.0,
+  "xiao vs base": 0.0,
+  "xiao vs module": 0.0,
+  "plug vs housing": 0.0,
+  "plug vs base": 0.0,
+  "housing vs base": 0.0,
+  "module screw access": {
+   "left bottom": {
+    "hits_housing_mm3": 0.0,
+    "hits_base_mm3": 0.0
+   },
+   "left top": {
+    "hits_housing_mm3": 0.0,
+    "hits_base_mm3": 0.0
+   },
+   "right bottom": {
+    "hits_housing_mm3": 0.0,
+    "hits_base_mm3": 0.0
+   },
+   "right top": {
+    "hits_housing_mm3": 0.0,
+    "hits_base_mm3": 0.0
+   }
+  }
+ },
+ "seat_view_mm2_showing": {
+  "eye 12 deg up, 0 mm to the side": 28.8,
+  "eye 20 deg up, 0 mm to the side": 0.0,
+  "eye 28 deg up, 0 mm to the side": 9.9,
+  "eye 40 deg up, 0 mm to the side": 19.0,
+  "eye 12 deg up, 250 mm to the side": 132.7,
+  "eye 20 deg up, 250 mm to the side": 82.4,
+  "eye 28 deg up, 250 mm to the side": 66.3,
+  "eye 40 deg up, 250 mm to the side": 54.9
+ },
+ "overhang_mm2_above_bed": {
+  "housing": 845.9,
+  "base": 88.5
+ },
+ "size_mm": {
+  "housing": [
+   43.4,
+   55.9,
+   35.6
+  ],
+  "base": [
+   27.7,
+   24.3,
+   4.0
+  ]
+ },
+ "sticks_out_in_front_of_monitor_mm": 12.1,
+ "hangs_below_monitor_mm": 36.6,
+ "depth_under_monitor_mm": 43.8,
+ "plug_reaches_back_to_mm": 66.8,
+ "tape_area_mm": [
+  43.4,
+  38.8
+ ],
+ "volume_cm3": {
+  "housing": 8.8,
+  "base": 1.2
+ },
+ "layout": {
+  "xiao_front_y": 16.1,
+  "bay_front_y": 19.0,
+  "side_taper_deg": 20.2,
+  "floor_z": -35.6,
+  "bay_height": 12.2
+ }
+}

@@ -54,40 +54,54 @@ SO_DEPTH = 9.31  # glass front → standoff ends (V2 module; V1 is 9.51)
 CONN_DEPTH = 11.0  # glass front → back of the 12-pin connector
 WIRE_BEND = 5.0  # room behind the connector for the plug and the wires' bend
 
-# Fits for a Bambu P1S, PLA, 0.4 mm nozzle (per side), same as case/3d.
-FIT_GLASS = 0.15
-FIT_LCM_U, FIT_LCM_V = 0.55, 0.3
-FIT = 0.25
+# v2 is made for a 0.6 mm NOZZLE (line width ~0.65): every wall is 2+ lines,
+# nothing smaller than ~1.2 mm is asked of the printer, holes are generous.
+# Fits for a Bambu P1S, PLA, 0.6 mm nozzle (per side).
+FIT_GLASS = 0.2  # glass pocket, sideways
+FIT_GLASS_V = 0.4  # glass pocket, up/down: extra, the pocket's lower lip prints
+#                    as an overhang (20 deg off horizontal) and droops ~0.2-0.3 mm
+FIT = 0.3
 
 # Housing
-RIM = 1.0  # visible rim round the glass pocket
-LEDGE_T = 1.2  # face material behind the glass: the glass rests on it
-WALL = 1.6
+RIM = 1.2  # visible rim round the glass pocket (two 0.6 lines)
+WALL = 1.8  # three 0.6 lines
 TOP_T = 2.0  # top wall, under the tape
-CLEAR = 0.5  # gap between the parts inside and the walls
+CLEAR = 0.6  # gap between the parts inside and the walls
+CLEAR_FLOOR = 1.0  # ... under the module: the floor there prints as a bridge and sags
 RISE = 60.0  # behind the module the bottom rises this steeply to the bay
 #              (prints without support with the case top down)
-BAR_T, BAR_GAP = 2.4, 0.15  # bars the module is screwed to (as in case/3d)
+BAR_T, BAR_GAP = 2.4, 0.15  # plates the module is screwed to (as in case/3d)
+PAD_H = 8.0  # v2: each module screw sits in an 8 mm tall pad that runs into the
+PAD_IN = 9.0  #     side wall (v1: two 4.3 mm wide bars with 0.95 mm beside each hole)
+SPINE_IN = 15.5  # and a spine along the wall ties the upper and lower pad together
+KEEP_U, KEEP_V = 12.8, 9.5  # the 12-pin connector + wires own u < 12.8 for |v| < 9.5
 
 # Base + XIAO nRF52840 (21 x 17.8, USB-C on a short edge), lying face down
-BASE_T = 2.4
+BASE_T = 3.0
 XIAO_W, XIAO_L, XIAO_PCB = 17.8, 21.0, 1.2
 XIAO_LIFT = 3.6  # base top → XIAO component side
 SHIELD_H, XTAPE_T = 1.9, 1.0  # RF can height, foam tape under it
 USB_W, USB_H, USB_OUT = 8.94, 3.26, 1.5  # receptacle, and how far it sticks out
 WIRE_H = 2.5  # solder + wire stubs on the XIAO's (upward) back side
 RST_X, RST_Y = 6.0, 8.8  # reset button from the XIAO centre, face down (as in case/3d)
+RST_HOLE = 3.4  # plain pin hole through the base (v1: 1.8 + funnel + guide tube)
 PLUG_W, PLUG_H, PLUG_R = 12.8, 7.2, 3.0  # USB-C plug overmould opening
 SLOT_W = USB_W + 0.9  # slot under it: the receptacle slides up through it
-LEDGE_D, LEDGE_H, LEDGE_HW = 2.5, 1.2, 11.5  # ledge the base's front rests on
-EAR_X0, EAR_X1 = 7.4, 13.2  # base ears under the screw blocks (|x| range)
-BLOCK_D = 5.0  # screw blocks behind the back wall (y depth)
+LEDGE_D, LEDGE_H, LEDGE_HW = 3.0, 1.8, 11.5  # ledge the base's front rests on
+# Base tabs: where the base is screwed up into the rear beams. v2: the screw head
+# stays UNDER the tab (no recess in a thin tab), the tab is a flat 1.2 mm plate
+# that is pulled up against the beam, and the beam is a solid 7 x 6.5 mm post
+# that runs into the side wall and the top plate.
+EAR_X0, EAR_X1 = 7.4, 12.3  # tab, |x| range (the bay is 12.25 wide inside)
+TAB_T = 1.2
+BEAM_X0, BEAM_D = 7.0, 6.5  # rear beams behind the back wall: inner edge, y depth
 
 # Screws
-M2_CLEAR = 2.4
-M25_PILOT, M25_CLEAR = 2.2, 2.9
-M25_HEAD, M25_HEAD_KEEP = 5.2, 1.2  # pan heads are 5.0 (ISO 7045)
-DRIVER_D = 4.5  # screwdriver holes along the module screws' axes
+M2_CLEAR = 2.5
+M25_PILOT, M25_CLEAR = 2.3, 3.0
+DRIVER_D = 5.0  # screwdriver holes along the module screws' axes
+
+TEST_DEPTH = 12.0  # test 1 reaches this far behind the glass (through the module pads)
 
 SEG = 24  # points per quarter circle
 
@@ -99,11 +113,14 @@ U = np.array([1.0, 0, 0])
 V = np.array([0, math.sin(th), math.cos(th)])
 N = np.array([0, -math.cos(th), math.sin(th)])
 
-GW, GH, GR = GLASS_W + 2 * FIT_GLASS, GLASS_H + 2 * FIT_GLASS, GLASS_R + FIT_GLASS
+GW, GH, GR = GLASS_W + 2 * FIT_GLASS, GLASS_H + 2 * FIT_GLASS_V, GLASS_R + FIT_GLASS
 RW, RH, RR = GW + 2 * RIM, GH + 2 * RIM, GR + RIM  # the face outline
 F = np.array([0.0, FACE_Y, 0.0])  # top edge of the face (centre)
 C = F - (RH / 2) * V  # face centre
-FACE_BACK = -(GLASS_T + LEDGE_T)  # n of the face's back
+# v2 has no free-standing ledge ring behind the glass (v1: 0.9 mm wide, it sagged and
+# does no work: the plates locate the module). The pocket opens straight into the
+# cavity; the glass is held off the 0.6 mm shoulder where the walls thicken.
+FACE_BACK = -GLASS_T  # n of the face's back = where the cavity starts
 Z1 = -(SO_DEPTH + BAR_GAP)  # bars' front face (n)
 BAR_BACK = Z1 - BAR_T
 M_LOCAL = np.column_stack([U, V, N, C])
@@ -233,7 +250,7 @@ _P = verts(MOD + SCR + WIR)
 tR, cR = math.tan(math.radians(RISE)), math.cos(math.radians(RISE))
 
 # Floor under the module, then a RISE-degree slope behind it up to the bay.
-Z_BOT_IN = float(_P[:, 2].min()) - CLEAR
+Z_BOT_IN = float(_P[:, 2].min()) - CLEAR_FLOOR
 Z_BOT = Z_BOT_IN - WALL
 Y0_IN = float(np.max(_P[:, 1] - (_P[:, 2] - CLEAR / cR - Z_BOT_IN) / tR))
 
@@ -280,6 +297,7 @@ TAPER_OUT, TAPER_IN, TAPER_BASE = taper(), taper(WALL), taper(WALL + FIT)
 # XIAO bay under the monitor: base, XIAO face down, wires on top, top wall.
 HB = TOP_T + CLEAR + WIRE_H + XIAO_PCB + XIAO_LIFT + BASE_T  # bay height (outer)
 Z_BASE_TOP = -HB + BASE_T
+Z_TAB_TOP = -HB + TAB_T
 Z_COMP = Z_BASE_TOP + XIAO_LIFT  # XIAO component side (facing down)
 Y_BAY0 = Y0_IN + (-HB + WALL / cR - Z_BOT_IN) / tR  # outer slope reaches the bay bottom
 
@@ -295,7 +313,7 @@ YB = YB_IN + WALL
 XC = np.array([0.0, XIAO_Y0 + XIAO_L / 2, 0.0])  # XIAO centre (x, y)
 Z_USB = Z_COMP - USB_H / 2  # receptacle centre height
 EAR_XC = (EAR_X0 + EAR_X1) / 2
-BLOCK_Y = YB + BLOCK_D / 2  # base screws
+BLOCK_Y = YB + BEAM_D / 2  # base screws
 
 
 # ── Housing ──────────────────────────────────────────────────────────────────
@@ -322,43 +340,61 @@ def cavity():
 
 
 def ear_passage():
-    """Where the base's ears pass under the back wall to the screw blocks."""
+    """Where the base's tabs pass under the back wall, into the rear beams."""
     m = Manifold()
     for s in (-1, 1):
         x0, x1 = sorted((s * (EAR_X0 - FIT), s * (EAR_X1 + FIT)))
-        m += box(x0, x1, YB_IN - 1.3, YB + BLOCK_D + 1, -HB - 1, Z_BASE_TOP + 0.15)
+        m += box(x0, x1, YB_IN - 0.2, YB + BEAM_D + 1, -HB - 1, Z_TAB_TOP + 0.15)
     return m
+
+
+def pad_region():
+    """The module's mounting plates as a face-local (u, v) outline, swept along n from
+    BAR_BACK to Z1. v1 was two bars 4.3 wide (0.95 mm of plastic beside every M2 hole,
+    33 mm tall in the print, loaded across the layers). v2: an 8 mm tall pad round each
+    screw that runs into the side wall (a short shelf loaded along the layers), plus a
+    spine along the wall tying the upper and lower pad together. Pads stay clear of the
+    12-pin connector and the wires (u < 12.8 for |v| < 9.5), which is why v1's bar was
+    so narrow."""
+    cs = CrossSection()
+    for s in (-1, 1):
+        for sv in (-1, 1):
+            u0, u1 = sorted((s * PAD_IN, s * (RW / 2)))
+            cs += CrossSection.square((u1 - u0, PAD_H)).translate((u0, sv * SO_V - PAD_H / 2))
+        u0, u1 = sorted((s * SPINE_IN, s * (RW / 2)))
+        cs += CrossSection.square((u1 - u0, RH + 80)).translate((u0, -RH))
+    keep = CrossSection.square((KEEP_U + 1, 2 * KEEP_V)).translate((-1, -KEEP_V))
+    keep += CrossSection.square((KEEP_U + 1, 2 * KEEP_V)).translate((-KEEP_U - 0, -KEEP_V))
+    return cs - keep
 
 
 def housing():
     out = outer()
     h = out - cavity()
 
-    # Bars across the module's back, one per pair of standoffs.
-    for s in (-1, 1):
-        bar = box(s * SO_U - 2.15, s * SO_U + 2.15, -RH, RH + 60, BAR_BACK, Z1)
-        h += place(bar) ^ out
+    # Mounting pads behind the module, one per M2 screw (see pad_region).
+    pads = pad_region().extrude(Z1 - BAR_BACK).translate((0, 0, BAR_BACK))
+    h += place(pads) ^ out
     # Ledge the base's front rests on.
     h += box(-LEDGE_HW, LEDGE_HW, Y_BAY0 - 1.0, Y_BAY0 + LEDGE_D, -HB, -HB + LEDGE_H)
-    # Screw blocks behind the back wall (under the monitor, out of sight).
+    # Rear beams behind the back wall (under the monitor, out of sight): solid posts the
+    # base screws bite into. Flush with the side walls' outer face, so they run into it.
     for s in (-1, 1):
-        x0, x1 = sorted((s * (EAR_X0 - 0.2), s * (EAR_X1 + 0.2)))
-        h += box(x0, x1, YB - 0.01, YB + BLOCK_D, -HB, 0.0)
+        x0, x1 = sorted((s * BEAM_X0, s * W_MIN))
+        h += box(x0, x1, YB - 0.01, YB + BEAM_D, -HB, 0.0)
 
-    # Glass pocket, ledge, panel opening.
+    # Glass pocket (opens straight into the cavity, no ledge ring).
     h -= place(rr_prism(GW, GH, GR, -GLASS_T, 1))
-    h -= place(rr_prism(LCM_W + 2 * FIT_LCM_U, LCM_H + 2 * FIT_LCM_V, LCM_R, FACE_BACK - 1,
-                        -GLASS_T + 0.01))
-    # Module screws through the bars, and screwdriver holes along their axes
+    # Module screws through the pads, and screwdriver holes along their axes
     # through the floor and the slope (on the underside, out of sight).
     for su in (-1, 1):
         for sv in (-1, 1):
             h -= place(cyl(M2_CLEAR, BAR_BACK - 1, Z1 + 0.01, su * SO_U, sv * SO_V))
             h -= place(cyl(DRIVER_D, -150, BAR_BACK - 0.05, su * SO_U, sv * SO_V))
-    # Base: ears' passage, pilot holes in the blocks.
+    # Base: tabs' passage, pilot holes in the beams.
     h -= ear_passage()
     for s in (-1, 1):
-        h -= cyl(M25_PILOT, Z_BASE_TOP + 0.1, Z_BASE_TOP + 6.6, s * EAR_XC, BLOCK_Y)
+        h -= cyl(M25_PILOT, Z_TAB_TOP + 0.1, Z_TAB_TOP + 6.6, s * EAR_XC, BLOCK_Y)
     # USB-C: plug opening in the back wall, open at the bottom so the
     # receptacle slides up into it with the base; the base's tab closes it.
     h -= usb_opening()
@@ -380,24 +416,23 @@ def base():
     # Thinner front strip, resting on the ledge.
     b -= box(-LEDGE_HW - FIT, LEDGE_HW + FIT, Y_BAY0 - 1, Y_BAY0 + LEDGE_D + FIT, -HB - 1,
              -HB + LEDGE_H + 0.15)
-    # Ears under the back wall to the screw blocks; tab closing the USB slot.
+    # Tabs under the back wall, up against the rear beams (a short neck inside the bay,
+    # where the plate is narrower than the tab); tab closing the USB slot.
     for s in (-1, 1):
+        n0, n1 = sorted((s * EAR_X0, s * (EAR_X1 - 0.6)))
+        b += box(n0, n1, YB_IN - 1.0, YB_IN + 0.4, -HB, Z_TAB_TOP)
         x0, x1 = sorted((s * EAR_X0, s * EAR_X1))
-        b += box(x0, x1, YB_IN - 1.0, YB + BLOCK_D - 0.3, -HB, Z_BASE_TOP)
+        b += box(x0, x1, YB_IN + 0.3, YB + BEAM_D - 0.3, -HB, Z_TAB_TOP)
     b += box(-SLOT_W / 2 + FIT, SLOT_W / 2 - FIT, YB_IN - 1.0, YB - 0.05, -HB,
              Z_USB - PLUG_H / 2)
     # Tape pad under the RF can.
     pad_h = XIAO_LIFT - SHIELD_H - XTAPE_T
     b += rr_prism(12.0, 9.0, 1.5, Z_BASE_TOP - 0.01, Z_BASE_TOP + pad_h, 0.25, XC[1] - 2.25)
-    # Reset: pin hole with a funnel underneath and a short guide tube.
-    rx, ry = RST_X, XC[1] + RST_Y
-    b += cyl(2.9, Z_BASE_TOP - 0.01, Z_BASE_TOP + 1.6, rx, ry)
-    b -= cyl(1.8, -HB - 1, Z_BASE_TOP + 2, rx, ry)
-    b -= cyl(5.0, -HB - 0.01, -HB + 1.4, rx, ry, d2=1.8)
-    # Screws up into the blocks, heads sunk from below.
+    # Reset: a plain pin hole through the plate, under the XIAO's button.
+    b -= cyl(RST_HOLE, -HB - 1, Z_BASE_TOP + 1, RST_X, XC[1] + RST_Y)
+    # Screws up into the beams: the heads stay under the tabs (about 1.6 mm proud).
     for s in (-1, 1):
-        b -= cyl(M25_CLEAR, -HB - 1, Z_BASE_TOP + 1, s * EAR_XC, BLOCK_Y)
-        b -= cyl(M25_HEAD, -HB - 1, Z_BASE_TOP - M25_HEAD_KEEP, s * EAR_XC, BLOCK_Y)
+        b -= cyl(M25_CLEAR, -HB - 1, Z_TAB_TOP + 1, s * EAR_XC, BLOCK_Y)
     return b
 
 
@@ -491,7 +526,7 @@ def seat_view(body, eyes, pix=0.35, half=30.0):
         in_face = (tf > 0) & (u <= RW / 2) & (v <= RH / 2) & (du * du + dv * dv <= RR * RR)
         # The monitor (and the tape) hide what's under them.
         t_mon = np.minimum(slab_hit(eye, d, (-500, 0.0, TAPE_T), (500, 400.0, 700.0)),
-                           slab_hit(eye, d, (-RW / 2, FACE_Y, 0.0), (RW / 2, YB + BLOCK_D, TAPE_T)))
+                           slab_hit(eye, d, (-RW / 2, FACE_Y, 0.0), (RW / 2, YB + BEAM_D, TAPE_T)))
         cand = ~in_face & np.isfinite(slab_hit(eye, d, lo, hi))
         t_body = np.full(len(d), np.inf)
         idx = np.nonzero(cand)[0]
@@ -573,6 +608,48 @@ def overhangs(m):
     return round(float(mesh.area_faces[bad].sum()), 1)
 
 
+def pad_ligament():
+    """Plastic left round each M2 hole in the pads: the radius of the biggest disc
+    round the hole that is still all pad, minus the hole's own radius (mm)."""
+    region = pad_region()
+    worst = 99.0
+    for su in (-1, 1):
+        for sv in (-1, 1):
+            lo, hi = M2_CLEAR / 2, 12.0
+            for _ in range(24):
+                mid = (lo + hi) / 2
+                disc = CrossSection.circle(mid, 64).translate((su * SO_U, sv * SO_V))
+                if (disc - region).area() < 1e-3:
+                    lo = mid
+                else:
+                    hi = mid
+            worst = min(worst, lo - M2_CLEAR / 2)
+    return round(worst, 2)
+
+
+def overhang_report(m, out):
+    """Faces that print as an overhang (more than 45 deg past vertical, not on the
+    plate): total area, area per 4 mm of print height, and an STL of just those faces
+    for the render."""
+    mesh = tm(m)
+    nz = mesh.face_normals[:, 2]
+    zmin = mesh.triangles[:, :, 2].min(axis=1) - mesh.bounds[0][2]
+    bad = (nz < -math.cos(math.radians(45))) & (zmin > 0.3)
+    idx = np.nonzero(bad)[0]
+    bands = {}
+    for i in idx:
+        k = int(mesh.triangles_center[i, 2] // 4) * 4
+        bands[k] = bands.get(k, 0.0) + float(mesh.area_faces[i])
+    mesh.export(os.path.join(out, "assembly", "housing-print.stl"))
+    if len(idx):
+        sub = mesh.submesh([idx], append=True)
+        sub.vertices[:, 2] -= 0.05
+        sub.export(os.path.join(out, "assembly", "overhang.stl"))
+    return {"total_mm2": round(float(mesh.area_faces[bad].sum()), 1),
+            "per_4mm_of_height": {f"{k}-{k + 4}": round(v) for k, v in sorted(bands.items())
+                                  if v > 5}}, mesh.bounds.mean(axis=0).tolist()
+
+
 def monitor_proxy():
     """A slice of a curved monitor's bottom for the renders: body + picture."""
     w, depth, hgt, bezel = 220.0, 45.0, 130.0, 9.0
@@ -607,9 +684,11 @@ def main():
                        geom_name="base")
     scene.export(os.path.join(out, "monitor-case.3mf"))
 
-    # Test 1: the face only (glass pocket, ledge, rim), printed face down.
-    face = unplace(h) ^ box(-100, 100, -100, 100, FACE_BACK - 0.6, 1)
-    t1 = on_plate(face.transform(np.array([[1, 0, 0, 0], [0, -1, 0, 0], [0, 0, -1, 0]], float)))
+    # Test 1: the front of the housing (face, glass pocket, rim, walls, the four module
+    # pads and the floor under the screen), printed top down like the real thing, so
+    # it shows the same sag and the same overhangs.
+    front = h ^ place(box(-100, 100, -100, 100, FACE_BACK - TEST_DEPTH, 2))
+    t1 = on_plate(front.transform(TOP_DOWN))
     # Test 2: the back of the bay (USB slot, screw blocks), top down, plus the base.
     back = h ^ box(-100, 100, YB_IN - 8, 200, -100, 100)
     t2 = on_plate(back.transform(TOP_DOWN))
@@ -632,10 +711,14 @@ def main():
     seats = seat_view(h + b, eyes)
 
     pts = verts(h + b)
+    oh, oh_centre = overhang_report(prints["housing"], out)
     info = {
         "checks": checks(h, b, xiao, plug),
         "seat_view_mm2_showing": seats,
         "overhang_mm2_above_bed": {k: overhangs(m) for k, m in prints.items()},
+        "housing_overhangs": oh,
+        "overhang_centre": oh_centre,
+        "module_pad_plastic_round_each_hole_mm": pad_ligament(),
         "size_mm": {"housing": size(h), "base": size(b)},
         "sticks_out_in_front_of_monitor_mm": round(float(FACE_Y - pts[:, 1].min()), 1),
         "hangs_below_monitor_mm": round(float(TAPE_T - pts[:, 2].min()), 1),
@@ -734,6 +817,13 @@ def write_specs(out, info):
             {"file": a + "xiao.stl", "color": "#2f6b4f", "offset": [0, 0, -16]},
             {"file": a + "base.stl", "color": GREY_B, "offset": [0, 0, -30]}],
             views=[{"name": "exploded", "dir": [-0.8, -0.75, -0.35], "zoom": 1.1, "ground": False}]),
+        "overhang": dict(base, shadow=0, parts=[
+            {"file": a + "housing-print.stl", "color": GREY},
+            {"file": a + "overhang.stl", "color": "#e03030"}],
+            views=[{"name": f"print-overhangs-{nm}", "dir": dr, "target": info["overhang_centre"],
+                    "zoom": 0.8, "ground": False}
+                   for nm, dr in (("below", [0.5, -0.9, -0.9]), ("above", [0.5, -0.9, 0.9]),
+                                  ("back", [-0.6, 0.9, -0.7]))]),
         "plate": dict(base, size=[1200, 700], parts=[
             {"file": "/out/monitor-housing.stl", "color": GREY, "offset": [-28, 0, 0]},
             {"file": "/out/monitor-base.stl", "color": GREY_B, "offset": [26, 0, 0]}],

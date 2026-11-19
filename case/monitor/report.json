@@ -1,7 +1,7 @@
 {
  "checks": {
   "module vs housing": 0.0,
-  "screws vs housing": -0.0,
+  "screws vs housing": 0.0,
   "wires vs housing": 0.0,
   "wires vs xiao": 0.0,
   "xiao vs housing": 0.0,
@@ -30,48 +30,66 @@
   }
  },
  "seat_view_mm2_showing": {
-  "eye 12 deg up, 0 mm to the side": 28.8,
+  "eye 12 deg up, 0 mm to the side": 19.4,
   "eye 20 deg up, 0 mm to the side": 0.0,
-  "eye 28 deg up, 0 mm to the side": 9.9,
-  "eye 40 deg up, 0 mm to the side": 19.0,
-  "eye 12 deg up, 250 mm to the side": 132.7,
-  "eye 20 deg up, 250 mm to the side": 82.4,
-  "eye 28 deg up, 250 mm to the side": 66.3,
-  "eye 40 deg up, 250 mm to the side": 54.9
+  "eye 28 deg up, 0 mm to the side": 12.7,
+  "eye 40 deg up, 0 mm to the side": 19.1,
+  "eye 12 deg up, 250 mm to the side": 144.5,
+  "eye 20 deg up, 250 mm to the side": 88.6,
+  "eye 28 deg up, 250 mm to the side": 68.4,
+  "eye 40 deg up, 250 mm to the side": 56.3
  },
  "overhang_mm2_above_bed": {
-  "housing": 845.9,
-  "base": 88.5
+  "housing": 885.5,
+  "base": 70.8
  },
+ "housing_overhangs": {
+  "total_mm2": 876.2,
+  "per_4mm_of_height": {
+   "0-4": 65,
+   "4-8": 97,
+   "8-12": 86,
+   "12-16": 22,
+   "24-28": 13,
+   "28-32": 21,
+   "32-36": 572
+  }
+ },
+ "overhang_centre": [
+  0.0,
+  0.0,
+  18.38017463684082
+ ],
+ "module_pad_plastic_round_each_hole_mm": 1.59,
  "size_mm": {
   "housing": [
-   43.4,
-   55.9,
-   35.6
+   43.9,
+   58.0,
+   36.8
   ],
   "base": [
-   27.7,
-   24.3,
-   4.0
+   27.4,
+   25.9,
+   3.7
   ]
  },
- "sticks_out_in_front_of_monitor_mm": 12.1,
- "hangs_below_monitor_mm": 36.6,
- "depth_under_monitor_mm": 43.8,
+ "sticks_out_in_front_of_monitor_mm": 12.4,
+ "hangs_below_monitor_mm": 37.8,
+ "depth_under_monitor_mm": 45.5,
  "plug_reaches_back_to_mm": 66.8,
  "tape_area_mm": [
-  43.4,
-  38.8
+  43.9,
+  39.0
  ],
  "volume_cm3": {
-  "housing": 8.8,
-  "base": 1.2
+  "housing": 10.4,
+  "base": 1.3
  },
  "layout": {
   "xiao_front_y": 16.1,
   "bay_front_y": 19.0,
-  "side_taper_deg": 20.2,
-  "floor_z": -35.6,
-  "bay_height": 12.2
+  "side_taper_deg": 20.4,
+  "floor_z": -36.8,
+  "bay_height": 12.9
  }
 }
