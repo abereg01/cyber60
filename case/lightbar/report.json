@@ -1,0 +1,75 @@
+{
+ "wire_hole": {
+  "w": 10,
+  "h": 4.5,
+  "y": -2.0,
+  "z": -0.5,
+  "angle": 105
+ },
+ "parts_mm": {
+  "pod": [
+   68.5,
+   30.0,
+   30.0
+  ],
+  "cap": [
+   10.0,
+   30.0,
+   30.0
+  ],
+  "tube175": [
+   175.0,
+   30.0,
+   30.0
+  ],
+  "diffuser_full": [
+   700.0,
+   17.04,
+   17.04
+  ],
+  "diffuser_piece": [
+   233.33,
+   22.5,
+   1.6
+  ]
+ },
+ "pod_watertight": true,
+ "cap_watertight": true,
+ "pod_volume_cm3": 14.52,
+ "bore_fit": {
+  "18.0 mm wide board": "14.0 mm tall max",
+  "20.0 mm wide board": "12.5 mm tall max"
+ },
+ "hardware_row_length_mm": 44.0,
+ "pod_interior_length_mm": 56.0,
+ "hardware_standins": {
+  "ESP32-C3-Zero stacked over the 5-channel MOSFET board (5 + 7 tall)": [
+   30.0,
+   18.0,
+   12.0
+  ],
+  "polyfuse + 1000 uF cap + 100 nF": [
+   14.0,
+   18.0,
+   13.0
+  ]
+ },
+ "usb_c_hole_mm": [
+  9.4,
+  3.6
+ ],
+ "bar_tube_run_mm": 704.0,
+ "bar_with_pod_mm": 770.0,
+ "diffuser_mm": 700.0,
+ "overlaps_mm3": {},
+ "assembled_x_range": [
+  -418.0,
+  352.0
+ ],
+ "3mf_reload_geometries": 10,
+ "3mf_plates": {
+  "1": 2,
+  "2": 2,
+  "3": 5
+ }
+}
