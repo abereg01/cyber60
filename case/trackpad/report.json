@@ -11,17 +11,17 @@
  "wrist_rest": {
   "depth": 80.0,
   "level_height": 19.9,
-  "level_for_mm_from_pocket": 40.0,
+  "level_for_mm_from_pocket": 50.0,
   "height_mm_by_distance_from_front_edge": {
-   "0": 9.4,
-   "4": 13.4,
-   "10": 13.9,
-   "20": 16.1,
-   "30": 18.7,
-   "40": 19.9,
+   "0": 9.9,
+   "4": 13.9,
+   "10": 14.2,
+   "20": 15.6,
+   "30": 17.5,
+   "40": 19.2,
    "80": 19.9
   },
-  "max_slope_deg": 15.0
+  "max_slope_deg": 11.1
  },
  "trackpad_front_edge_top_mm": 19.9,
  "trackpad_back_edge_top_mm": 25.4,
@@ -44,8 +44,8 @@
   ]
  ],
  "checks": {
-  "trackpad vs tray above its floor fillet (mm3)": 0.898
+  "trackpad vs tray above its floor fillet (mm3)": 1.24
  },
  "overhang_mm2_over_45deg": 617.5,
- "volume_cm3": 274.7
+ "volume_cm3": 271.8
 }

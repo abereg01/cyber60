@@ -32,11 +32,11 @@ RAISE = 10.0  # the old floor top (z 5.0) goes to 15.0, so the trackpad's 4.9 fr
 CUT_Z = 5.3  # the original is split here: above = reused as is, below = rebuilt
 TOP = 19.9  # wrist rest height (= keyboard front edge)
 WRIST = 80.0  # wrist rest depth in front of the pocket
-LEVEL = 40.0  # it stays level this far in front of the pocket, then tapers
-ZEND = 13.45  # height at the nose (half the drop of rev 2, so half the slope)
+LEVEL = 50.0  # it stays level this far in front of the pocket, then tapers
+ZEND = 13.9  # height at the nose: with the R4 edge the top is never more than 10 mm below the rest
 NOSE_R = 4.0  # radius of the rounded front edge
 PLAN_R = 20.0  # front corner radius in plan
-EDGE_R = 3.0  # radius of the top side edges of the wrist rest
+EDGE_R = 0.0  # top side edges stay sharp like the tray's walls, so rest and tray read as one piece
 RELIEF = 1.0  # the trackpad is 114.9 long, the old pocket 114.4: it overhangs the old front wall
 #               by 0.5. The wrist rest wall is set back this much above that wall's top
 LIP_TOP = 8.6 + RAISE  # the old tray's front wall top (it is 2.3 thick, 3.6 above its floor), raised
@@ -94,6 +94,10 @@ def rest_width(dy, W):
 
 def section(w, h, y):
     r = min(EDGE_R, h - 0.3, w / 2 - 0.3)
+    if r < 0.05:
+        pts = [(-w / 2, 0), (w / 2, 0), (w / 2, h), (-w / 2, h)]
+        m = CrossSection([pts]).extrude(0.02)
+        return m.transform(np.array([[1, 0, 0, 0], [0, 0, 1, y], [0, 1, 0, 0]], float))
     pts = [(-w / 2, 0), (w / 2, 0), (w / 2, h - r)]
     pts += [(w / 2 - r + r * math.cos(math.radians(a)), h - r + r * math.sin(math.radians(a))) for a in range(0, 91, 10)]
     pts += [(-w / 2 + r + r * math.cos(math.radians(a)), h - r + r * math.sin(math.radians(a))) for a in range(90, 181, 10)]
@@ -140,10 +144,12 @@ def build(repo):
 
     y_front = py0 - WRIST
     rest = wrist_rest(cx, y_front, W)
-    # open the pocket front above the lip, as the old tray was
-    rest -= Manifold.cube((px1 - px0, RELIEF + 0.5, 20)).translate((px0, py0 - RELIEF, LIP_TOP))
-
-    body = wall + upper + pad_m + rest
+    # the side walls are raised to the wrist rest's height until the original's own sloping
+    # wall top passes it (about 30 mm behind the pocket's front), so there is no step between them
+    fill = ring.extrude(TOP) ^ Manifold.cube((W + 2, 62.0 - py0 + 30, 40)).translate((x0 - 1, py0 - 5, -1))
+    body = wall + upper + pad_m + rest + fill
+    # open the pocket front above the old front wall's top, as the old tray was
+    body -= Manifold.cube((px1 - px0, RELIEF + 0.5, 20)).translate((px0, py0 - RELIEF, LIP_TOP))
     # everything to the print frame: front edge y=0, left edge x=0
     body = body.translate((-x0, -y_front, 0))
     bb = body.bounding_box()
