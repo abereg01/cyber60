@@ -1,0 +1,32 @@
+{
+ "size_mm": [
+  179.2,
+  204.7,
+  19.9
+ ],
+ "pocket_mm": [
+  160.8,
+  115.7
+ ],
+ "pocket_depth_mm": {
+  "thin edge": 5.2,
+  "thick edge": 10.7
+ },
+ "top_surface_height_mm": {
+  "left edge (highest)": 19.9,
+  "right edge (lowest)": 14.0
+ },
+ "lean_deg": 2.0,
+ "wrist_rest_deep_mm": 80.0,
+ "floor_under_trackpad": {
+  "left back": 9.1,
+  "right back": 3.5,
+  "left front": 14.6,
+  "right front": 9.0
+ },
+ "checks": {
+  "trackpad vs tray": 0.0
+ },
+ "overhang_mm2_over_45deg": 466.8,
+ "volume_cm3": 462.4
+}

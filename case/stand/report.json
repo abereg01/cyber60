@@ -1,0 +1,53 @@
+{
+ "checks": {
+  "keyboard vs stand": -0.0,
+  "trackpad vs stand": -0.0,
+  "keyboard vs trackpad": 0.0
+ },
+ "size_mm": [
+  190.0,
+  83.9,
+  57.4
+ ],
+ "lean_deg": 10.0,
+ "slot_keyboard_mm": {
+  "floor": 21.9,
+  "mouth": 27.0,
+  "depth": 42.0
+ },
+ "slot_trackpad_mm": {
+  "floor": 12.4,
+  "mouth": 10.6,
+  "depth": 38.0,
+  "length": 163.0
+ },
+ "material_under_slot_floor_mm": {
+  "keyboard": 10.3,
+  "trackpad": 9.6
+ },
+ "wall_between_slots_mm": 12.0,
+ "overhang_mm2_over_45deg": 474.3,
+ "overhang_mm2_over_30deg": 474.3,
+ "tip_over": {
+  "centre_of_gravity_y_z_mm": [
+   43.3,
+   60.5
+  ],
+  "foot_y_mm": [
+   0.0,
+   76.5
+  ],
+  "tips_back_at_deg": 28.8,
+  "tips_forward_at_deg": 35.6
+ },
+ "tip_over_assumes_kg": {
+  "keyboard": 1.2,
+  "trackpad": 0.23,
+  "stand": 0.45
+ },
+ "tops_out_at_height_mm": {
+  "keyboard_top": 130.4,
+  "trackpad_top": 124.2
+ },
+ "volume_cm3": 473.1
+}
