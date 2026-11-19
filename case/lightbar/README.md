@@ -95,12 +95,28 @@ bridges about 25 mm, which is fine at 2 mm thick. Glue the joiners and the pod's
 plug with CA glue only after a dry fit, and **dry-fit the diffuser through all
 the tubes** before gluing.
 
+## Firmware and BLE (written 2026-11-19, not run on hardware yet)
+
+- Protocol: [`BLE-SPEC.md`](BLE-SPEC.md). Firmware: `fw/` (PlatformIO, Arduino core +
+  NimBLE). `src/light.h` holds all the logic (state, relative steps, colour to 5 PWM
+  duties with gamma and a power guard) and is tested on the host:
+  `./fw-build.sh test`. `./fw-build.sh` also compiles for the ESP32-C3 (first build
+  downloads about 2 GB to the pool; it built clean: 38 % flash, 7 % RAM).
+- `fw/lightbar-ble.py` pokes the bar from a Mac (bleak), so the bar can be tested from a
+  laptop before the knob exists.
+- **Flashing:** first time over USB with the cap off (hold BOOT while plugging in), e.g.
+  `pio run -t upload`. No BLE OTA yet.
+- **Never run on the board.** Expect to fix a pin or a timing on first power-up. Test with
+  the strip disconnected and a multimeter or LED on each gate first.
+
 ## What this still needs (not done)
 
-1. Firmware for the C3: 5-channel PWM with gamma, a BLE GATT service (brightness,
-   colour temperature, hue, on/off), settings kept across power loss.
-2. A **Light** mode on the KNOB: the S3 as BLE central, the ring = brightness,
-   tap = white temperature / hue. See `../../KNOB.md`.
-3. A monitor check: whether the bar hangs straight, if the 49" is curved
-   (1000R curved means a straight 704 mm bar stands off the glass at the
-   middle; her hinged arm does not help with that).
+1. A **Light** mode on the KNOB: the S3 as BLE central, ring = `Step` writes,
+   tap = `mode`. The knob firmware doesn't exist yet; the spec's last section says what
+   it should do.
+2. BLE OTA, and pairing if it ever matters.
+3. A monitor check: a 1000R curved 49" means about 62 mm of sag over 704 mm. The bar hangs
+   behind the top edge and shines down, so it still works, but check the look.
+4. **Power side if the strip is 12 V** (being checked): a PD trigger (12 V) or a barrel
+   jack, a 12-to-5 V buck for the C3, and 25 V capacitor and 16 V fuse. With a barrel jack
+   the end cap needs a different hole (the USB-C one is for 5 V).
