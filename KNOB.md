@@ -138,9 +138,9 @@ approximate: it blends RGB into the white). Buy the **IP30** version for the tub
 | L2 | **USB-C breakout, 6-pin, 3 A** (same as #15) | 1 more (so 2 in total with #15) | Electrokit `41036209` | Power only, into the end cap. **Check that it has the 5.1 kΩ CC resistors on board**; if not, solder 2 × 5.1 kΩ (CC1/CC2 to GND) or a plain charger will only give 500 mA. The cap's hole is 9.4 × 3.6 mm for the jack | 15–20 |
 | L3 | **Level shifter 3.3 V → 5 V: SN74AHCT125N** (quad buffer, DIP-14, 19 × 7.6 mm) | 2 | `SN74AHCT125N` | The C3's data pin is 3.3 V; SK6812 on 5 V wants at least 3.5 V, so unshifted it flickers or fails. Must be an AHCT/HCT part (plain 74HC or 74LVC will not do). Use one of the four gates, tie the other inputs to GND. Buy 2 in case you ruin one. **Electrokit probably doesn't stock it**, so it comes from DigiKey/Mouser (see the store list) | 10–30 |
 | L4 | **Resistors 330 Ω and 10 kΩ, 0.25 W carbon film** | 10 + 10 | Electrokit `40810233` (330 Ω); 10 kΩ: search `motstånd kolfilm 0.25W 10kohm` | 330 Ω: data line between the shifter and the strip's DIN (need 1). 10 kΩ: pull-down on the shifter input (need 1), so it stays quiet while the C3 boots. They are cheaper from 10 up. 220–470 Ω works for the first | 4–15 |
-| L5 | Perfboard, 2.54 mm, small | 1 | `prototype board 2.54 mm` | Cut to about 18 × 30 mm. Carries the level shifter, the data resistor, the fuse and the capacitors | 10–20 |
+| L5 | Perfboard, 2.54 mm, plated holes, **30 × 70 mm** | 1 | Electrokit `experimentkort 1 hål 30x70mm genomplaterade hål` | Cut to about 18 × 30 mm with a saw or by scoring and snapping. Carries the level shifter, the resistors, the fuse and the capacitors | 10–20 |
 | L7 | Polyfuse 3 A (hold) / 6 V, radial | 1 | `PTC resettable fuse 3A` | In the 5 V feed after the USB-C board. **Current budget:** the strip can pull about 60 mA per LED with all four chips on. 60 LED/m × 0.7 m = 42 LEDs = about 2.5 A, within a 3 A charger. At 144 LED/m (100 LEDs, about 6 A) the firmware has to cap brightness to about 40 %; that is a software limit, not a part | 5–10 |
-| L8 | Capacitors: 1000 µF 10 V radial, Ø8 mm or smaller, plus 100 nF ceramic | 1 + 1 | — | Across the 5 V rail where the strip joins; protects the LEDs from the switch-on surge. Keep to Ø8 so it fits | 5–10 |
+| L8 | Capacitors: **470 µF 16 V 105 °C, Ø8 × 9 mm** (Electrokit `41017681`, Rubycon 2000 h; or `41017456`, 1000 h) and a 100 nF ceramic | 1 + 1 | Electrokit; titles say `uF`, so search `470uF 16V` | Across the 5 V rail where the strip joins; soaks up the switch-on surge. 470 µF is plenty for 42 LEDs, and at 9 mm tall it stands upright in the pod. The first pick (1000 µF 10 V Ø10 × 16 mm, `UPW1A102MPD`) was out of stock; if you want 1000 µF, Electrokit `41017694` (16 V, Ø10 × 16) works but must lie flat | 5–10 |
 | L9 | Wire: 22 AWG silicone, red and black, for the strip feed; 28 AWG for signals | | — | You have the thin wire. 22 AWG carries the 2–3 A | 0 |
 | L10 | Double-sided tape (foam, 3M VHB style), M3 × 16 screw + nut | | — | As in the original build: tape holds the bar to the back of the monitor, an M3 screw and nut hinge the arm. **You have these** | 0 |
 
@@ -168,9 +168,9 @@ Everything in the knob and the light bar, grouped by where to buy it. **Phase** 
 | [40810233](https://www.electrokit.com/en/motstand-kolfilm-0.25w-330ohm-330r) | Resistor 330 Ω 0.25 W carbon film | 10 | bar | 2–10 |
 | search `motstånd kolfilm 0.25W 10kohm` | Resistor 10 kΩ 0.25 W carbon film | 10 | bar | 2–10 |
 | search `PTC återställbar säkring 3A` | Polyfuse 3 A hold, radial (6 V or more) | 1 | bar | 5–10 |
-| search `elektrolytkondensator 1000uF 10V` | Capacitor 1000 µF, 10 V or more, Ø8 mm or smaller | 1 | bar | 3–8 |
+| [41017681](https://www.electrokit.com/en/search?q=41017681) | Capacitor 470 µF 16 V 105 °C Ø8×9 mm (Rubycon; `41017456` is the cheaper 1000 h one) | 1 | bar | 2–5 |
 | search `kondensator 100nF keramisk` | Capacitor 100 nF ceramic | 1 (get 5) | bar | 2–5 |
-| search `kopplingsdäck 2.54 mm` / `experimentkort` | Perfboard 2.54 mm | 1 | bar | 10–20 |
+| [experimentkort 30×70](https://electrokit.com/en/experimentkort-1-hal-30x70mm-genomplaterade-hal) | Perfboard 2.54 mm, plated holes, 30 × 70 mm | 1 | bar | 10–20 |
 | [41017312](https://www.electrokit.com/batteri-lipo-3.7v-2000mah) | LiPo 2000 mAh JST-PH (only if you skip row 7's 3000 mAh from AliExpress) | 1 | 2 | 80–120 |
 | [41035991](https://www.electrokit.com/2-pol-hane-magnetisk-pogo-pin-kontakt-fjadrande) + [41035992](https://www.electrokit.com/2-pol-hona-magnetisk-pogo-pin-kontakt) | Magnetic pogo 2-pin, male + female (if you pick pogo charging, row 14) | 1 + 1 | 2 | 40–60 |
 | [rubber feet 10×4.5](https://www.electrokit.com/sjalvhaftande-fot-10x4.5mm-svart-gummi) | Self-adhesive feet, optional (or Clas Ohlson/Biltema) | 8 | 2 | 20–40 |
@@ -182,7 +182,7 @@ Everything in the knob and the light bar, grouped by where to buy it. **Phase** 
 | `SN74AHCT125N` (TI, DIP-14 quad level shifter) | 2 | bar | 10–30 |
 | [`VG1040003D`](https://www.digikey.se/en/products/detail/vybronics-inc/VG1040003D/10285886) LRA, or `VG0832012` (8 mm, wires on) | 1 | 2 | 40–65 |
 
-DigiKey charges about 170 kr shipping below roughly 615 kr, so the level shifter alone is a poor order. Put the LRA on the same order, or look for the shifter elsewhere: AliExpress (`SN74AHCT125N` or `74AHCT125 DIP-14`, a few kr, slow) or Electrokit's search if they stock it by then. If it is Mouser, the Adafruit DRV2605L 485-2305 is on the same site, but you chose the AliExpress module.
+DigiKey charges about 170 kr shipping below roughly 615 kr, so the level shifter alone is a poor order. Put the LRA, and any capacitor Electrokit lacks, on the same order. AliExpress is not an option. If it is Mouser, the Adafruit DRV2605L 485-2305 is on the same site, but you chose the AliExpress module.
 
 **AliExpress**
 
