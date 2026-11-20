@@ -1,5 +1,16 @@
 # Under-monitor case for the Prospector (v2, for a 0.6 mm nozzle)
 
+> **2026-11-20: new plan, the original Prospector case + a tape surface.** The custom case below (v2) is
+> kept but no longer the plan. Instead the three original parts (`original/`: Main Body No Sensor, Disp Mount,
+> Rear Cap) get one flat 43 × 30 mm tape plate on top, 2.4 mm above the highest point of the case
+> (`prospector_tape.py`, `./build-prospector.sh`, output in `prospector/`). Nothing else changes. The screen
+> faces front and 36° up, which suits eyes above the monitor's bottom edge. Print each part in the position
+> you printed the original; the plate sits on 45° sides, so it needs no support of its own.
+> The originals and the modified STLs are not in git (not my files, so same rule as the light bar).
+>
+> ![Case with plate under a monitor](renders/prospector-front.png)
+> ![Case](renders/prospector-case.png)
+
 Double-sided tape holds this case under the bottom edge of the monitor, and
 only the screen shows: it hangs just below the picture, leans back 20° so it
 faces your chair, and has a 1.2 mm rim flush with the glass. Print it in black.

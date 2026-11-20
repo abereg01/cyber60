@@ -26,3 +26,7 @@ case/lightbar/lightbar-tube-175.stl
 case/lightbar/lightbar-diffuser-233.stl
 case/lightbar/lightbar-pod.stl
 case/lightbar/lightbar-cap.stl
+
+# Prospector case originals and the modified STLs (not my files)
+/case/monitor/original/
+/case/monitor/prospector/*.stl

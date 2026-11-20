@@ -1,0 +1,55 @@
+{
+ "tape_plane_z": 40.4,
+ "tape_area_mm2": 1290.0,
+ "body": {
+  "bbox": [
+   [
+    -21.5,
+    -5.24,
+    -0.0
+   ],
+   [
+    21.5,
+    30.0,
+    40.4
+   ]
+  ],
+  "added_mm3": 5882.2,
+  "watertight": true,
+  "volume_orig_mm3": 7136.7
+ },
+ "mount": {
+  "bbox": [
+   [
+    -21.57,
+    -13.49,
+    3.72
+   ],
+   [
+    21.62,
+    14.73,
+    40.4
+   ]
+  ],
+  "added_mm3": 1726.9,
+  "watertight": true,
+  "volume_orig_mm3": 3001.8
+ },
+ "cap": {
+  "bbox": [
+   [
+    -21.5,
+    10.8,
+    -0.0
+   ],
+   [
+    21.5,
+    37.9,
+    40.4
+   ]
+  ],
+  "added_mm3": 2498.3,
+  "watertight": true,
+  "volume_orig_mm3": 5784.8
+ }
+}
