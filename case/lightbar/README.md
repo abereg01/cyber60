@@ -1,5 +1,7 @@
 # Monitor light bar, 700 mm (for the 49" super-wide)
 
+> **2026-11-20: the strip is 5 V SK6812 RGBW (one data wire).** The MOSFET/5-channel wiring, the 12 V section and `fw/` (5 PWM channels) below describe the first plan and are out of date. The pod geometry and the BLE protocol still stand; the firmware output stage and the wiring section need rewriting for one data pin plus a 74AHCT level shifter. Current buy list: `KNOB.md`.
+
 Our version of *DIY Monitor Light Bar* by Made by Jade
 ([video](https://www.youtube.com/watch?v=Z6de5To7LlU), MakerWorld model, personal
 use): a diffuser-lit LED bar on a hinged arm that hangs on the back of the monitor

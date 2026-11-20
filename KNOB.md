@@ -118,30 +118,33 @@ the row here, not how many (so it's 1 sensor, 1 LRA and 1 haptic driver).
 
 ### Light bar (700 mm, steered by the knob), order together with the above
 
-Added 2026-11-19. Parts for the monitor light bar (`case/lightbar/`): an ESP32-C3
-in the pod at the bar's end, 5 PWM channels (R, G, B, warm, cool white), 5 V
-from a USB-C socket in the end cap, Bluetooth link to the knob. **The LED
-strip is not on this list: you have it at home.** The list assumes a 5 V RGB+CCT
-strip (5 channels). With fewer channels (CCT only = 2, RGB only = 3) use fewer
-MOSFETs and nothing else changes. The strip must be **5 V**; for a 12/24 V strip
-the whole power side changes, so say so before ordering.
+Added 2026-11-19, rewritten 2026-11-20 for the strip you have: **5 V SK6812
+RGBW addressable, 4-in-1** (one data wire, each LED has its own driver chip).
+That replaces the first plan (5 PWM channels + MOSFETs): no MOSFETs, no gate
+resistors, no 12 V question. The ESP32-C3 sits in the pod at the bar's end, one
+data pin drives the strip, 5 V comes from a USB-C socket in the end cap, and the
+Bluetooth link to the knob is unchanged. **The strip, filament and fasteners are
+yours; they are not on this list.**
+
+Check on the strip before slicing/wiring (it does not change what you order):
+LED density (30 / 60 / 144 per m; it sets the current, see L7) and which white
+(WW / NW / CW; a single white chip means the knob's colour-temperature control is
+approximate: it blends RGB into the white). Buy the **IP30** version for the tube
+(no coating, the diffuser protects it); IP65/67 silicone is thicker and harder to slide in.
 
 | # | Part | Qty | Search for | Notes | ~kr |
 |---|------|-----|------------|-------|-----|
 | L1 | **Waveshare ESP32-C3-Zero-M** (ESP32-C3, USB-C, castellated pads) | 1 | Electrokit `41032831` | In stock at 92 kr. Waveshare lists it as 23.5 × 18 mm, which is the size the pod's bore is checked against. The Electrokit "ESP32-C3 mini" `41022524` shows as sold out, and a Lolin C3 Mini (34 × 25 mm) is too big for the 23 mm bore. If you buy another C3 board it must be ≤ 24 × 18 mm | 92 |
 | L2 | **USB-C breakout, 6-pin, 3 A** (same as #15) | 1 more (so 2 in total with #15) | Electrokit `41036209` | Power only, into the end cap. **Check that it has the 5.1 kΩ CC resistors on board**; if not, solder 2 × 5.1 kΩ (CC1/CC2 to GND) or a plain charger will only give 500 mA. The cap's hole is 9.4 × 3.6 mm for the jack | 15–20 |
-| L3 | **MOSFET, N-channel, logic level, SOT-23: AO3400A** | 10 (5 + spares) | `AO3400A SOT-23` | The ESP32 drives the gate at 3.3 V, so it must be logic level (plain IRF parts do not switch fully). 5 A each is plenty: a 700 mm strip pulls about 2.5 A in total. SOT-23 is small enough to fit the bore; **TO-220 ones (IRLZ44N) do not fit** | 15–30 |
-| L4 | SOT-23 to DIP adapter boards | 10 | `SOT-23 to DIP adapter` | Makes hand-soldering the AO3400A easy; or solder them straight onto the perfboard | 15–30 |
-| L5 | Perfboard, 2.54 mm, small | 1 | `prototype board 2.54 mm` | Cut to about 18 × 30 mm for the MOSFET board | 10–20 |
-| L6 | Resistors 22 Ω (gate) and 100 kΩ (gate pull-down) | 5 + 5 | — | **You probably have these.** Same values as in the original build | 0–10 |
-| L7 | Polyfuse 3 A (hold) / 6 V, radial | 1 | `PTC resettable fuse 3A` | In the 5 V feed after the USB-C board, so a short can't cook the jack | 5–10 |
-| L8 | Capacitors: 1000 µF 10 V radial, Ø8 mm or smaller, plus 100 nF ceramic | 1 + 1 | — | Across the 5 V rail where the strip joins. Keep to Ø8 so it fits | 5–10 |
+| L3 | **Level shifter 3.3 V → 5 V: SN74AHCT125N** (quad buffer, DIP-14, 19 × 7.6 mm) | 2 | `SN74AHCT125N` | The C3's data pin is 3.3 V; SK6812 on 5 V wants at least 3.5 V, so unshifted it flickers or fails. Must be an AHCT/HCT part (plain 74HC or 74LVC will not do). Use one of the four gates, tie the other inputs to GND. Buy 2 in case you ruin one. **Electrokit probably doesn't stock it**, so it comes from DigiKey/Mouser (see the store list) | 10–30 |
+| L4 | **Resistor 330 Ω, 0.25 W carbon film** | 10 | Electrokit `40810233` | Data line, between the shifter output and the strip's DIN. You need 1; they are sold cheaper from 10 up. 220–470 Ω all work | 2–10 |
+| L5 | Perfboard, 2.54 mm, small | 1 | `prototype board 2.54 mm` | Cut to about 18 × 30 mm. Carries the level shifter, the data resistor, the fuse and the capacitors | 10–20 |
+| L7 | Polyfuse 3 A (hold) / 6 V, radial | 1 | `PTC resettable fuse 3A` | In the 5 V feed after the USB-C board. **Current budget:** the strip can pull about 60 mA per LED with all four chips on. 60 LED/m × 0.7 m = 42 LEDs = about 2.5 A, within a 3 A charger. At 144 LED/m (100 LEDs, about 6 A) the firmware has to cap brightness to about 40 %; that is a software limit, not a part | 5–10 |
+| L8 | Capacitors: 1000 µF 10 V radial, Ø8 mm or smaller, plus 100 nF ceramic | 1 + 1 | — | Across the 5 V rail where the strip joins; protects the LEDs from the switch-on surge. Keep to Ø8 so it fits | 5–10 |
 | L9 | Wire: 22 AWG silicone, red and black, for the strip feed; 28 AWG for signals | | — | You have the thin wire. 22 AWG carries the 2–3 A | 0 |
 | L10 | Double-sided tape (foam, 3M VHB style), M3 × 16 screw + nut | | — | As in the original build: tape holds the bar to the back of the monitor, an M3 screw and nut hinge the arm. **You have these** | 0 |
 
-**Light bar total: about 160–280 kr** for new parts (the strip, filament and
-fasteners are yours). Where to buy: Electrokit for L1, L2, L7 and the capacitors;
-AliExpress for L3–L4 (or Electrokit's SOT-23 adapters).
+**Light bar total: about 140–200 kr** for new parts, plus DigiKey/Mouser shipping for the level shifter unless it rides on another order (see the store list below). Your strip: **60 LED/m, IP30, uncoated**.
 
 **Phase 3** is the light bar. It doesn't need to wait for the knob's phases: the
 bar works from its own USB-C socket as soon as the pod is wired, and the knob
@@ -149,28 +152,56 @@ only adds the Bluetooth link.
 
 The bar's own files, fit check and printing notes are in `case/lightbar/README.md`.
 
-### Where to buy
+### Order list by store
 
-**Electrokit**
-- Light bar: [Waveshare ESP32-C3-Zero-M](https://www.electrokit.com/en/search?q=41032831) (41032831), and a second [USB-C breakout](https://www.electrokit.com/en/breakout-board-usb-c-6-pins-3A) (41036209)
-- [Waveshare ESP32-S3-Touch-AMOLED-1.75](https://www.electrokit.com/esp32-s3-utvecklingskort-med-1.75amoled-touch) (41036508)
-- [TMAG5273 A2 Qwiic](https://www.electrokit.com/en/search?q=41036412) (41036412)
-- [Qwiic to 4× male pins, 150 mm, ×2](https://www.electrokit.com/qwiic-till-4x-stift) (41015942)
-- [LiPo 2000 mAh, JST-PH](https://www.electrokit.com/batteri-lipo-3.7v-2000mah) (41017312)
-- [Magnetic pogo 2-pin, male](https://www.electrokit.com/2-pol-hane-magnetisk-pogo-pin-kontakt-fjadrande) (41035991) + [female](https://www.electrokit.com/2-pol-hona-magnetisk-pogo-pin-kontakt) (41035992)
-- [USB-C breakout, 6-pin](https://www.electrokit.com/en/breakout-board-usb-c-6-pins-3A) (41036209)
-- [Rubber feet 10×4.5 mm](https://www.electrokit.com/sjalvhaftande-fot-10x4.5mm-svart-gummi)
+Everything in the knob and the light bar, grouped by where to buy it. **Phase** is 1 or 2 for the knob (see "Buy it in two phases" below), **bar** for the light bar. Search by the article number where there is one.
 
-**Mouser**
-- [DRV2605L, Adafruit 2305](https://www.mouser.se/c/?q=485-2305) (485-2305)
-- [LRA VG1040003D](https://www.mouser.se/c/?q=VG1040003D) (not confirmed there; [DigiKey](https://www.digikey.se/en/products/detail/vybronics-inc/VG1040003D/10285886) has it)
+**Electrokit** (one order covers almost everything)
 
-**Others**
-- [Magnets Ø5×2 N52](https://www.supermagnete.se/eng/disc-magnets-neodymium/disc-magnet-5mm-2mm_S-05-02-N52N), supermagnete.se
+| Art. no. | Item | Qty | Phase | ~kr |
+|---|---|---|---|---|
+| [41036508](https://www.electrokit.com/esp32-s3-utvecklingskort-med-1.75amoled-touch) | Waveshare ESP32-S3-Touch-AMOLED-1.75 (not the `-G` GPS one) | 1 | 1 | 350–450 |
+| [41036412](https://www.electrokit.com/en/search?q=41036412) | TMAG5273 A2 Qwiic (Adafruit) | 1 | 1 | 141 |
+| [41015942](https://www.electrokit.com/qwiic-till-4x-stift) | Qwiic to 4× male pins, 150 mm | 2 | 1 | 30–50 |
+| [41032831](https://www.electrokit.com/en/search?q=41032831) | Waveshare ESP32-C3-Zero-M | 1 | bar | 92 |
+| [41036209](https://www.electrokit.com/en/breakout-board-usb-c-6-pins-3A) | USB-C breakout, 6-pin, 3 A | **2** (1 dock #15, 1 bar L2) | 2 + bar | 30–40 |
+| [40810233](https://www.electrokit.com/en/motstand-kolfilm-0.25w-330ohm-330r) | Resistor 330 Ω 0.25 W carbon film | 10 | bar | 2–10 |
+| search `PTC återställbar säkring 3A` | Polyfuse 3 A hold, radial (6 V or more) | 1 | bar | 5–10 |
+| search `elektrolytkondensator 1000uF 10V` | Capacitor 1000 µF, 10 V or more, Ø8 mm or smaller | 1 | bar | 3–8 |
+| search `kondensator 100nF keramisk` | Capacitor 100 nF ceramic | 1 (get 5) | bar | 2–5 |
+| search `kopplingsdäck 2.54 mm` / `experimentkort` | Perfboard 2.54 mm | 1 | bar | 10–20 |
+| [41017312](https://www.electrokit.com/batteri-lipo-3.7v-2000mah) | LiPo 2000 mAh JST-PH (only if you skip row 7's 3000 mAh from AliExpress) | 1 | 2 | 80–120 |
+| [41035991](https://www.electrokit.com/2-pol-hane-magnetisk-pogo-pin-kontakt-fjadrande) + [41035992](https://www.electrokit.com/2-pol-hona-magnetisk-pogo-pin-kontakt) | Magnetic pogo 2-pin, male + female (if you pick pogo charging, row 14) | 1 + 1 | 2 | 40–60 |
+| [rubber feet 10×4.5](https://www.electrokit.com/sjalvhaftande-fot-10x4.5mm-svart-gummi) | Self-adhesive feet, optional (or Clas Ohlson/Biltema) | 8 | 2 | 20–40 |
+
+**DigiKey** (or Mouser; the same parts)
+
+| Item | Qty | Phase | ~kr |
+|---|---|---|---|
+| `SN74AHCT125N` (TI, DIP-14 quad level shifter) | 2 | bar | 10–30 |
+| [`VG1040003D`](https://www.digikey.se/en/products/detail/vybronics-inc/VG1040003D/10285886) LRA, or `VG0832012` (8 mm, wires on) | 1 | 2 | 40–65 |
+
+DigiKey charges about 170 kr shipping below roughly 615 kr, so the level shifter alone is a poor order. Put the LRA on the same order, or look for the shifter elsewhere: AliExpress (`SN74AHCT125N` or `74AHCT125 DIP-14`, a few kr, slow) or Electrokit's search if they stock it by then. If it is Mouser, the Adafruit DRV2605L 485-2305 is on the same site, but you chose the AliExpress module.
+
+**AliExpress**
+
+| Item | Qty | Phase | ~kr |
+|---|---|---|---|
+| `DRV2605L Haptic Motor Driver Module` | 1 | 2 | 40 |
+| `neodymium magnet 5x2mm N52` (50-pack, for the 24 ring magnets, buy all at once) | 30 | 1 | 40–120 |
+| `805080 lipo 3000mAh` flat, 2-pin MX1.25, protection circuit (or the Electrokit one above) | 1 | 2 | 100–150 |
+| `USB C panel mount extension cable`, 15–20 cm | 1 | 2 | 40–80 |
+| Spare level shifter (see DigiKey above) | 2 | bar | 5–15 |
+
+**Other**
+- [Ring magnets Ø5×2 N52](https://www.supermagnete.se/eng/disc-magnets-neodymium/disc-magnet-5mm-2mm_S-05-02-N52N), supermagnete.se, if you prefer them to AliExpress (3–4 kr each)
 - [Bearing 6810-ZZ](https://www.tymoty.com/codex-6810-zz--61810-2z--deep-groove-ball-bearing), Tymoty
 - [Steel BBs 4.5 mm](https://www.jula.se/catalog/fritid/fritidsaktiviteter/luftvapen-och-pilbagar/luftvapen/stalkulor-031425/), Jula (in store)
+- Silicone feet (row 10), Clas Ohlson / Biltema
 
-**Total (knob only): about 830–1380 kr;** the light bar adds about 160–280 kr (above). One of each electronic part; only the magnets, feet and steel come in quantities.
+**You already have:** the SK6812 strip (5 V, 60/m, IP30), 22 AWG and 28 AWG wire, foam tape, M3 screws and nuts, the Omron micro switches, filament, strong magnets for the dock.
+
+**Total (knob only): about 830–1380 kr;** the light bar adds about 140–200 kr (above). One of each electronic part; only the magnets, feet and steel come in quantities.
 
 ### Buy it in two phases
 
