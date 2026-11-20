@@ -1,4 +1,4 @@
-// Pure light logic (no Arduino, no BLE): state, steps, colour -> five PWM duties.
+// Pure light logic (no Arduino, no BLE): state, steps, colour -> R, G, B, W levels for an SK6812 RGBW strip.
 // Tested on the host: fw/test/test_light.cpp
 #pragma once
 #include <algorithm>
@@ -7,20 +7,32 @@
 
 namespace lb {
 
+#ifndef LB_LEDS
+#define LB_LEDS 42        // 60 LED/m x 0.7 m
+#endif
+#ifndef LB_WHITE_K
+#define LB_WHITE_K 4500   // colour temperature of the strip's white chip (WW ~3000, NW ~4500, CW ~6500)
+#endif
+#ifndef LB_MA_PER_CH
+#define LB_MA_PER_CH 15   // per colour chip at full (SK6812: about 12-18 mA)
+#endif
+#ifndef LB_BUDGET_MA
+#define LB_BUDGET_MA 1800 // keep the strip under this; a 3 A USB-C charger has headroom for the C3
+#endif
+
 constexpr int CCT_MIN = 2700, CCT_MAX = 6500;
-constexpr int PWM_BITS = 10, PWM_MAX = (1 << PWM_BITS) - 1;
-constexpr float SUM_MAX = 2.0f;  // channel-equivalents on at once, protects the rail
+constexpr float SUM_MAX = (float)LB_BUDGET_MA / (LB_LEDS * LB_MA_PER_CH);  // channels at full that fit the budget (2.86 here)
 
 struct State {
-    uint8_t on = 1, mode = 0, brightness = 80, sat = 255;
-    uint16_t hue = 30, cct = 3000;
+    uint8_t on = 1, mode = 0, brightness = 128, sat = 255;
+    uint16_t hue = 30, cct = LB_WHITE_K;  // first boot: neutral white at half brightness
 };
 struct Config {
     uint8_t limit = 100;      // % ceiling on brightness
     uint16_t fade_ms = 250;
     uint8_t gamma_x10 = 22;
 };
-struct Out { float r = 0, g = 0, b = 0, ww = 0, cw = 0; };  // 0..1, already gamma-corrected
+struct Out { float r = 0, g = 0, b = 0, w = 0; };  // 0..1, already gamma-corrected
 
 inline void clamp_state(State& s) {
     s.on = s.on ? 1 : 0;
@@ -63,28 +75,45 @@ inline void hsv(float h, float sat, float& r, float& g, float& b) {  // v = 1
     }
 }
 
+// Black-body colour for a temperature, as linear-ish RGB with the largest channel = 1
+// (Tanner Helland's approximation; good enough to tint a white LED).
+inline void blackbody(float k, float& r, float& g, float& b) {
+    float t = k / 100.0f;
+    float R = t <= 66 ? 255.0f : 329.698727446f * std::pow(t - 60, -0.1332047592f);
+    float G = t <= 66 ? 99.4708025861f * std::log(t) - 161.1195681661f
+                      : 288.1221695283f * std::pow(t - 60, -0.0755148492f);
+    float B = t >= 66 ? 255.0f : (t <= 19 ? 0.0f : 138.5177312231f * std::log(t - 10) - 305.0447927307f);
+    r = std::clamp(R, 0.0f, 255.0f) / 255.0f; g = std::clamp(G, 0.0f, 255.0f) / 255.0f;
+    b = std::clamp(B, 0.0f, 255.0f) / 255.0f;
+}
+
 // Target output for a state. Linear light first, then gamma, so 10 % brightness looks like 10 %.
+// White mode: the strip has ONE white chip (LB_WHITE_K). At that temperature only W is lit; for any other
+// temperature as much W as fits is used and R/G/B add the missing tint (warmer: red, cooler: blue).
+// Colour mode: R, G, B only.
 inline Out compute(const State& s, const Config& c) {
     Out o;
     if (!s.on) return o;
     float master = s.brightness / 255.0f * c.limit / 100.0f;
-    float lin[5] = {0, 0, 0, 0, 0};
+    float lin[4] = {0, 0, 0, 0};  // r g b w
     if (s.mode == 1) {
         hsv((float)s.hue, s.sat / 255.0f, lin[0], lin[1], lin[2]);
     } else {
-        float t = (float)(s.cct - CCT_MIN) / (CCT_MAX - CCT_MIN);
-        lin[3] = std::min(1.0f, 2.0f * (1.0f - t));  // warm
-        lin[4] = std::min(1.0f, 2.0f * t);           // cool
+        float T[3], N[3];
+        blackbody((float)s.cct, T[0], T[1], T[2]);
+        blackbody((float)LB_WHITE_K, N[0], N[1], N[2]);
+        float a = 1.0f;
+        for (int i = 0; i < 3; i++) a = std::min(a, T[i] / std::max(N[i], 1e-3f));
+        lin[3] = a;
+        for (int i = 0; i < 3; i++) lin[i] = std::max(0.0f, T[i] - a * N[i]);
     }
-    float sum = lin[0] + lin[1] + lin[2] + lin[3] + lin[4];
+    float sum = lin[0] + lin[1] + lin[2] + lin[3];
     float k = master * (sum * master > SUM_MAX ? SUM_MAX / (sum * master) : 1.0f);
     float gm = c.gamma_x10 / 10.0f;
-    float* dst[5] = {&o.r, &o.g, &o.b, &o.ww, &o.cw};
-    for (int i = 0; i < 5; i++) *dst[i] = std::pow(std::clamp(lin[i] * k, 0.0f, 1.0f), gm);
+    float* dst[4] = {&o.r, &o.g, &o.b, &o.w};
+    for (int i = 0; i < 4; i++) *dst[i] = std::pow(std::clamp(lin[i] * k, 0.0f, 1.0f), gm);
     return o;
 }
-
-inline uint32_t duty(float v) { return (uint32_t)std::lround(std::clamp(v, 0.0f, 1.0f) * PWM_MAX); }
 
 // Little-endian wire format
 inline void pack_state(const State& s, uint8_t* p) {

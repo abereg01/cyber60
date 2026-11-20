@@ -1,6 +1,6 @@
 # Monitor light bar, 700 mm (for the 49" super-wide)
 
-> **2026-11-20: the strip is 5 V SK6812 RGBW (one data wire).** The MOSFET/5-channel wiring, the 12 V section and `fw/` (5 PWM channels) below describe the first plan and are out of date. The pod geometry and the BLE protocol still stand; the firmware output stage and the wiring section need rewriting for one data pin plus a 74AHCT level shifter. Current buy list: `KNOB.md`.
+> **2026-11-20: the strip is a 5 V SK6812 RGBW (one data wire, 60 LED/m, IP30).** Wiring, fit and firmware below are updated for it. The pod geometry did not change.
 
 Our version of *DIY Monitor Light Bar* by Made by Jade
 ([video](https://www.youtube.com/watch?v=Z6de5To7LlU), MakerWorld model, personal
@@ -59,8 +59,8 @@ and the diffuser, so **no electronics go in the tube**. They go in the pod, a
 round bore of about 23 mm inside (wall 2.4 mm):
 
 - at 18 mm board width the bore is 14 mm tall; at 20 mm width 12.5 mm
-- **ESP32-C3-Zero stacked over the 5-channel MOSFET board** (5 + 7 mm tall, 30 × 18 mm)
-  and a **polyfuse + 1000 µF + 100 nF** group (14 × 18 mm, 13 mm tall): 44 mm of
+- **ESP32-C3-Zero stacked over a small perfboard** (5 + 7 mm tall, 30 × 18 mm) with the **74AHCT125 level
+  shifter (DIP-14, 19 × 7.6 mm), the 330 Ω and the 10 kΩ**, and a **polyfuse + 1000 µF + 100 nF** group (14 × 18 mm, 13 mm tall): 44 mm of
   the 56 mm usable length, so about 12 mm is left for wire loops
 - **USB-C**: a 9.4 × 3.6 mm hole (jack shell 8.94 × 3.26 + fit) in the cap, long side
   parallel to the diffuser face. The 6-pin breakout is glued behind the hole, jack
@@ -72,17 +72,23 @@ round bore of about 23 mm inside (wall 2.4 mm):
 caliper (the C3-Zero is listed as 23.5 × 18 mm), and the breakout's size, which
 the model does not use (it is glued, so it only has to fit in the ring).
 
-### Wiring (5 V, 5 channels)
+### Wiring (5 V, SK6812 RGBW, one data wire)
 
 ```
-USB-C 5 V -> polyfuse 3 A -> 5 V rail (1000 uF + 100 nF) -> strip + (+) common  and  C3 "5V"
-C3 GPIO0 -> 22 R -> AO3400A gate (100 k to GND) -> drain = strip R   (source to GND)
-C3 GPIO1 -> ... G      GPIO3 -> ... B      GPIO4 -> ... warm white      GPIO5 -> ... cool white
+USB-C 5 V -> polyfuse 3 A -> 5 V rail (1000 uF + 100 nF) -> strip +5V,  C3 "5V",  74AHCT125 pin 14 (VCC)
+C3 GPIO0 -> 74AHCT125 pin 2 (1A)        pin 1 (1OE) -> GND,   pin 7 -> GND
+         10 k from pin 2 to GND (keeps the input quiet while the C3 boots)
+74AHCT125 pin 3 (1Y) -> 330 R -> strip DIN
+GND: USB-C board, C3, 74AHCT125 and the strip's GND all joined
+unused gates 2-4: /OE pins 4, 10, 13 to +5 V, inputs 5, 9, 12 to GND, outputs 6, 8, 11 left open
 ```
 
-GPIO 0, 1, 3, 4 and 5 avoid the strapping pins (2, 8, 9) and the on-board RGB LED
-(10). The C3 has 6 PWM channels, so 5 fit. The strip's feed is 22 AWG. Share the
-ground between the USB-C board, the C3 and all MOSFET sources.
+Pin numbers are for the 14-pin DIP SN74AHCT125N (/OE is active low, so gate 1 is enabled by
+grounding pin 1). **Check them against the datasheet before soldering.**
+Feed the strip with 22 AWG at the end where the pod is. At 60 LED/m the 700 mm strip is 42
+LEDs; the far end can be a little yellower at full white because of voltage drop, which is
+fine at the brightness the firmware allows (budget about 1.8 A). Use the arrow on the strip:
+DIN at the pod end.
 
 **Don't connect the C3's own USB port while the bar is powered through the cap**:
 flash it first (cap off), then close the pod. Later updates can go over Bluetooth.
@@ -97,19 +103,26 @@ bridges about 25 mm, which is fine at 2 mm thick. Glue the joiners and the pod's
 plug with CA glue only after a dry fit, and **dry-fit the diffuser through all
 the tubes** before gluing.
 
-## Firmware and BLE (written 2026-11-19, not run on hardware yet)
+## Firmware and BLE (v0.2.0, 2026-11-20; host-tested and compiles, **never run on the board**)
 
 - Protocol: [`BLE-SPEC.md`](BLE-SPEC.md). Firmware: `fw/` (PlatformIO, Arduino core +
-  NimBLE). `src/light.h` holds all the logic (state, relative steps, colour to 5 PWM
-  duties with gamma and a power guard) and is tested on the host:
-  `./fw-build.sh test`. `./fw-build.sh` also compiles for the ESP32-C3 (first build
-  downloads about 2 GB to the pool; it built clean: 38 % flash, 7 % RAM).
+  NimBLE + Adafruit NeoPixel). `src/light.h` holds all the logic (state, relative steps,
+  colour to R/G/B/W with gamma and a current budget) and is tested on the host:
+  `./fw-build.sh test`. `./fw-build.sh` also compiles it for the ESP32-C3.
+- **Neutral white is the default** (first boot: 4500 K, half brightness). Colour and
+  temperature are changed over BLE, later from the knob; the last state is saved.
+- Settings that depend on the strip are build flags in `platformio.ini`: `LB_LEDS` (42 for
+  60 LED/m x 0.7 m), `LB_WHITE_K` (the white chip: 3000 warm, 4500 neutral, 6500 cool; **set it
+  to what your strip is**), `LB_DATA_PIN` (0), `LB_BUDGET_MA` (1800). If red and green come out
+  swapped, change `LB_ORDER` to `NEO_RGBW` in `main.cpp`.
+- The strip has **one** white chip, so "colour temperature" is approximate: exact at the
+  chip's own temperature, tinted with R/G/B either side. Warm works better than cool.
 - `fw/lightbar-ble.py` pokes the bar from a Mac (bleak), so the bar can be tested from a
   laptop before the knob exists.
 - **Flashing:** first time over USB with the cap off (hold BOOT while plugging in), e.g.
   `pio run -t upload`. No BLE OTA yet.
-- **Never run on the board.** Expect to fix a pin or a timing on first power-up. Test with
-  the strip disconnected and a multimeter or LED on each gate first.
+- **Never run on the board.** First power-up: strip disconnected, check 5 V on the shifter
+  and a 3.3 V pulse on its input; then connect the strip at low brightness.
 
 ## What this still needs (not done)
 
@@ -119,6 +132,3 @@ the tubes** before gluing.
 2. BLE OTA, and pairing if it ever matters.
 3. A monitor check: a 1000R curved 49" means about 62 mm of sag over 704 mm. The bar hangs
    behind the top edge and shines down, so it still works, but check the look.
-4. **Power side if the strip is 12 V** (being checked): a PD trigger (12 V) or a barrel
-   jack, a 12-to-5 V buck for the C3, and 25 V capacitor and 16 V fuse. With a barrel jack
-   the end cap needs a different hole (the USB-C one is for 5 V).

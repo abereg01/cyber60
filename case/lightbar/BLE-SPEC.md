@@ -23,11 +23,11 @@ All UUIDs are `6c7b00NN-8a3e-4f5e-9d2b-4c1ee1b0a001`.
 | Byte | Field | Range | Meaning |
 |---|---|---|---|
 | 0 | `on` | 0 or 1 | Light on/off. Brightness is kept while off |
-| 1 | `mode` | 0 white, 1 colour | **White** uses the warm and cool white LEDs by temperature; **colour** uses R, G, B by hue and saturation. They never mix, so power stays low |
+| 1 | `mode` | 0 white, 1 colour | **White** lights the strip's white chip (an SK6812 RGBW has one, 4500 K neutral by default) and tints it with R/G/B to reach the asked temperature; **colour** uses R, G, B only by hue and saturation |
 | 2 | `brightness` | 0–255 | Master brightness (before gamma) |
 | 3 | `sat` | 0–255 | Colour saturation (colour mode) |
 | 4–5 | `hue` | 0–359 (u16) | Colour hue in degrees: 0 red, 120 green, 240 blue |
-| 6–7 | `cct` | 2700–6500 (u16) | White colour temperature in kelvin (white mode) |
+| 6–7 | `cct` | 2700–6500 (u16) | White colour temperature in kelvin (white mode). With one white chip this is approximate: it is exact at the chip's own temperature and drifts toward warm/cool by tinting. The warm end works better than the cool end with a neutral chip |
 
 A write must be exactly 8 bytes (others are ignored). The bar notifies the new
 State to every subscriber after any change, at most 20 times a second, so the
@@ -63,16 +63,16 @@ byte 1, write all 8 bytes back).
 
 ### Info, `…0005`: read (text)
 
-ASCII, for example `lightbar 0.1.0 ch=5 pwm=20kHz/10bit`. Version, number of
-PWM channels and PWM speed.
+ASCII, for example `lightbar 0.2.0 sk6812-rgbw n=42`. Version, strip type, LED count.
 
 ## Hardware behind it
 
-Five low-side MOSFET channels, PWM at 20 kHz (no flicker on a phone camera),
-10-bit. GPIO0 red, GPIO1 green, GPIO3 blue, GPIO4 warm white, GPIO5 cool white.
-At most 2 "channel-equivalents" of output are ever on at once (the firmware
-scales down if a mid-range white would ask for more), which protects a 5 V
-rail. With a 12 V strip the same firmware applies; only the power parts change.
+SK6812 RGBW addressable strip, 5 V, one data wire (GPIO0 via a 74AHCT125 level
+shifter). All LEDs show the same colour: the firmware fills the whole strip. Colour
+output is 8 bits per channel, so the firmware dithers over time to keep low
+brightness smooth. A current budget (default 1.8 A, from LED count and about 15 mA
+per colour chip) scales the output down if a colour would ask for more. First boot
+default: on, neutral white (4500 K), half brightness.
 
 ## For the knob firmware
 

@@ -1,11 +1,14 @@
-// Monitor light bar, ESP32-C3. 5 PWM channels (R G B warm cool), BLE peripheral.
+// Monitor light bar, ESP32-C3. SK6812 RGBW strip on one data pin (via a 74AHCT125 level shifter), BLE peripheral.
 // Protocol: ../../BLE-SPEC.md. Pure logic (state, steps, colour): light.h (host-tested).
 #include <Arduino.h>
 #include <NimBLEDevice.h>
+#include <Adafruit_NeoPixel.h>
 #include <Preferences.h>
 #include "light.h"
 
-#define FW_VERSION "0.1.0"
+#define STR2(x) #x
+#define STR(x) STR2(x)
+#define FW_VERSION "0.2.0"
 #define UUID(n) "6c7b" n "-8a3e-4f5e-9d2b-4c1ee1b0a001"
 static const char* SVC_UUID = UUID("0001");
 static const char* STATE_UUID = UUID("0002");
@@ -13,13 +16,18 @@ static const char* STEP_UUID = UUID("0003");
 static const char* CONFIG_UUID = UUID("0004");
 static const char* INFO_UUID = UUID("0005");
 
-// GPIO0 R, GPIO1 G, GPIO3 B, GPIO4 warm, GPIO5 cool. Avoids strapping pins 2/8/9 and the on-board LED (10).
-static const uint8_t PINS[5] = {0, 1, 3, 4, 5};
-static const uint32_t PWM_HZ = 20000;
+// Data pin to the level shifter (74AHCT125) and on to the strip's DIN. GPIO0 is not a strapping pin.
+#ifndef LB_DATA_PIN
+#define LB_DATA_PIN 0
+#endif
+#ifndef LB_ORDER
+#define LB_ORDER (NEO_GRBW + NEO_KHZ800)   // SK6812 RGBW is normally GRBW; if red and green swap, use NEO_RGBW
+#endif
+static Adafruit_NeoPixel strip(LB_LEDS, LB_DATA_PIN, LB_ORDER);
 
 static lb::State state;
 static lb::Config config;
-static float cur[5] = {0, 0, 0, 0, 0};   // what the pins show now (0..1), eased towards the target
+static float cur[4] = {0, 0, 0, 0};   // what the pins show now (0..1), eased towards the target
 static lb::Out target;
 static Preferences prefs;
 static NimBLECharacteristic *chState, *chConfig;
@@ -45,7 +53,7 @@ static void publishState() {
 // BLE callbacks run on the NimBLE task: only queue work here, apply it in loop().
 static portMUX_TYPE mux = portMUX_INITIALIZER_UNLOCKED;
 static lb::State pendingState; static bool havePendingState = false;
-static int32_t pendingDelta[5] = {0, 0, 0, 0, 0}; static bool pendingToggle = false;
+static int32_t pendingDelta[4] = {0, 0, 0, 0}; static bool pendingToggle = false;
 static lb::Config pendingConfig; static bool havePendingConfig = false;
 
 class StateCb : public NimBLECharacteristicCallbacks {
@@ -100,10 +108,8 @@ static void save() {
 }
 
 void setup() {
-    for (int i = 0; i < 5; i++) {   // pins low first: a floating gate must not light the strip
-        pinMode(PINS[i], OUTPUT); digitalWrite(PINS[i], LOW);
-    }
-    for (int i = 0; i < 5; i++) { ledcSetup(i, PWM_HZ, lb::PWM_BITS); ledcAttachPin(PINS[i], i); ledcWrite(i, 0); }
+    pinMode(LB_DATA_PIN, OUTPUT); digitalWrite(LB_DATA_PIN, LOW);
+    strip.begin(); strip.clear(); strip.show();
     Serial.begin(115200);
     loadSaved();
     retarget();
@@ -119,7 +125,7 @@ void setup() {
     chConfig = svc->createCharacteristic(CONFIG_UUID, NIMBLE_PROPERTY::READ | NIMBLE_PROPERTY::WRITE);
     chConfig->setCallbacks(new ConfigCb());
     NimBLECharacteristic* chInfo = svc->createCharacteristic(INFO_UUID, NIMBLE_PROPERTY::READ);
-    chInfo->setValue(std::string("lightbar " FW_VERSION " ch=5 pwm=20kHz/10bit"));
+    chInfo->setValue(std::string("lightbar " FW_VERSION " sk6812-rgbw n=" STR(LB_LEDS)));
     publishState();
     uint8_t cb[4]; lb::pack_config(config, cb); chConfig->setValue(cb, 4);
     svc->start();
@@ -137,7 +143,7 @@ void loop() {
     uint32_t dt = now - lastTick; lastTick = now;
 
     // 1. apply what BLE queued
-    lb::State ps; int32_t dl[5]; bool tog, hs, hc; lb::Config pc;
+    lb::State ps; int32_t dl[4]; bool tog, hs, hc; lb::Config pc;
     portENTER_CRITICAL(&mux);
     ps = pendingState; hs = havePendingState; havePendingState = false;
     memcpy(dl, pendingDelta, sizeof dl); memset(pendingDelta, 0, sizeof pendingDelta);
@@ -152,13 +158,26 @@ void loop() {
     if (hc) { config = pc; uint8_t cb[4]; lb::pack_config(config, cb); chConfig->setValue(cb, 4); any = true; }
     if (any) changed();
 
-    // 2. ease the pins towards the target (fade_ms to cross the full range)
+    // 2. ease towards the target (fade_ms to cross the full range), then draw
     float step = config.fade_ms ? (float)dt / config.fade_ms : 1.0f;
-    const float tg[5] = {target.r, target.g, target.b, target.ww, target.cw};
-    for (int i = 0; i < 5; i++) {
+    const float tg[4] = {target.r, target.g, target.b, target.w};
+    static float err[4] = {0, 0, 0, 0};   // temporal dithering: the strip has only 8 bits
+    static uint8_t shown[4] = {0, 0, 0, 0};
+    uint8_t px[4];
+    for (int i = 0; i < 4; i++) {
         float d = tg[i] - cur[i];
         if (fabsf(d) <= step) cur[i] = tg[i]; else cur[i] += d > 0 ? step : -step;
-        ledcWrite(i, lb::duty(cur[i]));
+        float v = cur[i] * 255.0f + err[i];
+        float q = floorf(v + 0.5f);
+        if (q > 255) q = 255;
+        if (q < 0) q = 0;
+        err[i] = (cur[i] == 0.0f) ? 0.0f : constrain(v - q, -0.5f, 0.5f);
+        px[i] = (uint8_t)q;
+    }
+    if (memcmp(px, shown, 4) != 0) {     // only talk to the strip when something changed
+        memcpy(shown, px, 4);
+        strip.fill(strip.Color(px[0], px[1], px[2], px[3]));
+        strip.show();
     }
 
     // 3. notify subscribers, at most 20 per second
