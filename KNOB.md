@@ -156,11 +156,11 @@ The bar's own files, fit check and printing notes are in `case/lightbar/README.m
 
 Everything in the knob and the light bar, grouped by where to buy it. **Phase** is 1 or 2 for the knob (see "Buy it in two phases" below), **bar** for the light bar. Search by the article number where there is one.
 
-**Electrokit** (one order covers almost everything)
+**Electrokit** (one order covers almost everything; the screen board and the shifter come from elsewhere)
 
 | Art. no. | Item | Qty | Phase | ~kr |
 |---|---|---|---|---|
-| [41036508](https://www.electrokit.com/esp32-s3-utvecklingskort-med-1.75amoled-touch) | Waveshare ESP32-S3-Touch-AMOLED-1.75 (not the `-G` GPS one) | 1 | 1 | 350–450 |
+| ~~[41036508](https://www.electrokit.com/esp32-s3-utvecklingskort-med-1.75amoled-touch)~~ | Waveshare ESP32-S3-Touch-AMOLED-1.75: **out of stock at Electrokit (499 kr). Buy at [Amazon.se](https://www.amazon.se/dp/B0F7XTJ1ZL), 478 kr, free shipping, sold by Waveshare** (ASIN `B0F7XTJ1ZL`, "without Case & GPS") | 1 | 1 | 478 |
 | [41036412](https://www.electrokit.com/en/search?q=41036412) | TMAG5273 A2 Qwiic (Adafruit) | 1 | 1 | 141 |
 | [41015942](https://www.electrokit.com/qwiic-till-4x-stift) | Qwiic to 4× male pins, 150 mm | 2 | 1 | 30–50 |
 | [41032831](https://www.electrokit.com/en/search?q=41032831) | Waveshare ESP32-C3-Zero-M | 1 | bar | 92 |
