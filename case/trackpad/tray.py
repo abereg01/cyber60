@@ -46,11 +46,6 @@ FOOT_D, FOOT_DEEP = 9.4, 1.0  # the old dimples were 9 x 1
 BUMPER_D, BUMPER_DEEP = 12.2, 1.2  # optional recesses for 12 mm rubber bumpers, underside
 SEG = 48
 
-# Branding: ABE・スクービー inlaid (blue) in the level part of the wrist rest, reading from the user's seat
-WORDMARK = "ABE・スクービー"
-FONT = os.environ.get("SHOKO_FONT", "/fonts/DelaGothicOne-Regular.ttf")
-WM_H, WM_DEPTH, WM_Y = 6.0, 0.8, 65.0  # text height, inlay depth, centre distance from the front edge
-
 # Magic Trackpad 2 (160 x 114.9, 4.9 .. 10.4 thick as measured)
 TP_W, TP_D, T_FRONT, T_BACK = 160.0, 114.9, 4.9, 10.4
 
@@ -117,19 +112,6 @@ def wrist_rest(x_mid, y_front, W):
     return Manifold.batch_boolean([Manifold.batch_hull([a, b]) for a, b in zip(secs, secs[1:])], 0)
 
 
-def wordmark_cs(height):
-    """WORDMARK as a CrossSection centred on the origin, `height` mm tall (empty if no font)."""
-    from manifold3d import FillRule
-    from matplotlib.font_manager import FontProperties
-    from matplotlib.textpath import TextPath
-    tp = TextPath((0, 0), WORDMARK, size=10, prop=FontProperties(fname=FONT))
-    polys = [p for p in tp.to_polygons() if len(p) >= 3]
-    cs = CrossSection([[(float(x), float(y)) for x, y in p] for p in polys], FillRule.EvenOdd)
-    x0, y0, x1, y1 = cs.bounds()
-    k = height / (y1 - y0)
-    return cs.translate((-(x0 + x1) / 2, -(y0 + y1) / 2)).scale((k, k))
-
-
 # ── The tray ─────────────────────────────────────────────────────────────────
 
 
@@ -172,15 +154,10 @@ def build(repo):
     body = body.translate((-x0, -y_front, 0))
     bb = body.bounding_box()
     Wd = bb[3] - bb[0]
-    # the blue inlay: a recess in the level top, and the part that fills it (flush with the top)
-    wm = wordmark_cs(WM_H).translate((Wd / 2, WM_Y))
-    body -= wm.extrude(WM_DEPTH + 1).translate((0, 0, TOP - WM_DEPTH))
-    inlay = wm.extrude(WM_DEPTH).translate((0, 0, TOP - WM_DEPTH))
     for bx, by in ((Wd * 0.2, 22.0), (Wd * 0.8, 22.0), (12.0, 140.0 - y_front), (Wd - 12.0, 140.0 - y_front)):
         body -= cyl(BUMPER_D / 2, -1, BUMPER_DEEP, bx, by)
     info = dict(pocket=(px1 - px0, py1 - py0), pocket_origin=(px0 - x0, py0 - y_front), shift=(-x0, -y_front),
                 feet=[(fx - x0, fy - y_front) for fx, fy in feet])
-    info["inlay"] = inlay
     return body, info
 
 
@@ -226,11 +203,8 @@ def main():
     os.makedirs(os.path.join(out, "assembly"), exist_ok=True)
     t, info = build(repo)
     tm(t).export(os.path.join(out, "trackpad-tray.stl"))
-    tm(info["inlay"]).export(os.path.join(out, "trackpad-wordmark-blue.stl"))
-    tm(info["inlay"]).export(os.path.join(out, "assembly", "wordmark.stl"))
     sc = trimesh.Scene()
     sc.add_geometry(tm(t), node_name="tray", geom_name="tray")
-    sc.add_geometry(tm(info["inlay"]), node_name="wordmark-blue", geom_name="wordmark-blue")
     sc.export(os.path.join(out, "trackpad-tray.3mf"))
     bb = t.bounding_box()
     tp = trackpad_proxy(info)
@@ -260,8 +234,7 @@ def write_specs(out, bb):
     a = "/out/assembly/"
     SLATE, TP_C, KB_C = "#7a99ac", "#c9ccd1", "#e8e9ea"
     parts_all = [{"file": a + "tray.stl", "color": SLATE}, {"file": a + "trackpad.stl", "color": TP_C},
-                 {"file": a + "keyboard.stl", "color": KB_C},
-                 {"file": a + "wordmark.stl", "color": "#2f7de1"}]
+                 {"file": a + "keyboard.stl", "color": KB_C}]
     base = {"out": "/renders", "size": [1200, 800], "bg": "#e6eaee", "near": 2, "far": 8000}
     ct = [(bb[0] + bb[3]) / 2, (bb[1] + bb[4]) / 2, 10.0]
     c = [ct[0] - 110, ct[1], 15.0]
@@ -269,11 +242,11 @@ def write_specs(out, bb):
         "hero": dict(base, parts=parts_all, fov=24, shadow=120, views=[
             {"name": "hero", "dir": [-0.6, -1.0, 0.8], "target": c, "zoom": 1.1, "ground": False},
             {"name": "front", "dir": [0.0, -1.0, 0.12], "target": c, "zoom": 1.1, "ground": False}]),
-        "tray": dict(base, parts=[parts_all[0], parts_all[3], parts_all[1]], fov=24, shadow=90, views=[
+        "tray": dict(base, parts=parts_all[:2], fov=24, shadow=90, views=[
             {"name": "tray-top", "dir": [0.0, -0.35, 1.0], "target": ct, "zoom": 0.95, "ground": False},
             {"name": "tray-three-quarter", "dir": [0.55, -1.0, 0.75], "target": ct, "zoom": 0.95, "ground": False},
             {"name": "tray-side", "dir": [1.0, 0.0, 0.02], "target": ct, "zoom": 0.95, "ground": False}]),
-        "tray-empty": dict(base, parts=[parts_all[0], parts_all[3]], fov=24, shadow=90, views=[
+        "tray-empty": dict(base, parts=parts_all[:1], fov=24, shadow=90, views=[
             {"name": "tray-empty", "dir": [0.5, -1.0, 0.8], "target": ct, "zoom": 0.95, "ground": False},
             {"name": "tray-underside", "dir": [0.4, -0.8, -0.9], "target": ct, "zoom": 0.95, "ground": False}]),
     }

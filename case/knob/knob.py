@@ -115,11 +115,6 @@ DOCK_MAG_D, DOCK_MAG_T = 10.0, 3.0
 DISC_D, DISC_T = 10.0, 1.0
 DOCK_MAG_X, DOCK_MAG_AT = 16.0, 22.0  # ±x; this far in from the knob's front edge
 
-# Branding: ABE・スクービー debossed in the middle of the base's front side (the face towards you)
-WORDMARK = "ABE・スクービー"
-FONT = os.environ.get("SHOKO_FONT", "/fonts/DelaGothicOne-Regular.ttf")
-WM_H, WM_DEPTH = 5.0, 0.6
-
 # ── Derived heights ─────────────────────────────────────────────────────────
 
 Z_TOP = BASE_H  # base top = press plate top
@@ -226,25 +221,6 @@ def pogo_box(grow, z0, z1):
     return box(-POGO_W / 2 - grow, POGO_W / 2 + grow, y - POGO_D / 2 - grow, y + POGO_D / 2 + grow, z0, z1)
 
 
-def wordmark_cut():
-    """The text as a cutter lying in the front (-y) side face, which leans in a few degrees."""
-    from manifold3d import FillRule
-    from matplotlib.font_manager import FontProperties
-    from matplotlib.textpath import TextPath
-    tp = TextPath((0, 0), WORDMARK, size=10, prop=FontProperties(fname=FONT))
-    polys = [p for p in tp.to_polygons() if len(p) >= 3]
-    cs = CrossSection([[(float(x), float(y)) for x, y in p] for p in polys], FillRule.EvenOdd)
-    x0, y0, x1, y1 = cs.bounds()
-    k = WM_H / (y1 - y0)
-    cs = cs.translate((-(x0 + x1) / 2, -(y0 + y1) / 2)).scale((k, k))
-    m = cs.extrude(WM_DEPTH + 1).translate((0, 0, -WM_DEPTH))  # z = outwards from the face
-    zc = (0.8 + BASE_H - TOP_CHAMFER) / 2  # middle of the straight slope
-    lean = math.atan((BASE_TOP_W - BASE_W) / 2 / (BASE_H - TOP_CHAMFER - 0.8))  # side leans in
-    u, n = (0, math.sin(lean), math.cos(lean)), (0, -math.cos(lean), math.sin(lean))
-    y = -base_width(zc) / 2
-    return m.transform(np.array([[1, 0, 0, 0], [0, u[1], n[1], y], [0, u[2], n[2], zc]], float))
-
-
 def base():
     wf, wd = base_width(FLOOR) - 2 * WALL, base_width(Z_DECK0) - 2 * WALL
     cavity = Manifold.batch_hull([rr_slab(wf, corner_r(wf) - WALL, FLOOR),
@@ -253,7 +229,6 @@ def base():
     m -= cyl(PLATE_D + 0.8, Z_DECK0 - 0.5, BASE_H + 1)  # press plate opening
     m -= box(-4.6, 4.6, 40.0, 60.0, 14.4, 17.6)  # USB-C
     m -= pogo_box(0.2, -0.01, FLOOR + 0.01)  # charging pads
-    m -= wordmark_cut()
     for sx in (-1, 1):  # steel discs for the dock's magnets
         m -= cyl(DISC_D + 0.3, -0.01, DISC_T + 0.1, sx * DOCK_MAG_X, -BASE_W / 2 + DOCK_MAG_AT, seg=48)
     for sx in (-1, 1):  # bosses for the mid frame
