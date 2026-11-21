@@ -104,7 +104,7 @@ the row here, not how many (so it's 1 sensor, 1 LRA and 1 haptic driver).
 | 2 | **TMAG5273 3D Hall sensor board**, A2 version | 1 | `Adafruit 6490`; in Sweden: Electrokit art. 41036412, 92 kr + shipping = 141 kr ("TMAG5273 (A2) - Qwiic", Adafruit; **decided 2026-11-16: buy the real Adafruit, not the 62 kr AliExpress clone**, which is often A1 and has no Qwiic). Confirm the listing says **A2** | The A2 (±133/266 mT), not the A1: strong magnets 1–2 mm away max out the A1. Add **Qwiic to 4× Dupont, cable for the board end: MALE (the board's header is a female socket, see Open questions)**, 150 mm (Electrokit "Qwiic anslutningskabel 4x stift"; the 100 mm female art. 41023467 is the wrong gender here): board header → sensor, sensor's 2nd Qwiic port → DRV2605L. Black GND → header pin 2, red 3.3 V → pin 3 (not pin 1, that's 5 V), blue SDA → pin 6 (GPIO17), yellow SCL → pin 7 (GPIO18). The sensor's INT pin is not in the Qwiic cable: one extra wire to pin 8 (GPIO16). Dupont plugs are tall, so for the final case these are probably soldered instead | 100–140 |
 | 3 | **The 24 ring magnets: neodymium discs Ø5 × 2 mm, N52, axially magnetised** | 30 (24 + 6 spare) | `S-05-02-N52N` on supermagnete.se, or on AliExpress `neodymium magnet 5x2mm N52` (50-pack) | **Buy these new, all in one batch**, so all 24 are equally strong. Your own (stronger) magnets go in the dock (#13), not the ring: 24 magnets have to fit round the ring about 10 mm apart, so Ø5 is about the limit, and bigger ones would also max out the sensor. supermagnete is about 3–4 kr each, AliExpress less | 40–120 |
 | 4 | **Bearing 6810-ZZ** (50 × 65 × 7 mm) | 1 | `6810ZZ bearing` | **ZZ** (metal shields), not 2RS (rubber seals drag). Wash out the grease and add a drop of light oil for a free spin | 50–100 |
-| 5 | **DRV2605L haptic driver board** | 1 | **Decided 2026-11-16: AliExpress `DRV2605L Haptic Motor Driver Module`** (2–5 V, has solder pins, no Qwiic) instead of `Adafruit 2305`. **Decided 2026-11-16: connect by cutting the 2nd Qwiic cable** (Dupont end off, wires soldered to the board; Qwiic end plugs into the sensor's 2nd port), so the board adds no height. Order **2 of the 150 mm male cables** in total; if it doesn't respond, tie EN to 3.3 V | Adafruit's is about 85 kr at RS Sweden; AliExpress clones about 40 kr | 40–85 |
+| 5 | **DRV2605L haptic driver board** | 1 | **Changed 2026-11-21: ordered the Adafruit 2305 from DigiKey (`1528-1346-ND`), which has Qwiic ports** (earlier plan: AliExpress module with solder pins). **Decided 2026-11-16: connect by cutting the 2nd Qwiic cable** (Dupont end off, wires soldered to the board; Qwiic end plugs into the sensor's 2nd port), so the board adds no height. Order **2 of the 150 mm male cables** in total; if it doesn't respond, tie EN to 3.3 V | Adafruit's is about 85 kr at RS Sweden; AliExpress clones about 40 kr | 40–85 |
 | 6 | **LRA click motor: Vybronics VG1040003D**, 10 mm coin (10 × 4 mm, 170 Hz, 2.5 Vrms) | 1 | `VG1040003D` (DigiKey, Mouser) | About 65 kr at DigiKey. It has contact pads, not wires: solder on two thin wires. **Same size with wires already on:** Precision Microdrives `C10-100` (10 × 3.7 mm, 175 Hz). **Cheap AliExpress option:** `0832 LRA linear vibration motor` (8 × 3.2 mm, 235 Hz, with wires; fits the same spot). It must say **LRA** or "linear": a plain "coin vibration motor" is an ERM and only buzzes. The firmware runs the DRV2605L at the LRA's own frequency (Vybronics advises open-loop at 170 Hz for this one). **Checked 2026-11-06:** no Swedish shop stocks an LRA (Electrokit, Kjell, Botland). Cheapest real one: DigiKey `VG0832012` (8 mm, 235 Hz, wires on), about 40 kr incl. moms, but DigiKey charges 170 kr shipping below 615 kr, so only order it as part of a bigger DigiKey order. Until then, start with the ERM coin motors from the AliExpress order: the DRV2605L's ERM click effects (overdrive + braking) give a short tap, softer than an LRA. An LRA salvaged from an old phone also works, since the DRV2605L finds its frequency by itself | 30–70 |
 | 7 | **Flat LiPo, ~3000 mAh**, with a protection circuit, **no bigger than 8.5 × 60 × 86 mm** | 1 | `805080 lipo 3000mAh` | The size code reads thickness-width-length: 805080 = 8 × 50 × 80 mm. The board takes a **2-pin MX1.25** plug. **Check the polarity with a multimeter before plugging in**: sellers wire it both ways | 100–150 |
 | 8 | Mouse micro switches | 3 | — | **You have these (checked 2026-11-16):** 3 × Omron D2FC-F-7N(10M), same footprint as the modelled D2F; use COM + NO only. The small square yellow-button 2-pin switches (unmarked, probably tactile) are a fallback only | 0 |
@@ -179,24 +179,24 @@ Everything in the knob and the light bar, grouped by where to buy it. **Phase** 
 
 | Item | Qty | Phase | ~kr |
 |---|---|---|---|
-| `SN74AHCT125N` (TI, DIP-14 quad level shifter) | 2 | bar | 10–30 |
-| [`VG1040003D`](https://www.digikey.se/en/products/detail/vybronics-inc/VG1040003D/10285886) LRA, or `VG0832012` (8 mm, wires on) | 1 | 2 | 40–65 |
+| **ORDERED 2026-11-21** `296-4655-5-ND` (`SN74AHCT125N`, TI, DIP-14 quad level shifter) | see order | bar | 10–30 |
+| **ORDERED 2026-11-21** `1528-1346-ND` (Adafruit 2305, DRV2605L haptic driver, Qwiic) | 1 | 2 | 90–110 |
+| **ORDERED 2026-11-21** [`1670-VG1040003D-ND`](https://www.digikey.se/en/products/detail/vybronics-inc/VG1040003D/10285886) (Vybronics VG1040003D LRA, 10 mm, pads not wires) | 1 | 2 | 40–45 |
 
-DigiKey charges about 170 kr shipping below roughly 615 kr, so the level shifter alone is a poor order. Put the LRA, and any capacitor Electrokit lacks, on the same order. AliExpress is not an option. If it is Mouser, the Adafruit DRV2605L 485-2305 is on the same site, but you chose the AliExpress module.
+Order total 415 kr + VAT/customs (placed 2026-11-21). The Adafruit board has Qwiic ports, so a normal Qwiic cable replaces the cut-and-solder plan in row 5. Solder two thin wires to the LRA's pads. Bench-test the shifter (3.3 V in, about 5 V out) before soldering.
 
 **AliExpress**
 
 | Item | Qty | Phase | ~kr |
 |---|---|---|---|
-| `DRV2605L Haptic Motor Driver Module` | 1 | 2 | 40 |
 | `neodymium magnet 5x2mm N52` (50-pack, for the 24 ring magnets, buy all at once) | 30 | 1 | 40–120 |
 | `805080 lipo 3000mAh` flat, 2-pin MX1.25, protection circuit (or the Electrokit one above) | 1 | 2 | 100–150 |
 | `USB C panel mount extension cable`, 15–20 cm | 1 | 2 | 40–80 |
-| Spare level shifter (see DigiKey above) | 2 | bar | 5–15 |
+| `10pcs SN74HCT125N DIP-14` spare shifters (HCT also reads 3.3 V as high at 5 V; optional) | 10 | bar | see order |
 
 **Other**
 - [Ring magnets Ø5×2 N52](https://www.supermagnete.se/eng/disc-magnets-neodymium/disc-magnet-5mm-2mm_S-05-02-N52N), supermagnete.se, if you prefer them to AliExpress (3–4 kr each)
-- [Bearing 6810-ZZ](https://www.tymoty.com/codex-6810-zz--61810-2z--deep-groove-ball-bearing), Tymoty
+- Bearing 6810-ZZ: sourcing map 2-pack on [Amazon.se](https://www.amazon.se/dp/B0834RP5J5) (about 169 kr, pick the ZZ shield option); Tymoty is the other source
 - [Steel BBs 4.5 mm](https://www.jula.se/catalog/fritid/fritidsaktiviteter/luftvapen-och-pilbagar/luftvapen/stalkulor-031425/), Jula (in store)
 - Silicone feet (row 10), Clas Ohlson / Biltema
 
