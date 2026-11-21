@@ -64,8 +64,8 @@
   "tip_margin_mm (centre of mass in front of the slot's back edge, rough)": 10.6
  },
  "volume_cm3": {
-  "base": 47.6,
-  "ring": 59.5,
+  "base": 47.5,
+  "ring": 54.7,
   "plate": 14.6,
   "bezel": 4.2,
   "mid_frame": 15.2,
