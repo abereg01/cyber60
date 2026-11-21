@@ -35,7 +35,7 @@ lv_obj_t *zmk_display_status_screen() {
     //     │  WPM meter + layer name                                        │  pos (10, 42)
     // 132 ├────────────────────────────────────────────────────────────────┤
     //     │  Layer dots                                                    │  pos (10, 142)
-    //     │             KATE・スクービー                                   │  bottom-anchored, offset -36
+    //     │             ABE・スクービー                                   │  bottom-anchored, offset -36
     //     │  ▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬  87%                             │  Cyber60 bar + battery, bottom-anchored, offset -2
     // 240 └────────────────────────────────────────────────────────────────┘
 
@@ -52,7 +52,7 @@ lv_obj_t *zmk_display_status_screen() {
     zmk_widget_layer_display_init(&layer_display_widget, screen);
     lv_obj_set_pos(zmk_widget_layer_display_obj(&layer_display_widget), 10, 142);
 
-    // ── KATE・スクービー wordmark (centered, bottom of screen) ────────────────
+    // ── ABE・スクービー wordmark (centered, bottom of screen) ────────────────
     // Two adjacent labels in a flex-row container so they stay tight to each
     // other and the pair stays horizontally centered regardless of glyph widths.
     lv_obj_t *wordmark = lv_obj_create(screen);
@@ -65,12 +65,12 @@ lv_obj_t *zmk_display_status_screen() {
     lv_obj_set_flex_align(wordmark, LV_FLEX_ALIGN_CENTER, LV_FLEX_ALIGN_CENTER, LV_FLEX_ALIGN_CENTER);
 
     // Three labels so each glyph group gets its own color:
-    //   KATE  → Nord8 frost blue   (DISPLAY_COLOR_MOD_ACTIVE)
+    //   ABE  → Nord8 frost blue   (DISPLAY_COLOR_MOD_ACTIVE)
     // Klor_Mixed_32 only has A–Z plus these katakana; other text needs a font regen.
     //   ・    → Nord4 snow         (DISPLAY_COLOR_LAYER_TEXT)
     //   スクービー → Nord11 red    (DISPLAY_COLOR_CONN_DISCONNECTED)
     lv_obj_t *name_label = lv_label_create(wordmark);
-    lv_label_set_text(name_label, "KATE");
+    lv_label_set_text(name_label, "ABE");
     lv_obj_set_style_text_font(name_label, &Klor_Mixed_32, LV_PART_MAIN);
     lv_obj_set_style_text_color(name_label, lv_color_hex(DISPLAY_COLOR_MOD_ACTIVE), LV_PART_MAIN);
 

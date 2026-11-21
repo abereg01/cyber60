@@ -21,7 +21,7 @@ docker image inspect cadtools:local >/dev/null 2>&1 ||
 
 echo "==> model"
 rm -rf "$WORK" && mkdir -p "$WORK/ui"
-docker run --rm --user "$(id -u):$(id -g)" -v "$HERE":/src:ro -v "$WORK":/out cadtools:local \
+docker run --rm --user "$(id -u):$(id -g)" -v "$HERE":/src:ro -v "$FONTS":/fonts:ro -v "$WORK":/out cadtools:local \
     python3 /src/knob.py /out >"$HERE/report.json"
 cat "$HERE/report.json"
 [ "${1:-all}" = model ] && exit 0

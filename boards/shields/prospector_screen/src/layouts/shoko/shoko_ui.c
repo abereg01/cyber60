@@ -654,8 +654,8 @@ void shoko_ui_create(lv_obj_t *scr, const enum shoko_mod order[SHOKO_MOD_COUNT],
         int h = 10 + i * 3;
         bars[i] = box(wpm_group, 141 + i * 9, 106 - h, 6, h, 2);
     }
-    // KATE・スクービー, in the three colours the old screen used.
-    static const char *const words[3] = {"KATE", "・", "スクービー"};
+    // ABE・スクービー, in the three colours the old screen used.
+    static const char *const words[3] = {"ABE", "・", "スクービー"};
     int32_t x = 0;
     for (int i = 0; i < 3; i++) {
         wordmark[i] = text(wpm_group, &shoko_dela_22, words[i]);
